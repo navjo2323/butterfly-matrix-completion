@@ -93,7 +93,41 @@ def get_indices(i,j,L,lc):
 
 	return inds_A,index,inds_B
 
+def get_solve_matrices(inds_A,inds_B,lst_A,lst_B,solve_layer,which,L):
+	mats_A = []
+	mats_B = []
 
+	if which == 0:
+		total_pass = len(inds_B[0])
+	else:
+		total_pass = len(inds_A[0])
+
+	for pas in range(total_pass):
+		if which ==0:
+			mats_A.append(lst_A[0][inds_A[0]])
+			mats_B.append(lst_B[0][inds_B[0][pas]])
+			for l in range(1,len(inds_A)):
+				if isinstance(inds_B[l][0],list):
+					group = pas //( total_pass//len(inds_B[l][0]))
+					mats_B.extend(lst_B[l][inds_B[l][0][group]][inds_B[l][1][pas % len(inds_B[l][0])] ])
+					mats_A.extend(lst_A[l][inds_A[l][0][group]][inds_A[l][1]])
+				else:
+					mats_B.extend(lst_B[l][inds_B[l][0]][inds_B[l][1][pas]])
+					mats_A.extend(lst_A[l][inds_A[l][0][inds_A[l][1]]])
+
+		else:
+			mats_B.append(lst_B[0][inds_B[0]])
+			mats_A.append(lst_A[0][inds_A[0][pas]])
+			for l in range(1,len(inds_B)):
+				if isinstance(inds_A[l][0],list):
+					group = pas //( total_pass//len(inds_A[l][0]))
+					mats_A.extend(lst_A[l][inds_A[l][0][group]][inds_A[l][1][pas % len(inds_A[l][0])] ])
+					mats_B.extend(lst_B[l][inds_B[l][0][group]][inds_B[l][1]])
+				else:
+					mats_A.extend(lst_A[l][inds_A[l][0]][inds_A[l][1][pas]])
+					mats_B.extend(lst_B[l][inds_B[l][0][inds_B[l][1]]])
+
+	return mats_A,mats_B
 
 
 def gen_einstr(length):
@@ -167,10 +201,16 @@ def gen_solve_einstr(which,solve_layer,L,lc):
 					B_str += chr(ord('a')+3*length+i -1) + chr(ord('a')+3*length+i) + ','
 			else:
 				# Skip the string which is to be solved
-				if which==0:
-					B_str += chr(ord('a')+3*length+i -1) + chr(ord('a')+3*length+i) + ','
-				elif which ==1:
-					A_str += chr(ord('a')+2*length+i -1) + chr(ord('a')+2*length+i) + ','
+				if i==0:
+					if which==0:
+						B_str += chr(ord('a')+length+i ) + chr(ord('a')+3*length) + ','
+					elif which ==1:
+						A_str += chr(ord('a')+i) + chr(ord('a')+2*length+i) + ','
+				else:
+					if which==0:
+						B_str += chr(ord('a')+3*length+i -1) + chr(ord('a')+3*length+i) + ','
+					elif which ==1:
+						A_str += chr(ord('a')+2*length+i -1) + chr(ord('a')+2*length+i) + ','
 		else:
 			if i != s_l:
 				A_str += chr(ord('a')+2*length+i-1) + 'w,'
@@ -181,6 +221,7 @@ def gen_solve_einstr(which,solve_layer,L,lc):
 				else:
 					B_str = B_str[:-1]
 					A_str += chr(ord('a')+ 2*length+i-1) + 'w,'
+
 
 	LHS = einstr + ',' + A_str + "wx,"+ B_str + '->'
 
@@ -198,8 +239,8 @@ def gen_solve_einstr(which,solve_layer,L,lc):
 			LHS += chr(ord('a')+length+s_l) + 'z' + chr(ord('a')+3*length+ s_l -1) + 'x'
 		else:
 			LHS += chr(ord('a')+length) + chr(ord('a')+length+s_l+1) +  chr(ord('a')+ 3*length+ s_l)
-	print(RHS)
-	print(LHS)
+	#print(RHS)
+	#print(LHS)
 	return LHS,RHS
 
 def figure_indices(solve_layer,solve_inds,which,L,lc):
@@ -386,21 +427,22 @@ def create_omega(shape,sp_frac,seed=123):
 
 
 
-m = 24*16
-n = 24*16
+m = 24*32
+n = 24*32
 
 ranks = [24,6,3]
 #rank =5
-L=1
-lc = 0
-#T,originals = construct_butterfly_mat((m,n),ranks,L=4,lc=2)
 
-#lst_A,lst_D,lst_B = gen_all_matrices(shape,ranks,L,lc)
+T,originals = construct_butterfly_mat((m,n),ranks,L=4,lc=2)
 
-inds_A,inds_B = figure_indices(solve_layer=3,solve_inds=[0,2],which=0,L=4,lc=2)
-#print(inds_A)
-#print(inds_B)
-b = gen_solve_einstr(which=1,solve_layer=4,L=4,lc=2)
+lst_A,lst_D,lst_B = gen_all_matrices((m,n),ranks,L=4,lc=2)
+
+inds_A,inds_B = figure_indices(solve_layer=4,solve_inds=2,which=0,L=4,lc=3)
+print(inds_A)
+print(inds_B)
+mats_A,mats_B = get_solve_matrices(inds_A,inds_B,lst_A,lst_B,solve_layer=4,which=0,L=4)
+
+#b = gen_solve_einstr(which=1,solve_layer=2,L=4,lc=2)
 
 # T,originals = const_butterfly_mat((m,n), rank = rank)
 
