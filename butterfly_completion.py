@@ -97,6 +97,9 @@ def get_solve_matrices(inds_A,inds_B,lst_A,lst_B,solve_layer,which,L):
 	mats_A = []
 	mats_B = []
 
+	inds_for_A = []
+	inds_for_B = []
+
 	if which == 0:
 		total_pass = len(inds_B[0])
 	else:
@@ -104,29 +107,49 @@ def get_solve_matrices(inds_A,inds_B,lst_A,lst_B,solve_layer,which,L):
 
 	for pas in range(total_pass):
 		if which ==0:
-			mats_A.append(lst_A[0][inds_A[0]])
-			mats_B.append(lst_B[0][inds_B[0][pas]])
+			mats_A.append([lst_A[0][inds_A[0]]])
+			mats_B.append([lst_B[0][inds_B[0][pas]]])
+			inds_for_A.append([inds_A[0]])
+			inds_for_B.append([inds_B[0][pas]])
 			for l in range(1,len(inds_A)):
 				if isinstance(inds_B[l][0],list):
 					group = pas //( total_pass//len(inds_B[l][0]))
-					mats_B.extend(lst_B[l][inds_B[l][0][group]][inds_B[l][1][pas % len(inds_B[l][0])] ])
-					mats_A.extend(lst_A[l][inds_A[l][0][group]][inds_A[l][1]])
+					mats_B[pas].extend(lst_B[l][inds_B[l][0][group]][inds_B[l][1][pas % int(total_pass/len(inds_B[l][0]))] ])
+					mats_A[pas].extend(lst_A[l][inds_A[l][0][group]][inds_A[l][1]])
+
+					inds_for_B[pas].extend([[inds_B[l][0][group], inds_B[l][1][pas % int(total_pass/len(inds_B[l][0]))]]])
+					inds_for_A[pas].extend([[inds_A[l][0][group],inds_A[l][1] ]])
 				else:
-					mats_B.extend(lst_B[l][inds_B[l][0]][inds_B[l][1][pas]])
-					mats_A.extend(lst_A[l][inds_A[l][0][inds_A[l][1]]])
+					mats_B[pas].extend(lst_B[l][inds_B[l][0]][inds_B[l][1][pas]])
+					mats_A[pas].extend(lst_A[l][inds_A[l][0]][inds_A[l][1]])
+					inds_for_B[pas].extend([[inds_B[l][0],inds_B[l][1][pas]]])
+					inds_for_A[pas].extend([[inds_A[l][0],inds_A[l][1]]])
+
 
 		else:
-			mats_B.append(lst_B[0][inds_B[0]])
-			mats_A.append(lst_A[0][inds_A[0][pas]])
+			inds_for_B.append([inds_B[0]])
+			inds_for_A.append([inds_A[0][pas]])
+			mats_B.append([lst_B[0][inds_B[0]]])
+			mats_A.append([lst_A[0][inds_A[0][pas]]])
 			for l in range(1,len(inds_B)):
 				if isinstance(inds_A[l][0],list):
 					group = pas //( total_pass//len(inds_A[l][0]))
-					mats_A.extend(lst_A[l][inds_A[l][0][group]][inds_A[l][1][pas % len(inds_A[l][0])] ])
-					mats_B.extend(lst_B[l][inds_B[l][0][group]][inds_B[l][1]])
-				else:
-					mats_A.extend(lst_A[l][inds_A[l][0]][inds_A[l][1][pas]])
-					mats_B.extend(lst_B[l][inds_B[l][0][inds_B[l][1]]])
+					mats_A[pas].extend(lst_A[l][inds_A[l][0][group]][inds_A[l][1][pas % int(total_pass/len(inds_A[l][0]))  ] ])
+					mats_B[pas].extend(lst_B[l][inds_B[l][0][group]][inds_B[l][1]])
 
+					inds_for_A[pas].extend([[inds_A[l][0][group], inds_A[l][1][pas % int(total_pass/len(inds_A[l][0]))]]])
+					inds_for_B[pas].extend([[inds_B[l][0][group],inds_B[l][1] ]])
+				else:
+					mats_A[pas].extend(lst_A[l][inds_A[l][0]][inds_A[l][1][pas]])
+					mats_B[pas].extend(lst_B[l][inds_B[l][0]][inds_B[l][1]])
+					inds_for_A[pas].extend([[inds_A[l][0],inds_A[l][1][pas]]])
+					inds_for_B[pas].extend([[inds_B[l][0],inds_B[l][1]]])
+
+
+	print('A',inds_for_A)
+	print('B',inds_for_B)
+
+		
 	return mats_A,mats_B
 
 
@@ -437,11 +460,12 @@ T,originals = construct_butterfly_mat((m,n),ranks,L=4,lc=2)
 
 lst_A,lst_D,lst_B = gen_all_matrices((m,n),ranks,L=4,lc=2)
 
-inds_A,inds_B = figure_indices(solve_layer=4,solve_inds=2,which=0,L=4,lc=3)
-print(inds_A)
-print(inds_B)
+inds_A,inds_B = figure_indices(solve_layer=4,solve_inds=2,which=0,L=4,lc=2)
+#print(inds_A)
+#print(inds_B)
 mats_A,mats_B = get_solve_matrices(inds_A,inds_B,lst_A,lst_B,solve_layer=4,which=0,L=4)
 
+#print(len(mats_A))
 #b = gen_solve_einstr(which=1,solve_layer=2,L=4,lc=2)
 
 # T,originals = const_butterfly_mat((m,n), rank = rank)
