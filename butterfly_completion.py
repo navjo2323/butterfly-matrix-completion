@@ -2,6 +2,7 @@ import numpy as np
 import numpy.linalg as la
 import sys
 import time
+import random
 
 
 def compute_matrix_with_butterfly(As,D,Bs):
@@ -16,9 +17,10 @@ def compute_matrix_with_butterfly(As,D,Bs):
 	return mat
 
 
-def gen_all_matrices(shape,ranks,L,lc):
+def gen_all_matrices(shape,ranks,L,lc,seed = 123):
 	m,n = shape
 	assert len(ranks) == (L-lc+1), 'length of ranks should be the same as number of layers'
+	np.random.seed(seed)
 	lst_A = []
 	lst_B = []
 	p = 0
@@ -463,8 +465,8 @@ def compute_matrix_with_butterfly_gen(lst_A, lst_D, lst_B, L, lc):
 	return big_mat
 
 
-def construct_butterfly_mat(shape,ranks,L,lc):
-	lst_A,lst_D,lst_B = gen_all_matrices(shape,ranks,L,lc)
+def construct_butterfly_mat(shape,ranks,L,lc,seed=123):
+	lst_A,lst_D,lst_B = gen_all_matrices(shape,ranks,L,lc,seed)
 	blocks = len(lst_A[0])
 	m = lst_A[0][0].shape[0]*blocks
 	n = lst_B[0][0].shape[0]*blocks
@@ -508,6 +510,14 @@ def const_butterfly_mat(shape,rank,L=1):
 	return mat,[As,D,Bs]
 
 
+def generate_identity_matrix(n, num_entries,seed):
+    np.random.seed(seed)
+    matrix = np.zeros((n, n), dtype=int)
+    for i in range(n):
+        row_indices = np.random.choice(n, num_entries, replace=False)
+        matrix[i, row_indices] = 1
+    return matrix
+
 def create_low_rank(shape,rank):
 	m,n = shape
 	A = np.random.uniform(low=-1,high = 1, size=(m,rank))
@@ -515,291 +525,186 @@ def create_low_rank(shape,rank):
 	T =  np.einsum('ir,jr->ij',A,B,optimize=True)
 	return T
 
-def create_omega(shape,sp_frac,seed=123):
-	#np.random.seed(seed)
+def create_omega(shape,sp_frac,L,seed=123):
+	np.random.seed(seed)
 	omega = np.zeros(np.prod(shape))
 	omega[:int(sp_frac*np.prod(shape))] = 1
 	np.random.shuffle(omega)
 	omega = omega.reshape(shape)
+	# omega = np.zeros(shape)
+	# rows = np.arange(int(shape[0]/2**L)) # assuming square shape
+	# for i in range(2**L):
+	# 	for j in range(2**L):
+	# 		#M = np.zeros((int(shape[0]/2**lc), int(shape[0]/2**lc)))
+	# 		M = generate_identity_matrix(int(shape[0]/2**L),num_entries=3,seed=seed)
+	# 		#inds = random.sample(list(rows), len(rows))
+	# 		#print('shape of M',M.shape)
+	# 		#for row in range(len(rows)):
+	# 		#		M[row,inds[row]] = 1
+	# 		omega[i*int(shape[0]/2**L):(i+1)*int(shape[0]/2**L),j*int(shape[0]/2**L):(j+1)*int(shape[0]/2**L)] = M
+	# print('Percentage of nonzeros in Omega is',(np.sum(np.sum(omega))/ np.prod(shape))*100,'%')
 	return omega
 
 
 
-m = 64*16
-n = 64*16
+#m = 64*16
+#n = 64*16
 
-L = 4
-lc= 2
+m = 20*(2**8)
+n = 20*(2**8)
+#L = 4
+#lc= 2
 
-ranks = [64,8,2]
+#ranks = [64,8,2]
+
+L = 8
+
+lc = 4
+#ranks = [10,8,6]
+#ranks = [ 2,2,2,2]
+ranks = [ 2,2,2,2,2]
 #rank =3 
 
-T,originals = construct_butterfly_mat((m,n),ranks,L=L,lc=lc)
+start = time.time()
+T,originals = construct_butterfly_mat((m,n),ranks,L=L,lc=lc,seed=523)
+end = time.time()
+#print('time taken',end -start)
+# 523
+#123
+# 31232
 
-lst_A,lst_D,lst_B = gen_all_matrices((m,n),ranks,L=L,lc=lc)
+# lst_D = originals[1][:]
 
-lst_D = originals[1][:]
+# lst_B = originals[2][:]
 
-lst_B = originals[2][:]
-
-lst_A= originals[0][:]
-
-
-#inds_A,inds_B = figure_indices(solve_layer=3,solve_inds=[0,0],which=0,L=L,lc=lc)
-
-# print('inds_A',inds_A)
-# print('inds_B',inds_B)
-#mats_A,mats_B,inds_for_A,inds_for_B = get_solve_matrices(inds_A,inds_B,lst_A,lst_B,solve_layer=3,solve_index = [0,0],which=0,L=L)
+# lst_A= originals[0][:]
 
 
 
+sparse = [0.1]
 
+num_iter= 500
+regu = 1e-14
 
-#print(len(mats_A))
-# b = gen_solve_einstr(which=1,solve_layer=4,L=4,lc=2)
+errors = []
 
-# T,originals = const_butterfly_mat((m,n), rank = rank)
-
-# As = [np.random.uniform(low=-1,high = 1, size=(int(m/2),rank)) for i in range(2)]
-# D = np.random.uniform(low=-1,high = 1, size=(2*rank,2*rank))
-# Bs = [np.random.uniform(low=-1,high = 1, size=(int (n/2),rank)) for i in range(2)]
-
-
-Omega = create_omega(T.shape,sp_frac=0.1,seed = 31232)
-
-T_sparse = np.einsum('ij,ij->ij',T,Omega,optimize=True)
-num_iter= 1
-regu = 0
-
-# recon = compute_matrix_with_butterfly(As,D,Bs)
-# error = la.norm(T - recon)
-# print('Initial relative error is ',error/la.norm(T))
-
-# print('starting solve')
-# recon = compute_matrix_with_butterfly_gen(lst_A, lst_D, lst_B,L = L ,lc=lc)
-# error = la.norm(T - recon)/la.norm(T)
-# print('relative error before starting is',error)
-
-
-# LHS = np.zeros((ranks[0]*ranks[1],ranks[0]*ranks[1]))
-# RHS = np.zeros((ranks[0]*ranks[1]))
-
-# LHS+= np.einsum('ac,ab,yz,cd,dz,ae,wx,cg,gx->byew',Omega[:int(m/4), :int(n/4)],lst_A[0][0],lst_D[0],lst_B[0][0],lst_B[1][0][0],
-# 	lst_A[0][0],lst_D[0],lst_B[0][0],lst_B[1][0][0],optimize=True).reshape((ranks[0]*ranks[1],ranks[0]*ranks[1]))
-# RHS += np.einsum('ac,ab,yz,cd,dz->by',T_sparse[: int(m/4), : int(n/4)],lst_A[0][0],lst_D[0],lst_B[0][0],lst_B[1][0][0],
-# 	optimize=True).reshape(-1)
-
-# LHS+= np.einsum('ac,ab,yz,cd,dz,ae,wx,cg,gx->byew',Omega[: int(m/4), int(n/4):int(n/2)],lst_A[0][0],lst_D[1],lst_B[0][1],lst_B[1][0][1],
-# 	lst_A[0][0],lst_D[1],lst_B[0][1],lst_B[1][0][1],optimize=True).reshape((ranks[0]*ranks[1],ranks[0]*ranks[1]))
-# RHS += np.einsum('ac,ab,yz,cd,dz->by',T_sparse[: int(m/4), int(n/4): int(n/2)],lst_A[0][0],lst_D[1],lst_B[0][1],lst_B[1][0][1],
-# 	optimize=True).reshape(-1)
-# lst_A[1][0][0] = la.solve(LHS,RHS).reshape((ranks[0],ranks[1]))
-
-# print('starting solve')
-# recon = compute_matrix_with_butterfly_gen(lst_A, lst_D, lst_B,L = L ,lc=1)
-# error = la.norm(T - recon)/la.norm(T)
-# print('relative error  is',error)
-
-
-# for iters in range(num_iter):
-# 	#Solve for D
-# 	for i in range(2):
-# 		for j in range(2):
-# 			LHS = np.einsum('iz,jr,ij,il,jm->zrlm',As[i],Bs[j],Omega[i*int(m/2):(i+1)*int(m/2),
-# 				j*int(n/2):(j+1)*int(n/2)],As[i],Bs[j],optimize=True).reshape((rank*rank,rank*rank))
-# 			RHS = np.einsum('ij,iz,jr->zr',T_sparse[i*int(m/2):(i+1)*int(m/2),j*int(n/2):(j+1)*int(n/2)],
-# 				As[i],Bs[j],optimize=True).reshape(-1)
-# 			if not np.allclose(RHS,np.zeros(rank*rank)):
-# 				D[i*rank:(i+1)*rank,j*rank:(j+1)*rank] = la.solve(LHS + regu*np.eye(rank*rank),RHS).reshape((rank,rank)) #SPD Solve
-
-
-# 	#Solve for A
-# 	for i in range(2):
-# 		LHS = np.zeros((int(T.shape[0]/2),rank,rank))
-# 		RHS = np.zeros((int(T.shape[0]/2),rank))
-# 		for j in range(2):
-# 			LHS += np.einsum('jr,zr,ij,jp,lp->izl',Bs[j],D[i*rank:(i+1)*rank,j*rank:(j+1)*rank],Omega[i*int(m/2):(i+1)*int(m/2),j*int(n/2):(j+1)*int(n/2)],
-# 				Bs[j],D[i*rank:(i+1)*rank,j*rank:(j+1)*rank],optimize=True)
-# 			RHS += np.einsum('ij,jr,lr->il',T_sparse[i*int(m/2):(i+1)*int(m/2),j*int(n/2):(j+1)*int(n/2)],Bs[j],D[i*rank:(i+1)*rank,j*rank:(j+1)*rank],optimize=True)
-		
-# 		for p in range(LHS.shape[0]):
-# 			if not np.allclose(RHS[p,:],np.zeros(rank)):
-# 				As[i][p,:] = la.solve(LHS[p] + regu*np.eye(rank),RHS[p,:]) #SPD Solve
-
-
-# 	# Solve for B
-# 	for j in range(2):
-# 		LHS = np.zeros((int(T.shape[1]/2),rank,rank))
-# 		RHS = np.zeros((int(T.shape[1]/2),rank))
-# 		for i in range(2):
-# 			LHS += np.einsum('ir,rz,ij,ip,pl->jzl',As[i],D[i*rank:(i+1)*rank,j*rank:(j+1)*rank],Omega[i*int(m/2):(i+1)*int(m/2),j*int(n/2):(j+1)*int(n/2)],
-# 				As[i],D[i*rank:(i+1)*rank,j*rank:(j+1)*rank],optimize=True)
-# 			RHS += np.einsum('ij,ir,rl->jl',T_sparse[i*int(m/2):(i+1)*int(m/2),j*int(n/2):(j+1)*int(n/2)],As[i],D[i*rank:(i+1)*rank,j*rank:(j+1)*rank],optimize=True)
-		
-# 		for p in range(LHS.shape[0]):
-# 			if not np.allclose(RHS[p,:],np.zeros(rank)):
-# 				Bs[j][p,:] = la.solve(LHS[p] + regu*np.eye(rank),RHS[p,:]) #SPD Solve
-	
-# 	recon = compute_matrix_with_butterfly(As,D,Bs)
-# 	error = la.norm(T - recon)
-# 	print('Relative error is ',error/la.norm(T))
-
-# 	rel_err = error/la.norm(T)
-# 	if rel_err < 1e-14:
-# 		print('Converged in',iters)
-# 		break
-
-
-print('starting solve')
-recon = compute_matrix_with_butterfly_gen(lst_A, lst_D, lst_B,L = L ,lc=lc)
-error = la.norm(T - recon)/la.norm(T)
-print('relative error before starting is',error)
-for iters in range(num_iter):
-	# Solve for each level
-	p= 0
-	for s_l in range(L-1,lc-1,-1):
-		inds =  gen_indices(L=L,s_l=s_l)
-		s_l_lst = L-s_l
-		for w in range(2):
-			for ind in inds:
-				inds_A,inds_B = figure_indices(solve_layer=s_l,solve_inds=ind,which=w,L= L,lc= lc)
-				mats_A,mats_B,inds_for_A,inds_for_B = get_solve_matrices(inds_A,inds_B,lst_A,lst_B,solve_layer= s_l, solve_index = ind,which=w,L=L)
-				if w==0:
-					omega_T_indices = [ [inds_for_A[l][0], inds_for_B[l][0]] for l in range(len(inds_for_B))]
-				else:
-					omega_T_indices =  [ [inds_for_A[l][0], inds_for_B[l][0]] for l in range(len(inds_for_A))]
-
-				if s_l == L:
-					if w == 0:
-						omega_T_indices = [ [ind, el[1]] for el in omega_T_indices ]
-						LHS = np.zeros((lst_A[0][ind].shape[0],ranks[0],ranks[0]))
-						RHS = np.zeros((lst_A[0][ind].shape[0], ranks[0]))
-					else:
-						omega_T_indices = [ [el[0], ind] for el in omega_T_indices ]
-						LHS = np.zeros((lst_B[0][ind].shape[0],ranks[0],ranks[0]))
-						RHS = np.zeros((lst_B[0][ind].shape[0],ranks[0]))
-
-				else:
-					LHS = np.zeros((ranks[p]*ranks[(p+1)], ranks[p]*ranks[(p+1)]))
-					RHS = np.zeros((ranks[p]*ranks[(p+1)]))
-
-				# loop through solve matrices
-
-				LHS_e,RHS_e = gen_solve_einstr(which=w,solve_layer=s_l,L=L,lc=lc)
-				#print('inds_A',inds_A)
-				#print('inds_B',inds_B)
-				#print('LHS',LHS_e)
-				#print('RHS',RHS_e)
-				#print('taotal legnth A',len(mats_A))
-				#print('otatal lenght B',len(mats_B))
-
-				for l in range(len(mats_A)):
-					if s_l != lc:
-						D_index =  inds_for_A[l][-1][0]*(2**(2*lc)) + inds_for_A[l][-1][1]*(2**lc) + inds_for_B[l][-1][1]
-						
-					else:
-						if w==0:
-							D_index =  ind[0]*(2**(2*lc)) + ind[1]*(2**lc) + inds_for_B[l][-1][1]
-						else:
-							D_index =  inds_for_A[l][-1][0]*(2**(2*lc)) + inds_for_A[l][-1][1]*(2**lc) + ind[1]
-
-					if s_l != L:
-						# LHS += np.einsum(LHS_e,Omega[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/ 2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],lst_D[D_index],*mats_B[l],*mats_A[l],lst_D[D_index],*mats_B[l],
-						# 	optimize=True).reshape((ranks[p]*ranks[(p+1)], ranks[p]*ranks[(p+1)]))
-						# RHS += np.einsum(RHS_e,T_sparse[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],lst_D[D_index],*mats_B[l],
-						# 	optimize=True).reshape(-1)
-
-						LHS += np.einsum(LHS_e,Omega[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/ 2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],*mats_B[l],*mats_A[l],*mats_B[l],
-							optimize=True).reshape((ranks[p]*ranks[(p+1)], ranks[p]*ranks[(p+1)]))
-						RHS += np.einsum(RHS_e,T_sparse[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],*mats_B[l],
-							optimize=True).reshape(-1)
-					else:
-						# LHS += np.einsum(LHS_e,Omega[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/ 2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],lst_D[D_index],*mats_B[l],*mats_A[l],lst_D[D_index],*mats_B[l],
-						# 	optimize=True)
-						# RHS += np.einsum(RHS_e,T_sparse[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],lst_D[D_index],*mats_B[l],
-						# 	optimize=True)
-
-						LHS += np.einsum(LHS_e,Omega[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/ 2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],*mats_B[l],*mats_A[l],*mats_B[l],
-							optimize=True)
-						RHS += np.einsum(RHS_e,T_sparse[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],*mats_B[l],
-							optimize=True)
-				# Perform the solve
-				if s_l ==L:
-					for row in range(LHS.shape[0]):
-						if not np.allclose(RHS[row,:],np.zeros_like(RHS[row,:])):
-							if w ==0:
-								lst_A[0][ind][row,:] = la.solve(LHS[row] + regu* np.eye(ranks[0]),RHS[row,:])
-							else:
-								lst_B[0][ind][row,:] = la.solve(LHS[row] + regu* np.eye(ranks[0]),RHS[row,:])
-				else:
-					if not np.allclose(RHS,np.zeros_like(RHS)):
-						if w==0:
-							lst_A[s_l_lst][ind[0]][ind[1]] = la.solve(LHS + regu* np.eye(ranks[p]*ranks[(p+1)]), RHS).reshape((ranks[p],ranks[(p+1)]))
-						else:
-							lst_B[s_l_lst][ind[0]][ind[1]] = la.solve(LHS + regu* np.eye(ranks[p]*ranks[(p+1)]), RHS).reshape((ranks[p],ranks[(p+1)]))
-
-		# incrementing rank parameter as we get to next layer
-		p+=1
-	recon = compute_matrix_with_butterfly_gen(lst_A, lst_D, lst_B, L = L ,lc=lc)
+for sp in sparse:
+	lst_A,lst_D,lst_B = gen_all_matrices((m,n),ranks,L=L,lc=lc,seed= 143)
+	Omega = create_omega(T.shape,sp_frac=sp,L=L,seed = 122)
+	T_sparse = np.einsum('ij,ij->ij',T,Omega,optimize=True)
+	print('starting solve')
+	print('L and lc',L,lc)
+	print('shape of matrix is',m,n)
+	print('ranks are',ranks)
+	print('number of entries available',int(sp* (m*n)), 'or',sp*100,'%')
+	recon = compute_matrix_with_butterfly_gen(lst_A, lst_D, lst_B,L = L ,lc=lc)
 	error = la.norm(T - recon)/la.norm(T)
-	print('relative error after',iters,'is',error)
-	#error2 = la.norm(T_sparse - np.einsum('ij,ij->ij',Omega,recon,optimize=True))
-	#print('sparse absolute error is',iters,'is',error2)
+	print('relative error before starting is',error)
+	for iters in range(num_iter):
+		# Solve for each level
+		#Omega = create_omega(T.shape,sp_frac=sp,seed = 31232)
+		#T_sparse = np.einsum('ij,ij->ij',T,Omega,optimize=True)
+		p= -1
+		for s_l in range(L,lc-1,-1):
+			inds =  gen_indices(L=L,s_l=s_l)
+			s_l_lst = L-s_l
+			for w in range(2):
+				for ind in inds:
+					inds_A,inds_B = figure_indices(solve_layer=s_l,solve_inds=ind,which=w,L= L,lc= lc)
+					mats_A,mats_B,inds_for_A,inds_for_B = get_solve_matrices(inds_A,inds_B,lst_A,lst_B,solve_layer= s_l, solve_index = ind,which=w,L=L)
+					if w==0:
+						omega_T_indices = [ [inds_for_A[l][0], inds_for_B[l][0]] for l in range(len(inds_for_B))]
+					else:
+						omega_T_indices =  [ [inds_for_A[l][0], inds_for_B[l][0]] for l in range(len(inds_for_A))]
 
-# Solve for L=1, lc =0. Test 
+					if s_l == L:
+						if w == 0:
+							omega_T_indices = [ [ind, el[1]] for el in omega_T_indices ]
+							LHS = np.zeros((lst_A[0][ind].shape[0],ranks[0],ranks[0]))
+							RHS = np.zeros((lst_A[0][ind].shape[0], ranks[0]))
+						else:
+							omega_T_indices = [ [el[0], ind] for el in omega_T_indices ]
+							LHS = np.zeros((lst_B[0][ind].shape[0],ranks[0],ranks[0]))
+							RHS = np.zeros((lst_B[0][ind].shape[0],ranks[0]))
 
-# for iters in range(num_iter):
+					else:
+						LHS = np.zeros((ranks[p]*ranks[(p+1)], ranks[p]*ranks[(p+1)]))
+						RHS = np.zeros((ranks[p]*ranks[(p+1)]))
 
-# 	# Solve for all Ds first
-# 	for d in range(len(lst_D)):
-# 		# Each d gives a mapping back to i,j
-# 		i = int(d/2)
-# 		j = d%2
-# 		LHS = np.einsum('al,ab,br,lm,mz, ap,pq,ls,st->rzqt',Omega[i*int(m/2):(i+1)*int(m/2),j*int(n/2):(j+1)*int(n/2)],lst_A[0][i],lst_A[1][d],lst_B[0][j],lst_B[1][d], 
-# 			lst_A[0][i],lst_A[1][d],lst_B[0][j],lst_B[1][d],optimize=True).reshape((ranks[-1]*ranks[-1],ranks[-1]*ranks[-1]))
-# 		RHS = np.einsum('al,ab,br,lm,mz->rz',T_sparse[i*int(m/2):(i+1)*int(m/2),j*int(n/2):(j+1)*int(n/2)],lst_A[0][i],lst_A[1][d],lst_B[0][j],lst_B[1][d],
-# 			optimize=True).reshape(-1)
-# 		lst_D[d] = la.solve(LHS + regu*np.eye(ranks[-1]*ranks[-1]),RHS).reshape((ranks[-1],ranks[-1]))
+					# loop through solve matrices
 
+					LHS_e,RHS_e = gen_solve_einstr(which=w,solve_layer=s_l,L=L,lc=lc)
+					#print('inds_A',inds_A)
+					#print('inds_B',inds_B)
+					#print('LHS',LHS_e)
+					#print('RHS',RHS_e)
+					#print('taotal legnth A',len(mats_A))
+					#print('otatal lenght B',len(mats_B))
+					#print('inds_for_A',inds_for_A)
+					#print('inds_for_B',inds_for_B)
+					#recon = compute_matrix_with_butterfly_gen(lst_A, lst_D, lst_B,L = L ,lc=lc)
+					#recon_sp = np.einsum('ij,ij->ij',recon,Omega,optimize=True)
+					#right_hand_side = T_sparse - recon_sp
+					right_hand_side = T_sparse 
 
-# 	# Solve for level 1 As
+					for l in range(len(mats_A)):
+						if s_l != lc:
+							D_index =  inds_for_A[l][-1][0]*(2**(2*lc)) + inds_for_A[l][-1][1]*(2**lc) + inds_for_B[l][-1][1]
+							
+						else:
+							if w==0:
+								D_index =  ind[0]*(2**(2*lc)) + ind[1]*(2**lc) + inds_for_B[l][-1][1]
+							else:
+								D_index =  inds_for_A[l][-1][0]*(2**(2*lc)) + inds_for_A[l][-1][1]*(2**lc) + ind[1]
+						
+						#right_hand_side = T_sparse[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)] 
+						if s_l != L:
+							# LHS += np.einsum(LHS_e,Omega[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/ 2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],lst_D[D_index],*mats_B[l],*mats_A[l],lst_D[D_index],*mats_B[l],
+							# 	optimize=True).reshape((ranks[p]*ranks[(p+1)], ranks[p]*ranks[(p+1)]))
+							# RHS += np.einsum(RHS_e,T_sparse[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],lst_D[D_index],*mats_B[l],
+							# 	optimize=True).reshape(-1)
+							
+							LHS += np.einsum(LHS_e,Omega[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/ 2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],*mats_B[l],*mats_A[l],*mats_B[l],
+								optimize=True).reshape((ranks[p]*ranks[(p+1)], ranks[p]*ranks[(p+1)]))
+							RHS += np.einsum(RHS_e,right_hand_side[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)] ,*mats_A[l],*mats_B[l],
+								optimize=True).reshape(-1)
+						else:
+							# LHS += np.einsum(LHS_e,Omega[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/ 2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],lst_D[D_index],*mats_B[l],*mats_A[l],lst_D[D_index],*mats_B[l],
+							# 	optimize=True)
+							# RHS += np.einsum(RHS_e,T_sparse[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],lst_D[D_index],*mats_B[l],
+							# 	optimize=True)
 
-# 	for d in range(len(lst_A[1])):
-# 		i = int(d/2)
-# 		j = d%2
-# 		LHS = np.einsum('al,ar,lm,mn,zn,ap,lm,mn,qn->rzpq',Omega[i*int(m/2):(i+1)*int(m/2),j*int(n/2):(j+1)*int(n/2)],
-# 			lst_A[0][i],lst_B[0][j],lst_B[1][d],
-# 			lst_D[d],lst_A[0][i],lst_B[0][j],lst_B[1][d],
-# 			lst_D[d], optimize=True).reshape((ranks[-2]*ranks[-1],ranks[-2]*ranks[-1]))
-# 		RHS =  np.einsum('al,ar,lm,mn,zn->rz',T_sparse[i*int(m/2):(i+1)*int(m/2),j*int(n/2):(j+1)*int(n/2)],lst_A[0][i],lst_B[0][j],lst_B[1][d],
-# 			lst_D[d],optimize=True).reshape(-1)
+							LHS += np.einsum(LHS_e,Omega[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/ 2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)],*mats_A[l],*mats_B[l],*mats_A[l],*mats_B[l],
+								optimize=True)
+							RHS += np.einsum(RHS_e,right_hand_side[omega_T_indices[l][0]*int(m/2**L):(omega_T_indices[l][0]+1)*int(m/2**L),omega_T_indices[l][1]*int(n/2**L):(omega_T_indices[l][1]+1)*int(n/2**L)] ,*mats_A[l],*mats_B[l],
+								optimize=True)
+					# Perform the solve
+					if s_l ==L:
+						for row in range(LHS.shape[0]):
+							if not np.allclose(RHS[row,:],np.zeros_like(RHS[row,:])):
+								if w ==0:
+									lst_A[0][ind][row,:] = la.solve(LHS[row] + regu* np.eye(ranks[0]),RHS[row,:])
+								else:
+									lst_B[0][ind][row,:] = la.solve(LHS[row] + regu* np.eye(ranks[0]),RHS[row,:])
+					else:
+						if not np.allclose(RHS,np.zeros_like(RHS)):
+							if w==0:
+								lst_A[s_l_lst][ind[0]][ind[1]] = la.solve(LHS + regu* np.eye(ranks[p]*ranks[(p+1)]), RHS).reshape((ranks[p],ranks[(p+1)]))
+							else:
+								lst_B[s_l_lst][ind[0]][ind[1]] = la.solve(LHS + regu* np.eye(ranks[p]*ranks[(p+1)]), RHS).reshape((ranks[p],ranks[(p+1)]))
 
+				#	print('finished ind',ind,'for w',w,'layer',s_l)
+				#print('finished w',w,'for layer',s_l)
+			# incrementing rank parameter as we get to next layer
+			p+=1
+		recon = compute_matrix_with_butterfly_gen(lst_A, lst_D, lst_B, L = L ,lc=lc)
+		error = la.norm(T - recon)/la.norm(T)
+		print('relative error after iter',iters+1,'is',error)
+		if error< 1e-8:
+			print('converged')
+			break
+					
+		error2 = la.norm(T_sparse - np.einsum('ij,ij->ij',Omega,recon,optimize=True))
+		print('sparse absolute error is',iters+1,'is',error2)
+	errors.append(error)
 
-# 	# Solve for level 1 Bs
-
-# 	for d in range(len(lst_B[1])):
-# 		i = int(d/2)
-# 		j = d%2
-# 		LHS = np.einsum('la,ar,lm,mn,nz,ap,lm,mn,nq->rzpq',Omega[i*int(m/2):(i+1)*int(m/2),j*int(n/2):(j+1)*int(n/2)],lst_B[0][j],lst_A[0][i],lst_A[1][d],
-# 			lst_D[d],lst_B[0][j],lst_A[0][i],lst_A[1][d],
-# 			lst_D[d], optimize=True).reshape((ranks[-2]*ranks[-1],ranks[-2]*ranks[-1]))
-# 		RHS =  np.einsum('la,ar,lm,mn,nz->rz',T_sparse[i*int(m/2):(i+1)*int(m/2),j*int(n/2):(j+1)*int(n/2)],lst_B[0][j],lst_A[0][i],lst_A[1][d],
-# 			lst_D[d],optimize=True).reshape(-1)
-
-
-# 	# Solve for level 0 As
-
-# 	for i in range(len(lst_A[0])):
-# 		LHS = np.zeros((lst_A[0].shape[0],lst_A[0].shape[1],lst_A[0].shape[1]))
-# 		for j in range(len(lst_B[0])):
-# 			LHS += np.einsum('ij,jk,kl,ml,rm,jd,de,fe,zf->irz',Omega[i*int(m/2):(i+1)*int(m/2),j*int(n/2):(j+1)*int(n/2)],
-# 				lst_B[0][j],lst_B[1][],lst_D[],lst_A[1][],lst_B[0][j],lst_B[1][],lst_D[],lst_A[1][] ,optimize=True)
-
-# 			RHS += np.einsum()
-
-# 		for p in range(lst_A[0].shape[0]):
-
-
-
-
-	# Solve for level 0 Bs
