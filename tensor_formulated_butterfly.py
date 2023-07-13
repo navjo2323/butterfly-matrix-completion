@@ -87,7 +87,102 @@ def const_butterfly_tensor(m,n,L,lc):
 	return T,[left,g_lst,h_lst,right]
 
 
-L = 10
+def gen_rhs_einsum(l,w,L,lc):
+	assert(l >= lc and l<= L)
+	left = "".join([chr(ord('a')+j) for j in range(L +1)])
+	right = "".join([chr(ord('A')+j) for j in range(L +1)])
+
+	tensor_inds = left + right
+
+	left_side_ranks = ""
+	right_side_ranks = ""
+	for j in range(L+1 , L+1 + L-lc+1 ):
+		left_side_ranks += chr(ord('a') + j)
+		right_side_ranks += chr(ord('A') + j)
+
+	# Connect the last index of ranks
+	left_side_ranks = left_side_ranks[:-1]+'z'
+	right_side_ranks = right_side_ranks[:-1]+'z'
+
+	left_tensor_inds = left+ left_side_ranks[0]
+	right_tensor_inds = right+ right_side_ranks[0]
+
+	left_lst_inds = []
+	right_lst_inds = []
+
+
+	left_side_ranks2 = ""
+	right_side_ranks2 = ""
+	for j in range(L+1 + L-lc+1, L+1 + L-lc+1 + L-lc+1 ):
+		left_side_ranks2 += chr(ord('a') + j)
+		right_side_ranks2 += chr(ord('A') + j)
+
+	left_side_ranks2 = left_side_ranks2[:-1]+'Z'
+	right_side_ranks2 = right_side_ranks2[:-1]+'Z'
+
+	left_tensor_inds2 = left + left_side_ranks2[0]
+	right_tensor_inds2 = right + right_side_ranks2[0]
+
+	left_lst_inds2 = []
+	right_lst_inds2 = []
+
+
+	rhs_string = tensor_inds + ','
+	lhs_string = ''
+
+	if l==L:
+		for layer in range(lc):
+			left_lst_inds.append(left[:-(layer+1)]+right[:layer+1]+left_side_ranks[layer:layer+2])
+			right_lst_inds.append(left[:layer+1]+right[:-(layer+1)]+right_side_ranks[layer:layer+2])
+
+			left_lst_inds2.append(left[:-(layer+1)]+right[:layer+1]+left_side_ranks2[layer:layer+2])
+			right_lst_inds2.append(left[:layer+1]+right[:-(layer+1)]+right_side_ranks2[layer:layer+2])
+
+		if w==0:
+			output = left + left_side_ranks[0]
+			output2 = output + left_side_ranks2[0]
+			rhs_string += ', '.join(left_lst_inds)+ ','+ ', '.join(right_lst_inds[::-1]) +','+ right_tensor_inds
+			lhs_string += rhs_string + ',' + ', '.join(left_lst_inds2)+ ','+ ', '.join(right_lst_inds2[::-1]) +','+ right_tensor_inds2
+		else:
+			output = right + right_side_ranks[0]
+			output2 = output + right_side_ranks2[0]
+			rhs_string += left_tensor_inds+',' + ', '.join(left_lst_inds)+ ','+ ', '.join(right_lst_inds[::-1])		
+			lhs_string += rhs_string + ',' + left_tensor_inds2 +',' + ', '.join(left_lst_inds2)+ ','+ ', '.join(right_lst_inds2[::-1])		
+	
+	else:
+		l_trans = L-l -1
+		for layer in range(lc):
+			if layer !=l_trans:
+				left_lst_inds.append(left[:-(layer+1)]+right[:layer+1]+left_side_ranks[layer:layer+2])
+				right_lst_inds.append(left[:layer+1]+right[:-(layer+1)]+right_side_ranks[layer:layer+2])
+
+				left_lst_inds2.append(left[:-(layer+1)]+right[:layer+1]+left_side_ranks2[layer:layer+2])
+				right_lst_inds2.append(left[:layer+1]+right[:-(layer+1)]+right_side_ranks2[layer:layer+2])
+			else:
+				if w ==0:
+					output = left[:-(layer +1)]+right[:layer+1]+left_side_ranks[layer:layer+2]
+					right_lst_inds.append(left[:layer+1]+right[:-(layer+1)]+right_side_ranks[layer:layer+2])
+					right_lst_inds2.append(left[:layer+1]+right[:-(layer+1)]+right_side_ranks2[layer:layer+2])
+					output2 = output + left_side_ranks2[layer:layer+2]
+				else:
+					output = left[:layer+1]+right[:-(layer+1)]+right_side_ranks[layer:layer+2]
+					output2 = output + right_side_ranks2[layer:layer+2]
+					left_lst_inds.append(left[:-(layer+1)]+right[:layer+1]+left_side_ranks[layer:layer+2])
+					left_lst_inds2.append(left[:-(layer+1)]+right[:layer+1]+left_side_ranks2[layer:layer+2])
+					
+
+		rhs_string += left_tensor_inds +',' + ', '.join(left_lst_inds) + ',' + ', '.join(right_lst_inds[::-1]) + ',' + right_tensor_inds
+		lhs_string += rhs_string + ',' + left_tensor_inds2 + ',' + ', '.join(left_lst_inds2) + ',' + ', '.join(right_lst_inds2[::-1]) + ',' + right_tensor_inds2
+	
+
+	rhs_string += '->' + output
+	lhs_string += '->' + output2
+	
+	return rhs_string,lhs_string
+
+
+
+L = 4
 
 m = 20*(2**L)
 n = 20*(2**L)
@@ -97,10 +192,14 @@ lc = int(L/2)
 ranks = [2 for _ in range(L-lc+1)]
 
 #left,g_lst,h_lst,right = const_input_via_tensor(m,n,L,lc,ranks)
-#gen_einsum_string(L=L,lc=lc)
+einstr = gen_einsum_string(L=L,lc=lc)
 
-start = time.time()
-T, originals = const_butterfly_tensor(m,n,L,lc)
-end = time.time()
 
-print('time taken is',end-start)
+# start = time.time()
+# T, originals = const_butterfly_tensor(m,n,L,lc)
+# end = time.time()
+# print('time taken is',end-start)
+
+einstr1,einstr2 = gen_rhs_einsum(l=4,w=1,L=L,lc= lc)
+print(einstr1)
+print(einstr2)
