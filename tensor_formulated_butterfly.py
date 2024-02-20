@@ -41,7 +41,7 @@ def gen_einsum_string(L,lc):
 	return full_string
 
 
-def gen_tensor_inputs(m,n,L,lc,ranks):
+def gen_tensor_inputs(m,n,L,lc,ranks,rng):
 	block_m = int(m/2**L)
 	block_n = int(n/2**L)
 	shape = [2 for l in range(2*L)]
@@ -56,9 +56,8 @@ def gen_tensor_inputs(m,n,L,lc,ranks):
 	sh2.append(block_n)
 	sh2.append(ranks[0])
 
-	left = np.random.uniform(-1,1,size=(sh1))
-	right = np.random.uniform(-1,1,size=(sh2))
-
+	left = rng.uniform(-1,1,size=(sh1))
+	right = rng.uniform(-1,1,size=(sh2))
 	g_lst = []
 	h_lst = []
 	sh1.pop(-2)
@@ -68,8 +67,8 @@ def gen_tensor_inputs(m,n,L,lc,ranks):
 
 	p=2
 	for l in range(lc):
-		g_lst.append(np.random.uniform(-1,1,size=(sh2[:(l+1)] + sh1)))
-		h_lst.append(np.random.uniform(-1,1,size=(sh1[:(l+1)] +sh2)))
+		g_lst.append(rng.uniform(-1,1,size=(sh2[:(l+1)] + sh1)))
+		h_lst.append(rng.uniform(-1,1,size=(sh1[:(l+1)] +sh2)))
 
 		if l != lc-1:
 			sh1.pop(0)
@@ -82,16 +81,16 @@ def gen_tensor_inputs(m,n,L,lc,ranks):
 
 	return left,g_lst,h_lst,right
 
-def const_butterfly_tensor(m,n,L,lc):
-	left,g_lst,h_lst,right = gen_tensor_inputs(m,n,L,lc,ranks)
+def const_butterfly_tensor(m,n,L,lc,ranks,rng):
+	left,g_lst,h_lst,right = gen_tensor_inputs(m,n,L,lc,ranks,rng)
 	strng = gen_einsum_string(L,lc)
 	T = np.einsum(strng,left,*g_lst,*h_lst[::-1],right,optimize=True)
 	return T,[left,g_lst,h_lst,right]
 
-def create_omega(shape,sp_frac,L,seed=123):
-	np.random.seed(seed)
+def create_omega(shape,nnz,L,rng):
+	#np.random.seed(seed)
 	omega = np.zeros(np.prod(shape))
-	omega[:int(sp_frac*np.prod(shape))] = 1
+	omega[:int(nnz)] = 1
 	np.random.shuffle(omega)
 	omega = omega.reshape(shape)
 	#omega = np.zeros(shape)
@@ -111,7 +110,7 @@ def create_omega(shape,sp_frac,L,seed=123):
 	# print('Percentage of nonzeros in Omega is',(np.sum(np.sum(omega))/ np.prod(shape))*100,'%')
 	return omega
 
-def recon_butterfly_tensor(left,g_lst,h_lst,right):
+def recon_butterfly_tensor(left,g_lst,h_lst,right,L,lc):
 	strng = gen_einsum_string(L,lc)
 	T = np.einsum(strng,left,*g_lst,*h_lst[::-1],right,optimize=True)
 	return T
@@ -199,19 +198,28 @@ def gen_solve_einsum(l,w,L,lc):
 					left_lst_inds.append(left[:-(layer+1)]+right[:layer+1]+left_side_ranks[layer:layer+2])
 					left_lst_inds2.append(left[:-(layer+1)]+right[:layer+1]+left_side_ranks2[layer:layer+2])
 					
-
-		rhs_string += left_tensor_inds +',' + ', '.join(left_lst_inds) + ',' + ', '.join(right_lst_inds[::-1]) + ',' + right_tensor_inds
-		lhs_string += rhs_string + ',' + left_tensor_inds2 + ',' + ', '.join(left_lst_inds2) + ',' + ', '.join(right_lst_inds2[::-1]) + ',' + right_tensor_inds2
-	
+		if L != 2:
+			rhs_string += left_tensor_inds +',' + ', '.join(left_lst_inds) + ',' + ', '.join(right_lst_inds[::-1]) + ',' + right_tensor_inds
+			lhs_string += rhs_string + ',' + left_tensor_inds2 + ',' + ', '.join(left_lst_inds2) + ',' + ', '.join(right_lst_inds2[::-1]) + ',' + right_tensor_inds2
+		
+		else:
+			if w ==0:
+				rhs_string += left_tensor_inds +',' +  ', '.join(right_lst_inds[::-1]) + ',' + right_tensor_inds
+				lhs_string += rhs_string + ',' + left_tensor_inds2 + ',' + ', '.join(right_lst_inds2[::-1]) + ',' + right_tensor_inds2
+			else:
+				rhs_string += left_tensor_inds +',' + ', '.join(left_lst_inds) + ',' +  right_tensor_inds
+				lhs_string += rhs_string + ',' + left_tensor_inds2 + ',' + ', '.join(left_lst_inds2) + ','  + right_tensor_inds2
 
 	rhs_string += '->' + output
 	lhs_string += '->' + output2
-	
+
 	return rhs_string,lhs_string
 
-def solve_for_outer(w,L,T,Omega,left,g_lst,h_lst,right,regu=1e-14):
+def solve_for_outer(w,L,T,Omega,left,g_lst,h_lst,right,regu=1e-6):
 
 	rhs_einsum,lhs_einsum = gen_solve_einsum(l=L,w=w,L=L,lc=int(L/2))
+	trigger = 0
+
 
 	if w ==0:
 		total_rows = left.shape[-2]
@@ -220,13 +228,16 @@ def solve_for_outer(w,L,T,Omega,left,g_lst,h_lst,right,regu=1e-14):
 		total_rows = right.shape[-2]
 		rank = right.shape[-1]
 
+	s = time.time()
 	if w==0:
 		LHS = np.einsum(lhs_einsum,Omega,*g_lst,*h_lst[::-1],right,*g_lst,*h_lst[::-1],right,optimize=True)
 		RHS = np.einsum(rhs_einsum,T,*g_lst,*h_lst[::-1],right,optimize=True)
 	else:
 		LHS = np.einsum(lhs_einsum,Omega,left,*g_lst,*h_lst[::-1],left,*g_lst,*h_lst[::-1],optimize=True)
 		RHS = np.einsum(rhs_einsum,T,left,*g_lst,*h_lst[::-1],optimize=True)
-
+	e = time.time()
+	print('time taken to compute LHS,RHS',e-s)
+	s = time.time()
 	for combination in itertools.product([0, 1], repeat=L):
 		for row in range(total_rows):
 			if la.norm(RHS[combination + (row,slice(None))]) > 1e-05:
@@ -234,89 +245,67 @@ def solve_for_outer(w,L,T,Omega,left,g_lst,h_lst,right,regu=1e-14):
 					left[combination+ (row, slice(None))] = la.solve(LHS[combination + (row, slice(None), slice(None))] + regu*np.eye(rank), RHS[combination + (row,slice(None))])
 				else:
 					right[combination+ (row, slice(None))] = la.solve(LHS[combination + (row, slice(None), slice(None))] + regu*np.eye(rank), RHS[combination + (row,slice(None))])
-
+			else:
+				#print('trigger! for',w)
+				trigger = 1
+	e = time.time()
+	print('time taken to solve',e-s)
 	if w==0:
-		return left
+		return left,trigger
 	else:
-		return right
+		return right,trigger
 
-def solve_for_inner(w,L,l,T,Omega,left,g_lst,h_lst,right,regu=1e-14):
+def solve_for_inner(w,L,l,T,Omega,left,g_lst,h_lst,right,regu=1e-6):
 	rhs_einsum,lhs_einsum = gen_solve_einsum(l=l,w=w,L=L,lc=int(L/2))
+	#print(lhs_einsum)
 	layer = L- l -1
 	if w==0:
-		new_lst = copy.deepcopy(g_lst)
-		new_lst.pop(layer)
-		LHS = np.einsum(lhs_einsum,Omega,left,*new_lst,*h_lst[::-1],right,left,*new_lst,*h_lst[::-1],right,optimize=True)
-		RHS = np.einsum(rhs_einsum,T,left,*new_lst,*h_lst[::-1],right,optimize=True)
-		ranks1 = g_lst[layer].shape[-2]
-		ranks2 = g_lst[layer].shape[-1]
+		if L != 2:
+			new_lst = copy.deepcopy(g_lst)
+			new_lst.pop(layer)
+			LHS = np.einsum(lhs_einsum,Omega,left,*new_lst,*h_lst[::-1],right,left,*new_lst,*h_lst[::-1],right,optimize=True)
+			RHS = np.einsum(rhs_einsum,T,left,*new_lst,*h_lst[::-1],right,optimize=True)
+			ranks1 = g_lst[layer].shape[-2]
+			ranks2 = g_lst[layer].shape[-1]
+		else:
+			LHS = np.einsum(lhs_einsum,Omega,left,*h_lst[::-1],right,left,*h_lst[::-1],right,optimize=True)
+			RHS = np.einsum(rhs_einsum,T,left,*h_lst[::-1],right,optimize=True)
+			ranks1 = g_lst[layer].shape[-2]
+			ranks2 = g_lst[layer].shape[-1]
 
 	else:
-		new_lst = copy.deepcopy(h_lst)
-		new_lst.pop(layer)
-		LHS = np.einsum(lhs_einsum,Omega,left,*g_lst,*new_lst[::-1],right,left,*g_lst,*new_lst[::-1],right,optimize=True)
-		RHS = np.einsum(rhs_einsum,T,left,*g_lst,*new_lst[::-1],right,optimize=True)
-		ranks1 = h_lst[layer].shape[-2]
-		ranks2 = h_lst[layer].shape[-1]
+		if L !=2:
+			new_lst = copy.deepcopy(h_lst)
+			new_lst.pop(layer)
+			LHS = np.einsum(lhs_einsum,Omega,left,*g_lst,*new_lst[::-1],right,left,*g_lst,*new_lst[::-1],right,optimize=True)
+			RHS = np.einsum(rhs_einsum,T,left,*g_lst,*new_lst[::-1],right,optimize=True)
+			ranks1 = h_lst[layer].shape[-2]
+			ranks2 = h_lst[layer].shape[-1]
+		else:
+			LHS = np.einsum(lhs_einsum,Omega,left,*g_lst,right,left,*g_lst,right,optimize=True)
+			RHS = np.einsum(rhs_einsum,T,left,*g_lst,right,optimize=True)
+			ranks1 = h_lst[layer].shape[-2]
+			ranks2 = h_lst[layer].shape[-1]
 
 
 	for combination in itertools.product([0, 1], repeat=L+1):
-		if w==0:
-			g_lst[layer][combination + (slice(None), slice(None))] = la.solve(LHS[combination + (slice(None), slice(None), slice(None), slice(None) )].reshape(ranks[layer]*ranks[(layer+1)], ranks[layer]*ranks[(layer+1)]), 
-				RHS[combination + (slice(None), slice(None))].reshape(-1)).reshape((ranks[layer],ranks[(layer+1)]))
-		else:
-			h_lst[layer][combination + (slice(None), slice(None))] = la.solve(LHS[combination + (slice(None), slice(None), slice(None), slice(None) )].reshape(ranks[layer]*ranks[(layer+1)], ranks[layer]*ranks[(layer+1)]), 
-				RHS[combination + (slice(None), slice(None))].reshape(-1)).reshape((ranks[layer],ranks[(layer+1)]))
+		if not np.allclose(RHS[combination + (slice(None), slice(None))],np.zeros_like(RHS[combination + (slice(None), slice(None))])):
+			if w==0:
+				g_lst[layer][combination + (slice(None), slice(None))] = la.solve(LHS[combination + (slice(None), slice(None), slice(None), slice(None) )].reshape((ranks1*ranks2, ranks1*ranks2))
+					+regu*np.eye(ranks1*ranks2), 
+					RHS[combination + (slice(None), slice(None))].reshape(-1)).reshape((ranks1,ranks2))
+			else:
+				h_lst[layer][combination + (slice(None), slice(None))] = la.solve(LHS[combination + (slice(None), slice(None), slice(None), slice(None) )].reshape((ranks1*ranks2, ranks1*ranks2))
+					+regu*np.eye(ranks1*ranks2), 
+					RHS[combination + (slice(None), slice(None))].reshape(-1)).reshape((ranks1,ranks2))
 	if w==0:
 		return g_lst
 	else:
 		return h_lst
 
 
-L = 8
-
-m = 20*(2**L)
-n = 20*(2**L)
-
-lc = int(L/2)
-sp = 0.5
-num_iters = 30
-
-ranks = [2 for _ in range(L-lc+1)]
-
-
-start = time.time()
-T, originals = const_butterfly_tensor(m,n,L,lc)
-end = time.time()
-print('time taken is',end-start)
-
-Omega = create_omega(T.shape,sp_frac=sp,L=L,seed=123)
-
-T_sparse = T*Omega
-
-left,g_lst,h_lst,right = gen_tensor_inputs(m,n,L,lc,ranks)
-
-# left = originals[0]
-# g_lst = originals[1]
-# h_lst = originals[2]
-# right = originals[3]
-
-error = la.norm(T - recon_butterfly_tensor(left,g_lst,h_lst,right))/la.norm(T)
-print('relative error',error)
-
-for iters in range(num_iters):
-	left = solve_for_outer(0,L,T_sparse,Omega,left,g_lst,h_lst,right)
-	error = la.norm(T - recon_butterfly_tensor(left,g_lst,h_lst,right))/la.norm(T)
-
-	right = solve_for_outer(1,L,T_sparse,Omega,left,g_lst,h_lst,right)
-	error = la.norm(T - recon_butterfly_tensor(left,g_lst,h_lst,right))/la.norm(T)
-
-	for l in range(int(L/2),L):
-		g_lst =  solve_for_inner(0,L,l,T_sparse,Omega,left,g_lst,h_lst,right)
-		error = la.norm(T - recon_butterfly_tensor(left,g_lst,h_lst,right))/la.norm(T)
-
-		h_lst =  solve_for_inner(1,L,l,T_sparse,Omega,left,g_lst,h_lst,right)
-		error = la.norm(T - recon_butterfly_tensor(left,g_lst,h_lst,right))/la.norm(T)
-
-	print('relative error after',iters+1,'is',error)
+def check_omega(omega,L):
+	for combination in itertools.product([0, 1], repeat=2*L):
+		if la.norm(omega[combination + (slice(None), slice(None))])< 1e-06:
+			print('problem at block',combination)
 
