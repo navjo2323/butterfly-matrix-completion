@@ -246,7 +246,6 @@ def solve_for_outer(w,L,T,Omega,left,g_lst,h_lst,right,regu=1e-6):
 				else:
 					right[combination+ (row, slice(None))] = la.solve(LHS[combination + (row, slice(None), slice(None))] + regu*np.eye(rank), RHS[combination + (row,slice(None))])
 			else:
-				#print('trigger! for',w)
 				trigger = 1
 	e = time.time()
 	print('time taken to solve',e-s)
