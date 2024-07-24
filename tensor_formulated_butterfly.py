@@ -56,8 +56,10 @@ def gen_tensor_inputs(m,n,L,lc,ranks,rng):
 	sh2.append(block_n)
 	sh2.append(ranks[0])
 
-	left = rng.uniform(-1,1,size=(sh1))
-	right = rng.uniform(-1,1,size=(sh2))
+	left = rng.uniform(-5,5,size=(sh1))
+	#left = rng.standard_normal(sh1)
+	right = rng.uniform(-5,5,size=(sh2))
+	#right = rng.standard_normal(sh2)
 	g_lst = []
 	h_lst = []
 	sh1.pop(-2)
@@ -67,8 +69,10 @@ def gen_tensor_inputs(m,n,L,lc,ranks,rng):
 
 	p=2
 	for l in range(lc):
-		g_lst.append(rng.uniform(-1,1,size=(sh2[:(l+1)] + sh1)))
-		h_lst.append(rng.uniform(-1,1,size=(sh1[:(l+1)] +sh2)))
+		g_lst.append(rng.uniform(-5,5,size=(sh2[:(l+1)] + sh1)))
+		#g_lst.append(rng.standard_normal(sh2[:(l+1)] + sh1))
+		h_lst.append(rng.uniform(-5,5,size=(sh1[:(l+1)] +sh2)))
+		#h_lst.append(rng.standard_normal(sh1[:(l+1)] +sh2))
 
 		if l != lc-1:
 			sh1.pop(0)
@@ -236,7 +240,7 @@ def solve_for_outer(w,L,T,Omega,left,g_lst,h_lst,right,regu=1e-6):
 		LHS = np.einsum(lhs_einsum,Omega,left,*g_lst,*h_lst[::-1],left,*g_lst,*h_lst[::-1],optimize=True)
 		RHS = np.einsum(rhs_einsum,T,left,*g_lst,*h_lst[::-1],optimize=True)
 	e = time.time()
-	print('time taken to compute LHS,RHS',e-s)
+	#print('time taken to compute LHS,RHS',e-s)
 	s = time.time()
 	for combination in itertools.product([0, 1], repeat=L):
 		for row in range(total_rows):
@@ -248,7 +252,7 @@ def solve_for_outer(w,L,T,Omega,left,g_lst,h_lst,right,regu=1e-6):
 			else:
 				trigger = 1
 	e = time.time()
-	print('time taken to solve',e-s)
+	#print('time taken to solve',e-s)
 	if w==0:
 		return left,trigger
 	else:
@@ -258,6 +262,7 @@ def solve_for_inner(w,L,l,T,Omega,left,g_lst,h_lst,right,regu=1e-6):
 	rhs_einsum,lhs_einsum = gen_solve_einsum(l=l,w=w,L=L,lc=int(L/2))
 	#print(lhs_einsum)
 	layer = L- l -1
+
 	if w==0:
 		if L != 2:
 			new_lst = copy.deepcopy(g_lst)
@@ -307,4 +312,3 @@ def check_omega(omega,L):
 	for combination in itertools.product([0, 1], repeat=2*L):
 		if la.norm(omega[combination + (slice(None), slice(None))])< 1e-06:
 			print('problem at block',combination)
-
