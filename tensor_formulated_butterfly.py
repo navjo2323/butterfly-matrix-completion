@@ -4,6 +4,54 @@ import time
 import copy
 import itertools
 
+
+def get_index(i,j,L,c):
+	ind_i = i
+	ind_j = j
+	left = []
+	right = []
+	num1 = 2**L
+	num2 = 2**L
+	for m in range(L):
+		val1 = int(ind_i >= num1//2)
+		val2 = int(ind_j >= num2//2)
+		left.append(val1)
+		right.append(val2)
+		num1 = num1//2
+		num2 = num2//2
+		if val1:
+		    ind_i -= num1
+		if val2:
+		    ind_j -= num2
+	return left,right
+
+def get_butterfly_mat_from_tens(T,L,lc,c):
+	# T is constructed from the lst
+	big_side = c*2**L
+	mat = np.zeros((big_side,big_side))
+	for i in range(2**L):
+		for j in range(2**L):
+			left, right = get_index(i,j,L,c)
+			mat[c*i:c*(i+1),c*j:c*(j+1) ] = T[tuple(left +[slice(None)] + right + [slice(None)])]
+	return mat
+
+
+def get_butterfly_tens_from_mat(mat,L,lc,c):
+    m = mat.shape[0]
+    n = mat.shape[1]
+    block_m = int(m/2**L)
+    block_n = int(n/2**L)
+    shape = [2 for l in range(L)]
+    shape.append(block_m)
+    shape += [2 for l in range(L)]
+    shape.append(block_n)
+    T = np.zeros(shape)
+    for i in range(2**L):
+        for j in range(2**L):
+            left,right = get_index(i,j,L,c)
+            T[tuple(left +[slice(None)] + right + [slice(None)])] = mat[c*i:c*(i+1),c*j:c*(j+1) ]
+    return T
+
 # tensor formulation
 def gen_einsum_string(L,lc):
 	# The idea is that we will generate two set of strings one in small and one in caps to
@@ -312,3 +360,55 @@ def check_omega(omega,L):
 	for combination in itertools.product([0, 1], repeat=2*L):
 		if la.norm(omega[combination + (slice(None), slice(None))])< 1e-06:
 			print('problem at block',combination)
+
+            
+
+
+            
+            
+def butterfly_completer(T_sparse,T,Omega,L,left,g_lst,h_lst,right,num_iters,tol):
+    
+    print('---------------Butterfly Completion------------------')
+    
+    nnz = np.sum(Omega)
+    print("Number of observed entries:",nnz)
+    
+    
+    errors = []
+    
+    recon = recon_butterfly_tensor(left,g_lst,h_lst,right,L,int(L/2))
+    error = la.norm(T - recon)/la.norm(T)
+    errors.append(error)
+    sparse_error = la.norm(T_sparse - Omega*recon)/la.norm(T_sparse)
+    print('Initial relative error in observed entries',sparse_error)
+    print('Initial relative error in all of the tensor is',error)
+    for iters in range(num_iters):
+        left,trig = solve_for_outer(0,L,T_sparse,Omega,left,g_lst,h_lst,right)
+        if trig:
+            print('trig: no rows to solve')
+
+        right,trig = solve_for_outer(1,L,T_sparse,Omega,left,g_lst,h_lst,right)
+        if trig:
+            print('trig: no rows to solve')
+
+        for l in range(L-1,int(L/2)-1,-1):
+            g_lst =  solve_for_inner(0,L,l,T_sparse,Omega,left,g_lst,h_lst,right)
+
+        for l in range(int(L/2),L,1):
+            h_lst =  solve_for_inner(1,L,l,T_sparse,Omega,left,g_lst,h_lst,right)
+
+        recon = recon_butterfly_tensor(left,g_lst,h_lst,right,L,int(L/2))
+        error = la.norm(T - recon)/la.norm(T)
+        errors.append(error)
+        sparse_error = la.norm(T_sparse - Omega*recon)/la.norm(T_sparse)
+        print('Relative error in observed entries',sparse_error)
+        print('Relative error in all of the tensor after',iters +1,'is',error)
+        print('-----------------')
+        if iters+1 >=5 and error >=3:
+            print('Overfitting or error not reducing, stopping iterations')
+            break
+        if error < tol:
+            print('converged')
+            break
+            
+    return left,g_lst,h_lst,right
