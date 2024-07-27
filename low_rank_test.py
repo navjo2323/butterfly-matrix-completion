@@ -1,5 +1,6 @@
 import numpy as np 
 import numpy.linalg as la
+from kdtree_ordering import generate_kd_tree
 
 def create_omega(shape,nnz,seed=123):
 	omega = np.zeros(np.prod(shape))
@@ -14,6 +15,55 @@ def create_T(m,n,rank):
 
 	return A@B.T
 
+
+def get_greens_kernel1():
+    # Define the number of points and the wavenumber
+    #wavelen = 0.35/(2 ** 2.5)
+    wavelen = 10/48
+    ppw = 10
+    ds = wavelen/ppw
+    Nperdim = int(np.ceil(1.0/ds))
+    
+    Nperdimx = Nperdim
+    Nperdimy = Nperdim
+
+    # Initialize the Green's function matrix
+    G = np.zeros((Nperdimx*Nperdimy, Nperdimx*Nperdimy))
+
+    pts = [(x,y) for x in np.linspace(0,1,Nperdimx) for y in np.linspace(0,1,Nperdimy)]
+    
+    waven = 2*np.pi/wavelen
+    # Compute the Green's function matrix
+    
+    pts_arr = np.array(pts)
+    # # usual ordering
+    # for i in range(len(pts_arr)):
+    #     for j in range(len(pts_arr)):
+    #         dist = np.sqrt( np.sum((pts_arr[i] - pts_arr[j])**2 +1))
+    #         G[i,j] = np.cos(-1 * waven* dist) / dist
+    
+    
+
+    order_pts = generate_kd_tree(pts)
+    
+    i = 0
+    for p in order_pts:
+        j=0
+        for q in order_pts:
+            dist = np.sqrt( np.sum((p - q)**2 +1))
+            G[i,j] = np.cos(-1 * waven* dist) / dist
+            j+=1
+        i+=1
+            
+
+    return G
+
+
+
+# #np.save('green_func',mat)
+
+# U,s,Vt = la.svd(mat)
+# print(np.sum(s>s[0]*1e-4))
 # m = 130*2**6
 # n = m
 # rank = 2
