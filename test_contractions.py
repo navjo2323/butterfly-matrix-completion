@@ -29,9 +29,9 @@ def Omega_T_for_test(I,J,inds,shape,L):
 
 	return T_arr,Omega,T_tensor
 
-nnz = 500000
+nnz = 5000000
 c = 4
-L= 14
+L= 12
 lc = int(L/2)
 I= c*2**L
 J = c*2**L
@@ -49,11 +49,14 @@ shape = tuple([2 for l in range(L)]) + (int(I/2**L),) + tuple([2 for l in range(
 rng = np.random.RandomState(np.random.randint(10000))
 ranks = [2 for i in range(L-lc+1)]
 indices = create_inds(I,J,nnz,rng)
+print('inds created')
+
 
 inds = index_convert(indices,I,J,L)
+print('index converted')
 
 T_arr, Omega, T_tensor = Omega_T_for_test(I,J,inds,shape,L)
-
+print('array is ready')
 #print(np.sum(Omega))
 #print(la.norm(T_arr) - la.norm(T_tensor))
 
@@ -68,6 +71,7 @@ right = h_lst[0].copy()
 #error2 = la.norm(T_arr- contract_all(inds,g_lst,h_lst,L))/la.norm(T_arr)
 #print('check errors are same',error-error2)
 
+print('starting solve now')
 s = time.time()
 #output1 = contract_RHS_T(T_arr,inds,g_lst,h_lst,level=level,L=L,lc=lc,r_c=r_c)
 lst1,lst2 = ALS_solve(T_arr,inds,g_lst,h_lst,level=level,L=L,lc=lc,r_c=r_c,regu=1e-06)
@@ -99,6 +103,6 @@ print('time taken for new',e-s)
 
 
 #print('error norm is',la.norm(output1-output2))
-# print('norm is',la.norm( answer2 - answer1))
+#print('norm is',la.norm( answer2 - answer1))
 #print('norm diff lhs',la.norm(LHS1 - LHS2))
 #.reshape((ranks1*ranks2, ranks1*ranks2))
