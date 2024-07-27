@@ -9,6 +9,9 @@ import itertools
 # index convention is i_1 to i_L, j_1, j_L, i_0,j_0
 # convention: all "i"s come first, 0 is the last index.
 
+
+#When doing normal equations, anything with H i
+
 def gen_tensor_inputs(m,n,L,lc,ranks,rng):
 	block_m = int(m/2**L)
 	block_n = int(n/2**L)
@@ -190,8 +193,6 @@ def ALS_solve(T,inds,g_lst,h_lst,level,L,lc,r_c,regu):
 			output_index2 = output_index1
 		LHS[output_index2] += np.outer(mats.reshape(-1),mats.reshape(-1)) 
 		k+=1
-		if k%10000==0:
-			print('10k done')
 	if lst_ind ==0:
 		if r_c ==0:
 			rows = g_lst[0].shape[-2]
@@ -218,32 +219,33 @@ def ALS_solve(T,inds,g_lst,h_lst,level,L,lc,r_c,regu):
 	return g_lst,h_lst
 
 
-def index_convert(indices,I,J,L):
-	# Get tuples of (i,j) and convert to i_1 ... i_L j_1 ... j_L, i_0, j_0
-	inds = ()
-	assert(I%2**L ==0 and J%2**L == 0)
 
-	for ind in indices:
-		assert(ind[0]< I and ind[1] < J)
-		left = ()
-		right = ()
-		num1 = I
-		num2 = J
-		ind_i = ind[0]
-		ind_j = ind[1]
-		for m in range(L):
-			val1 = int(ind_i >= num1//2)
-			val2 = int(ind_j >= num2//2)
-			left += (val1,)
-			right += (val2,)
-			num1 = num1//2
-			num2 = num2//2
-			if val1:
-				ind_i -= num1
-			if val2:
-				ind_j -= num2
-		inds+= (left+right +(ind_i,) + (ind_j,),)
-	return inds
+def index_convert(indices, I, J, L):
+    # Get tuples of (i,j) and convert to i_1 ... i_L j_1 ... j_L, i_0, j_0
+    inds = []
+    assert(I % 2**L == 0 and J % 2**L == 0)
+
+    for ind in indices:
+        assert(ind[0] < I and ind[1] < J)
+        ind_i = ind[0]
+        ind_j = ind[1]
+        left = np.zeros(L, dtype=int)
+        right = np.zeros(L, dtype=int)
+        num1 = I
+        num2 = J
+        for m in range(L):
+            val1 = int(ind_i >= num1//2)
+            val2 = int(ind_j >= num2//2)
+            left[m] = val1
+            right[m] = val2
+            num1 = num1//2
+            num2 = num2//2
+            if val1:
+                ind_i -= num1
+            if val2:
+                ind_j -= num2
+        inds.append(tuple(np.concatenate((left, right, [ind_i], [ind_j]))))
+    return tuple(inds)
 
 
 
