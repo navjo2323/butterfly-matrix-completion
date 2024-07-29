@@ -3,7 +3,10 @@ import numpy.linalg as la
 import time
 import copy
 import itertools
+import logging
 
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
 def get_index(i,j,L,c):
 	ind_i = i
@@ -366,49 +369,49 @@ def check_omega(omega,L):
 
             
             
-def butterfly_completer(T_sparse,T,Omega,L,left,g_lst,h_lst,right,num_iters,tol):
-    
-    print('---------------Butterfly Completion------------------')
+def butterfly_completer(T_sparse, T, Omega, L, left, g_lst, h_lst, right, num_iters, tol):
+    logging.debug('---------------Butterfly Completion------------------')
     
     nnz = np.sum(Omega)
-    print("Number of observed entries:",nnz)
-    
+    logging.debug(f"Number of observed entries: {nnz}")
     
     errors = []
     
-    recon = recon_butterfly_tensor(left,g_lst,h_lst,right,L,int(L/2))
-    error = la.norm(T - recon)/la.norm(T)
+    recon = recon_butterfly_tensor(left, g_lst, h_lst, right, L, int(L/2))
+    error = la.norm(T - recon) / la.norm(T)
     errors.append(error)
-    sparse_error = la.norm(T_sparse - Omega*recon)/la.norm(T_sparse)
-    print('Initial relative error in observed entries',sparse_error)
-    print('Initial relative error in all of the tensor is',error)
+    sparse_error = la.norm(T_sparse - Omega * recon) / la.norm(T_sparse)
+    logging.debug(f'Initial relative error in observed entries: {sparse_error}')
+    logging.debug(f'Initial relative error in all of the tensor: {error}')
+    
     for iters in range(num_iters):
-        left,trig = solve_for_outer(0,L,T_sparse,Omega,left,g_lst,h_lst,right)
+        logging.debug(f"Iteration {iters+1}/{num_iters}")
+        left, trig = solve_for_outer(0, L, T_sparse, Omega, left, g_lst, h_lst, right)
         if trig:
-            print('trig: no rows to solve')
+            logging.debug('trig: no rows to solve')
 
-        right,trig = solve_for_outer(1,L,T_sparse,Omega,left,g_lst,h_lst,right)
+        right, trig = solve_for_outer(1, L, T_sparse, Omega, left, g_lst, h_lst, right)
         if trig:
-            print('trig: no rows to solve')
+            logging.debug('trig: no rows to solve')
 
-        for l in range(L-1,int(L/2)-1,-1):
-            g_lst =  solve_for_inner(0,L,l,T_sparse,Omega,left,g_lst,h_lst,right)
+        for l in range(L-1, int(L/2)-1, -1):
+            g_lst = solve_for_inner(0, L, l, T_sparse, Omega, left, g_lst, h_lst, right)
 
-        for l in range(int(L/2),L,1):
-            h_lst =  solve_for_inner(1,L,l,T_sparse,Omega,left,g_lst,h_lst,right)
+        for l in range(int(L/2), L, 1):
+            h_lst = solve_for_inner(1, L, l, T_sparse, Omega, left, g_lst, h_lst, right)
 
-        recon = recon_butterfly_tensor(left,g_lst,h_lst,right,L,int(L/2))
-        error = la.norm(T - recon)/la.norm(T)
+        recon = recon_butterfly_tensor(left, g_lst, h_lst, right, L, int(L/2))
+        error = la.norm(T - recon) / la.norm(T)
         errors.append(error)
-        sparse_error = la.norm(T_sparse - Omega*recon)/la.norm(T_sparse)
-        print('Relative error in observed entries',sparse_error)
-        print('Relative error in all of the tensor after',iters +1,'is',error)
-        print('-----------------')
-        if iters+1 >=5 and error >=3:
-            print('Overfitting or error not reducing, stopping iterations')
+        sparse_error = la.norm(T_sparse - Omega * recon) / la.norm(T_sparse)
+        logging.debug(f'Relative error in observed entries: {sparse_error}')
+        logging.debug(f'Relative error in all of the tensor after {iters + 1} iterations: {error}')
+        logging.debug('-----------------')
+        if iters + 1 >= 5 and error >= 3:
+            logging.debug('Overfitting or error not reducing, stopping iterations')
             break
         if error < tol:
-            print('converged')
+            logging.debug('converged')
             break
-            
-    return left,g_lst,h_lst,right
+    
+    return left, g_lst, h_lst, right
