@@ -385,6 +385,7 @@ def butterfly_completer(T_sparse, T, Omega, L, left, g_lst, h_lst, right, num_it
     logging.debug(f'Initial relative error in all of the tensor: {error}')
     
     for iters in range(num_iters):
+        s = time.time()
         logging.debug(f"Iteration {iters+1}/{num_iters}")
         left, trig = solve_for_outer(0, L, T_sparse, Omega, left, g_lst, h_lst, right)
         if trig:
@@ -399,7 +400,8 @@ def butterfly_completer(T_sparse, T, Omega, L, left, g_lst, h_lst, right, num_it
 
         for l in range(int(L/2), L, 1):
             h_lst = solve_for_inner(1, L, l, T_sparse, Omega, left, g_lst, h_lst, right)
-
+        e = time.time()
+        logging.debug(f'Time in iteration {iters+1}: {e-s}')
         recon = recon_butterfly_tensor(left, g_lst, h_lst, right, L, int(L/2))
         error = la.norm(T - recon) / la.norm(T)
         errors.append(error)

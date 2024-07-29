@@ -12,6 +12,48 @@ def is_perfect_square(n):
 # def get_kd_tree_ordering():
     
 
+def numerical_rank(matrix, tol):
+    # Perform Singular Value Decomposition (SVD)
+    U, S, Vt = np.linalg.svd(matrix, full_matrices=False)
+    
+    # Compute the threshold based on the relative tolerance
+    threshold = tol * S[0]
+    
+    # Count the number of singular values greater than the threshold
+    rank = np.sum(S > threshold)
+    
+    return rank
+
+
+
+
+def butterfly_rank(matrix, block_size,tol):
+    # Get the dimensions of the matrix
+    rows, cols = matrix.shape
+    
+    # Check if the matrix can be evenly divided into block_size x block_size blocks
+    if rows % block_size != 0 or cols % block_size != 0:
+        raise ValueError("Matrix dimensions must be divisible by the block size")
+    
+    # Initialize a list to store the ranks of each block
+    block_ranks = []
+    
+    # Loop over the matrix and partition it into blocks
+    for i in range(0, rows, block_size):
+        row_blocks = []
+        for j in range(0, cols, block_size):
+            # Extract the MxM block
+            block = matrix[i:i + block_size, j:j + block_size]
+            
+            # Compute the numerical rank of the block
+            rank = numerical_rank(block, tol)
+            row_blocks.append(rank)
+        block_ranks.append(row_blocks)
+    
+    return block_ranks
+
+
+
 def get_greens_kernel(c,L,ppw):
     # Define the number of points and the wavenumber
     #wavelen = 0.35/(2 ** 2.5)
@@ -95,17 +137,33 @@ e = time.time()
 print('greens mat generated of shape',mat.shape)
 print('--time in greens mat generation:',e-s)
 
+s = time.time()
+tol=1e-3
+true_r_lr = numerical_rank(mat,tol)
+e = time.time()
+print('--time in computing the LR rank of mat:',e-s, ' rank:',true_r_lr, ' with tolerence', tol)
+
+
+s = time.time()
+blocksize = int(c*2**(L/2))
+true_bf_ranks = butterfly_rank(mat,blocksize,tol)
+e = time.time()
+print('--time in computing the BF rank of mat:',e-s, ' min/max rank:',np.min(true_bf_ranks),np.max(true_bf_ranks), ' with tolerence', tol)
+
+
+
 m = mat.shape[0]
 n= m
 
-ranks = [8 for _ in range(L-lc+1 )] # Increasing this  makes things very slow for current implementation, R^2 x R^2 solves are not parallel
+r_BF=4
+ranks = [r_BF for _ in range(L-lc+1 )] # Increasing this  makes things very slow for current implementation, R^2 x R^2 solves are not parallel
 
 print('ranks for butterfly completion are ', ranks)
 
 # Can give assymetric ranks, if needed
 
-r = 25
-nnz = int((r)*n*np.log2(n))
+r_LR = 60
+nnz = 10*int((r_BF)*n*np.log2(n))
 
 print('m*n is',m*n)
 print('nnz is',nnz)
@@ -118,9 +176,9 @@ omega = create_omega(mat.shape,nnz)
 
 mat_sparse = mat*omega
 
-print('Low-rank completion rank',r)
+print('Low-rank completion rank',r_LR)
 
-left,right = matrix_completion(mat,mat_sparse,omega, r=r,num_iter = 10)
+left,right = matrix_completion(mat,mat_sparse,omega, r=r_LR,num_iter = 10)
 
 mat = left@right.T
 e = time.time()
@@ -128,6 +186,12 @@ print('--time in low-rank completion:',e-s)
 
 T_mat = get_butterfly_tens_from_mat(left@right.T,L,lc,c)   # Get tensor from low rank matrix
 
+
+s = time.time()
+blocksize = int(c*2**(L/2))
+initial_bf_ranks = butterfly_rank(left@right.T,blocksize,tol)
+e = time.time()
+print('--time in computing the BF rank of the LR completion result:',e-s, ' min/max rank:',np.min(initial_bf_ranks),np.max(initial_bf_ranks))
 
 
 
@@ -166,7 +230,7 @@ Omega = get_butterfly_tens_from_mat(omega,L,lc,c)
 
 T_sparse = T*Omega
 
-num_iters = 20
+num_iters = 10
 s = time.time()
 left,g_lst,h_lst,right = butterfly_completer(T_sparse,T,Omega,L,left,g_lst,h_lst,right,num_iters,tol=1e-3)
 e = time.time()
