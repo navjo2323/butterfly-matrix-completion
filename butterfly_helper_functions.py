@@ -1,6 +1,8 @@
 import numpy as np 
 import numpy.linalg as la 
 import itertools
+import logging
+import time
 
 # convention to use l=L for outer ones, and l= lc for middle
 # r_c= 0 means g_lst side and r_c = 1 h_lst side
@@ -11,6 +13,53 @@ import itertools
 
 
 #When doing normal equations, anything with H i
+
+def get_index(i,j,L,c):
+	ind_i = i
+	ind_j = j
+	left = []
+	right = []
+	num1 = 2**L
+	num2 = 2**L
+	for m in range(L):
+		val1 = int(ind_i >= num1//2)
+		val2 = int(ind_j >= num2//2)
+		left.append(val1)
+		right.append(val2)
+		num1 = num1//2
+		num2 = num2//2
+		if val1:
+		    ind_i -= num1
+		if val2:
+		    ind_j -= num2
+	return left,right
+
+def get_butterfly_mat_from_tens(T,L,lc,c):
+	# T is constructed from the lst
+	big_side = c*2**L
+	mat = np.zeros((big_side,big_side))
+	for i in range(2**L):
+		for j in range(2**L):
+			left, right = get_index(i,j,L,c)
+			mat[c*i:c*(i+1),c*j:c*(j+1) ] = T[tuple(left +[slice(None)] + right + [slice(None)])]
+	return mat
+
+
+def get_butterfly_tens_from_mat(mat,L,lc,c):
+    m = mat.shape[0]
+    n = mat.shape[1]
+    block_m = int(m/2**L)
+    block_n = int(n/2**L)
+    shape = [2 for l in range(L)]
+    shape.append(block_m)
+    shape += [2 for l in range(L)]
+    shape.append(block_n)
+    T = np.zeros(shape)
+    for i in range(2**L):
+        for j in range(2**L):
+            left,right = get_index(i,j,L,c)
+            T[tuple(left +[slice(None)] + right + [slice(None)])] = mat[c*i:c*(i+1),c*j:c*(j+1) ]
+    return T
 
 def gen_tensor_inputs(m,n,L,lc,ranks,rng):
 	block_m = int(m/2**L)
@@ -304,14 +353,68 @@ def create_inds(I, J, nnz,rng):
     return tuple(unique_tuples)
 
 def const_butterfly_tensor(m,n,L,lc,ranks,rng):
-	left,g_lst,h_lst,right = gen_tensor_inputs(m,n,L,lc,ranks,rng)
+	g_lst,h_lst = gen_tensor_inputs(m,n,L,lc,ranks,rng)
 	strng = gen_einsum_string(L,lc)
-	T = np.einsum(strng,left,*g_lst,*h_lst[::-1],right,optimize=True)
-	return T,[left,g_lst,h_lst,right]
+	T = np.einsum(strng,g_lst[0],*g_lst[1:],*h_lst[1:][::-1],h_lst[0],optimize=True)
+	return T,g_lst,h_lst
 
-def recon_butterfly_tensor(left,g_lst,h_lst,right,L,lc):
+def recon_butterfly_tensor(g_lst,h_lst,L,lc):
 	strng = gen_einsum_string(L,lc)
-	T = np.einsum(strng,left,*g_lst,*h_lst[::-1],right,optimize=True)
+	T = np.einsum(strng,g_lst[0],*g_lst[1:],*h_lst[1:][::-1],h_lst[0],optimize=True)
 	return T
 
+def get_T_sparse(T,inds,L):
+	T_sparse = np.zeros(len(inds))
+	i=0
+	for ind in inds:
+		correct_index = ind[:L] + (ind[-2],) + ind[L:2*L] + (ind[-1],)
+		T_sparse[i] = T[correct_index]
+		i+=1
+	return T_sparse
 
+def butterfly_completer2(T,inds, L, g_lst, h_lst, num_iters, tol):
+    #inds = index_convert(indices, I, J, L)
+    T_sparse = get_T_sparse(T,inds,L)
+    logging.debug('---------------Butterfly Completion------------------')
+
+    nnz = len(inds)
+    print("Number of observed entries:",nnz)
+    
+    errors = []
+    
+    recon = recon_butterfly_tensor(g_lst,h_lst, L, int(L/2))
+    error = la.norm(T - recon) / la.norm(T)
+    errors.append(error)
+    recon_sparse = contract_all(inds,g_lst,h_lst,L)
+    sparse_error = la.norm(T_sparse - recon_sparse) / la.norm(T_sparse)
+    print('Initial relative error in observed entries:',sparse_error)
+    print('Initial relative error in all of the tensor:',error)
+    
+    for iters in range(num_iters):
+        s = time.time()
+        print("Iteration", iters+1,"/",num_iters)
+
+        for level in range(L,L//2-1,-1):
+            print('At level: ',level)
+            for r_c in range(2):
+                g_lst,h_lst = ALS_solve(T_sparse,inds,g_lst,h_lst,level,L,L//2,r_c,regu=1e-7)
+        
+        e = time.time()
+        print('Time in iteration', iters+1 ,':', e-s)
+        
+        recon = recon_butterfly_tensor(g_lst,h_lst, L, int(L/2))
+        error = la.norm(T - recon) / la.norm(T)
+        errors.append(error)
+        recon_sparse = contract_all(inds,g_lst,h_lst,L)
+        sparse_error = la.norm(T_sparse - recon_sparse) / la.norm(T_sparse)
+        print('Relative error in observed entries: ',sparse_error)
+        print('Relative error in all of the tensor after', iters + 1,' iterations: ',error)
+        print('-----------------')
+        if iters + 1 >= 5 and error >= 3:
+        	print('Overfitting or error not reducing, stopping iterations')
+        	break
+        if error < tol:
+            print('converged')
+            break
+    
+    return g_lst, h_lst
