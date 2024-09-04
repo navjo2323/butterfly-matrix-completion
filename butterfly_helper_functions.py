@@ -418,3 +418,58 @@ def butterfly_completer2(T,inds, L, g_lst, h_lst, num_iters, tol):
             break
     
     return g_lst, h_lst
+
+
+
+def butterfly_completer3(T_sparse,inds,T_sparse_test, inds_test, L, g_lst, h_lst, num_iters, tol):
+    #inds = index_convert(indices, I, J, L)
+    # T_sparse = get_T_sparse(T,inds,L)
+    # T_sparse_test = get_T_sparse(T,inds_test,L)
+    logging.debug('---------------Butterfly Completion------------------')
+
+    nnz = len(inds)
+    print("Number of observed entries:",nnz)
+    
+    errors = []
+    
+    # recon = recon_butterfly_tensor(g_lst,h_lst, L, int(L/2))
+    # error = la.norm(T - recon) / la.norm(T)
+    recon_sparse_test = contract_all(inds_test,g_lst,h_lst,L)
+    error = la.norm(T_sparse_test - recon_sparse_test) / la.norm(T_sparse_test)
+    errors.append(error)
+
+    recon_sparse = contract_all(inds,g_lst,h_lst,L)
+    sparse_error = la.norm(T_sparse - recon_sparse) / la.norm(T_sparse)
+    print('Initial relative error in observed entries:',sparse_error)
+    print('Initial relative error in test entries:',error)
+    
+    for iters in range(num_iters):
+        s = time.time()
+        print("Iteration", iters+1,"/",num_iters)
+
+        for level in range(L,L//2-1,-1):
+            print('At level: ',level)
+            for r_c in range(2):
+                g_lst,h_lst = ALS_solve(T_sparse,inds,g_lst,h_lst,level,L,L//2,r_c,regu=1e-7)
+        
+        e = time.time()
+        print('Time in iteration', iters+1 ,':', e-s)
+        
+        # recon = recon_butterfly_tensor(g_lst,h_lst, L, int(L/2))
+        # error = la.norm(T - recon) / la.norm(T)
+        recon_sparse_test = contract_all(inds_test,g_lst,h_lst,L)
+        error = la.norm(T_sparse_test - recon_sparse_test) / la.norm(T_sparse_test)
+        errors.append(error)
+        recon_sparse = contract_all(inds,g_lst,h_lst,L)
+        sparse_error = la.norm(T_sparse - recon_sparse) / la.norm(T_sparse)
+        print('Relative error in observed entries: ',sparse_error)
+        print('Relative error in test entries after', iters + 1,' iterations: ',error)
+        print('-----------------')
+        if iters + 1 >= 5 and error >= 3:
+        	print('Overfitting or error not reducing, stopping iterations')
+        	break
+        if error < tol:
+            print('converged')
+            break
+    
+    return g_lst, h_lst
