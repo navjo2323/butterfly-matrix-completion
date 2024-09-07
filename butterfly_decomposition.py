@@ -63,13 +63,13 @@ def butterfly_rhs_full(T,g_lst,h_lst,w,level,L,lc,extra=1):
     
     if w==0:
         shape = list(h_lst[0].shape[(L-level):-1]) + [g_lst[L-level].shape[-1] +extra]
-        print(shape)
+        #print(shape)
         einstr = left_str + right_str + ',' + right_str[(L-level):] + left_side_ranks[L-level] +'->'
         result_str = left_str + right_str[: (L-level)] + left_side_ranks[L-level]
         
         einstr += result_str
         random_mat = np.random.randn(*shape)
-        print('multiplying random matrix',einstr)
+        #print('multiplying random matrix',einstr)
         mat = np.einsum(einstr,T,random_mat,optimize=True)
         
         result_str = left_str + right_tensor_inds[: (L-level)] + left_side_ranks[L-level]
@@ -80,17 +80,17 @@ def butterfly_rhs_full(T,g_lst,h_lst,w,level,L,lc,extra=1):
             
             full_einstr += ',' + result_str + '->'
             full_einstr += left_str[:-( L-level)]+right_str[:(L-level)]+left_side_ranks[(L-level-1):(L-level)+1]
-            print('einstring to get the factor',full_einstr)
+            #print('einstring to get the factor',full_einstr)
             mat = np.einsum(full_einstr,*g_lst[:L-level],mat,optimize=True)
             
     else:
         shape = list(g_lst[0].shape[(L-level):-1]) + [h_lst[L-level].shape[-1] +extra]
-        print(shape)
+        #print(shape)
         einstr = left_str + right_str + ',' + left_str[(L-level):]  +right_side_ranks[L-level] +'->'
         result_str = left_str[: (L-level)] + right_str   + right_side_ranks[L-level]
         
         einstr += result_str
-        print('multiplying random matrix',einstr)
+        #print('multiplying random matrix',einstr)
         random_mat = np.random.randn(*shape)
         mat = np.einsum(einstr,T,random_mat,optimize=True)
         
@@ -102,7 +102,7 @@ def butterfly_rhs_full(T,g_lst,h_lst,w,level,L,lc,extra=1):
             
             full_einstr += ',' + result_str + '->'
             full_einstr +=  left_str[:(L-level)] + right_str[:-( L-level)]+ right_side_ranks[(L-level-1):(L-level)+1]
-            print('einstring to get the factor',full_einstr)
+            #print('einstring to get the factor',full_einstr)
             mat = np.einsum(full_einstr,*h_lst[:L-level],mat,optimize=True)
         
             
@@ -151,6 +151,7 @@ def last_solve_full(T,g_lst,h_lst,L):
     
     full_einstr += '->' + result_str
     
+    print(full_einstr)
     result = np.einsum(full_einstr, T, *g_lst,*h_lst,optimize=True)
     
     return result
@@ -357,11 +358,7 @@ def butterfly_decompose(T,L,ranks,g_lst,h_lst):
     lc = int(L/2)
     c = g_lst[0].shape[-2]
     
-    left = g_lst[0].copy()
-    g_lst1 = copy.deepcopy(g_lst[1:])
-    h_lst1 = copy.deepcopy(h_lst[1:])
-    right = h_lst[0].copy()
-    recon = recon_butterfly_tensor(left, g_lst1, h_lst1, right, L, int(L/2))
+    recon = recon_butterfly_tensor(g_lst, h_lst, L, int(L/2))
     error = la.norm(T - recon) / la.norm(T)
 
     print('error is',error)
@@ -377,14 +374,10 @@ def butterfly_decompose(T,L,ranks,g_lst,h_lst):
             else:
                 h_lst[L-level] = Q
                 
-            left = g_lst[0].copy()
-            g_lst1 = copy.deepcopy(g_lst[1:])
-            h_lst1 = copy.deepcopy(h_lst[1:])
-            right = h_lst[0].copy()
-            recon = recon_butterfly_tensor(left, g_lst1, h_lst1, right, L, int(L/2))
-            error = la.norm(T - recon) / la.norm(T)
+            #recon = recon_butterfly_tensor(g_lst, h_lst, L, int(L/2))
+            #error = la.norm(T - recon) / la.norm(T)
     
-            print('error is',error)
+            #print('error is',error)
     
     
     #T = get_butterfly_tens_from_mat(input_mat,L,lc,c)
@@ -393,11 +386,7 @@ def butterfly_decompose(T,L,ranks,g_lst,h_lst):
     mats = last_solve_full(T,g_lst,h_lst,L)
     g_lst = absorb_factor(mats,g_lst,L)
 
-    left = g_lst[0].copy()
-    g_lst1 = copy.deepcopy(g_lst[1:])
-    h_lst1 = copy.deepcopy(h_lst[1:])
-    right = h_lst[0].copy()
-    recon = recon_butterfly_tensor(left, g_lst1, h_lst1, right, L, int(L/2))
+    recon = recon_butterfly_tensor(g_lst, h_lst, L, int(L/2))
     error = la.norm(T - recon) / la.norm(T)
 
     print('error is',error)
@@ -426,18 +415,29 @@ def absorb_factor(mats,g_lst,L):
         right_side_ranks += chr(ord('A') + j)
         
         # Note last ranks for lhs and rhs are the same, I dont have same indices here
-    
-    mat_einstr = left_str[:(L-level)] +right_str[:(L-level )] + left_side_ranks[-1] + right_side_ranks[-1]
-    
+    if L != 0:
+        mat_einstr = left_str[:(L-level)] +right_str[:(L-level )] + left_side_ranks[-1] + right_side_ranks[-1]
+        
 
-    fac_str =  left_str[: (L-level+1)]+ right_str[ : (L-level)]+ left_side_ranks[-2] + left_side_ranks[-1] 
-    
-    full_einstr =fac_str + ',' +   mat_einstr  
-    
-    fac_str = left_str[:(L-level+1)]+ right_str[ : (L-level )]+ left_side_ranks[-2] + right_side_ranks[-1]
-    full_einstr += '->' + fac_str
-    
+        fac_str =  left_str[: (L-level+1)]+ right_str[ : (L-level)]+ left_side_ranks[-2] + left_side_ranks[-1] 
+        
+        full_einstr =fac_str + ',' +   mat_einstr  
+        
+        fac_str = left_str[:(L-level+1)]+ right_str[ : (L-level )]+ left_side_ranks[-2] + right_side_ranks[-1]
+        full_einstr += '->' + fac_str
+    else:
 
+        mat_einstr = left_side_ranks[-1] + right_side_ranks[-1]
+        
+
+        fac_str =  left_str + left_side_ranks[-1] 
+        
+        full_einstr =fac_str + ',' +   mat_einstr  
+        
+        fac_str = left_str + right_side_ranks[-1]
+        full_einstr += '->' + fac_str
+
+    #print(full_einstr)
     g_lst[-1] = np.einsum(full_einstr,g_lst[-1],mats,optimize=True)
     
     
@@ -447,26 +447,32 @@ def absorb_factor(mats,g_lst,L):
     
     
     
-# L= 8
-# c = 4
+# L= 6
+# c = 7
 # lc = int(L/2)
 # w = 1
 # num = 3
 # l = L- num
 # I= c*2**L
 # J = c*2**L
-# r_BF= 5
+# r_BF= 6
 # ranks = [r_BF for _ in range(L-lc+1 )]
 
+# for i in range(len(ranks)):
+#     if i==0:
+#         ranks[0] = min(ranks[0],c)
+#     else:
+#         ranks[i] = min(2*ranks[i-1],ranks[i])
+# print('ranks for butterfly decomposition are ', ranks)
 
 
-# # # print('size ',I)
+# # # # print('size ',I)
 # rng = np.random.RandomState(np.random.randint(1000))
 
 
 
-# left = np.random.randn(I,60)
-# right = np.random.randn(J,60)
+# # left = np.random.randn(I,60)
+# # right = np.random.randn(J,60)
 
 # T,lst = const_butterfly_tensor(I,J,L,lc,ranks,rng)
 
@@ -492,7 +498,7 @@ def absorb_factor(mats,g_lst,L):
 
 # print('starting einsum')
 
-# g_lst,h_lst = gen_tensor_inputs(I,J,L,lc,ranks,rng)
+g_lst,h_lst = gen_tensor_inputs(I,J,L,lc,ranks,rng)
 
 
 # level = L
@@ -547,7 +553,7 @@ def absorb_factor(mats,g_lst,L):
 
 
 
-#g_lst, h_lst = butterfly_decompose(T,L,ranks,g_lst,h_lst)
+# g_lst, h_lst = butterfly_decompose(T,L,ranks,g_lst,h_lst)
 # Q = qr_factor(rhs,L,l,w)
 # print(Q.shape)
 

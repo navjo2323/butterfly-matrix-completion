@@ -72,28 +72,23 @@ def gen_tensor_inputs(m,n,L,lc,ranks,rng):
 	sh2.append(block_n)
 	sh2.append(ranks[0])
 
-	left = rng.uniform(-1,1,size=(sh1))
-	right = rng.uniform(-1,1,size=(sh2))
-	g_lst = [left]
-	h_lst = [right]
-	sh1.pop(-2)
-	sh1.append(ranks[1])
-	sh2.pop(-2)
-	sh2.append(ranks[1])
+	g_lst = [rng.uniform(-1,1,size=(sh1))]
+	h_lst = [rng.uniform(-1,1,size=(sh2))]
 
-	p=2
+
+	sh1 = [2] + sh1
+	sh2 = [2] + sh2
 	for l in range(lc):
+		sh1.pop(-2)
+		sh1.append(ranks[l+1])
+		sh1.pop(0)
+
+		sh2.pop(-2)
+		sh2.append(ranks[l+1])
+		sh2.pop(0)
+
 		g_lst.append(rng.uniform(-1,1,size=(sh2[:(l+1)] + sh1)))
 		h_lst.append(rng.uniform(-1,1,size=(sh1[:(l+1)] +sh2)))
-
-		if l != lc-1:
-			sh1.pop(0)
-			sh1.pop(-2)
-			sh1.append(ranks[p])
-			sh2.pop(0)
-			sh2.pop(-2)
-			sh2.append(ranks[p])
-			p+= 1
 
 	return g_lst,h_lst
 
@@ -340,7 +335,11 @@ def gen_einsum_string(L,lc):
 		left_lst_inds.append(left1[:-(l+1)]+right1[:l+1]+left_side_ranks[l:l+2])
 		right_lst_inds.append(left1[:l+1]+right1[:-(l+1)]+right_side_ranks[l:l+2])
 
-	full_string = left_tensor_inds+',' + ', '.join(left_lst_inds)+ ','+ ', '.join(right_lst_inds[::-1]) +','+ right_tensor_inds
+	if L != 0:
+		full_string = left_tensor_inds+',' + ', '.join(left_lst_inds)+ ','+ ', '.join(right_lst_inds[::-1]) +','+ right_tensor_inds
+	else:
+		full_string = left_tensor_inds+',' + right_tensor_inds
+
 	full_string += '->'+tensor_inds
 	return full_string
 
@@ -397,7 +396,7 @@ def butterfly_completer2(T,inds, L, g_lst, h_lst, num_iters, tol):
         for level in range(L,L//2-1,-1):
             print('At level: ',level)
             for r_c in range(2):
-                g_lst,h_lst = ALS_solve(T_sparse,inds,g_lst,h_lst,level,L,L//2,r_c,regu=1e-7)
+                g_lst,h_lst = ALS_solve(T_sparse,inds,g_lst,h_lst,level,L,L//2,r_c,regu=1e-8)
         
         e = time.time()
         print('Time in iteration', iters+1 ,':', e-s)

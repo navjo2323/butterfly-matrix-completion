@@ -123,10 +123,10 @@ def create_omega_from_indices(indices,I,J):
 
 rng = np.random.RandomState(np.random.randint(1000))
 
-c = 9
+c = 1024
 #Should be perfect square, 4 and 9 options
 
-L = 8
+L = 0
 
 #Should be even, becomes too slow after 10 for this version of code
 
@@ -165,7 +165,7 @@ print('--time in computing the BF rank of mat:',e-s, ' min/max rank:',np.min(tru
 m = mat.shape[0]
 n= m
 
-r_BF=9
+r_BF= 20
 ranks = [r_BF for _ in range(L-lc+1 )] 
 
 for i in range(len(ranks)):
@@ -177,14 +177,17 @@ print('ranks for butterfly completion are ', ranks)
 
 # Can give assymetric ranks, if needed
 
-r_LR = 60
-nnz = 0.1*int((r_LR)*n*np.log2(n))
+r_LR = r_BF
+nnz = 5*int((r_BF)*n*np.log2(n))
 
 print('m*n is',m*n)
 print('nnz is',nnz)
 print('ratio of nonzeros is',nnz/(m*n))
 s = time.time()
 T = get_butterfly_tens_from_mat(mat,L,lc,c)
+
+print(T.shape)
+print('--here--')
 
 indices = create_inds(I, J, nnz,rng)
 
@@ -196,7 +199,7 @@ print('check num nonzeros in matrix omega',np.sum(omega))
 
 print('Low-rank completion rank',r_LR)
 
-left_mat,right_mat = matrix_completion(mat,mat_sparse,omega, r=r_LR,num_iter = 20)
+left_mat,right_mat = matrix_completion(mat,mat_sparse,omega, r=r_LR,num_iter = 0)
 
 mat = left_mat@right_mat.T
 e = time.time()
