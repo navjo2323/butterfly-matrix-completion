@@ -18,7 +18,7 @@ def build_kd_tree(points, depth=0):
     return Node(
         point=points[median],
         left=build_kd_tree(points[:median], depth + 1),
-        right=build_kd_tree(points[median + 1:], depth + 1)
+        right=build_kd_tree(points[median:], depth + 1)
     )
 
 def in_order_traversal(node, result=None):

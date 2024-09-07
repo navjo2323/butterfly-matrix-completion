@@ -140,11 +140,11 @@ e = time.time()
 
 #mat = np.load('greens_matN-48ppw15.npy')
 
-I = mat.shape[0]
-J = mat.shape[1]
+I = c*2**L
+J = c*2**L
 
 
-print('greens mat generated of shape',mat.shape)
+print('greens mat generated of shape',I)
 print('--time in greens mat generation:',e-s)
 
 s = time.time()
@@ -162,7 +162,7 @@ print('--time in computing the BF rank of mat:',e-s, ' min/max rank:',np.min(tru
 
 
 
-m = mat.shape[0]
+m = I
 n= m
 
 r_BF= 20
@@ -190,9 +190,15 @@ print(T.shape)
 print('--here--')
 
 indices = create_inds(I, J, nnz,rng)
+indices_test = create_inds(I, J, nnz,rng)
+
+inds = index_convert(indices, I, J, L)
+inds_test = index_convert(indices_test, I, J, L)
+T_sparse = get_T_sparse(T,inds,L)
+T_sparse_test = get_T_sparse(T,inds_test,L)
+
 
 omega = create_omega_from_indices(indices,I,J)
-
 mat_sparse = mat*omega
 
 print('check num nonzeros in matrix omega',np.sum(omega))
@@ -201,11 +207,11 @@ print('Low-rank completion rank',r_LR)
 
 left_mat,right_mat = matrix_completion(mat,mat_sparse,omega, r=r_LR,num_iter = 0)
 
-mat = left_mat@right_mat.T
+# mat = left_mat@right_mat.T
 e = time.time()
 print('--time in low-rank completion:',e-s)
 
-T_mat = get_butterfly_tens_from_mat(left_mat@right_mat.T,L,lc,c)   # Get tensor from low rank matrix
+# T_mat = get_butterfly_tens_from_mat(left_mat@right_mat.T,L,lc,c)   # Get tensor from low rank matrix
 
 
 errors = []
@@ -229,7 +235,6 @@ e = time.time()
 print('--time in low-rank to butterfly conversion with new:',e-s)
 
 
-inds = index_convert(indices, I, J, L)
 
 print('starting completion now')
 
@@ -238,7 +243,8 @@ print('starting completion now')
 
 num_iters = 10
 s = time.time()
-g_lst,h_lst = butterfly_completer2(T,inds, L, g_lst, h_lst, num_iters=10, tol=1e-4)
+# g_lst,h_lst = butterfly_completer2(T,inds, L, g_lst, h_lst, num_iters=10, tol=1e-4)
+g_lst,h_lst = butterfly_completer3(T_sparse,inds,T_sparse_test, inds_test, L, g_lst, h_lst, num_iters=10, tol=1e-4)
 e = time.time()
 print('--time in butterfly completion:',e-s)
 
