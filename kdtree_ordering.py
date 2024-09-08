@@ -6,7 +6,7 @@ class Node:
         self.right = right
 
 def build_kd_tree(points, depth=0):
-    if not points:
+    if len(points)<=1:
         return None
     
     k = len(points[0])  # Assumes all points have the same dimension
@@ -14,7 +14,6 @@ def build_kd_tree(points, depth=0):
     
     points.sort(key=lambda x: x[axis])
     median = len(points) // 2
-    
     return Node(
         point=points[median],
         left=build_kd_tree(points[:median], depth + 1),

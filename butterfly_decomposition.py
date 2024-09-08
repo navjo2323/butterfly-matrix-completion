@@ -498,7 +498,7 @@ def absorb_factor(mats,g_lst,L):
 
 # print('starting einsum')
 
-g_lst,h_lst = gen_tensor_inputs(I,J,L,lc,ranks,rng)
+# g_lst,h_lst = gen_tensor_inputs(I,J,L,lc,ranks,rng)
 
 
 # level = L
