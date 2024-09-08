@@ -424,7 +424,7 @@ def butterfly_completer3(T_sparse,inds,T_sparse_test, inds_test, L, g_lst, h_lst
     #inds = index_convert(indices, I, J, L)
     # T_sparse = get_T_sparse(T,inds,L)
     # T_sparse_test = get_T_sparse(T,inds_test,L)
-    logging.debug('---------------Butterfly Completion------------------')
+    logging.debug('---------------Entering butterfly_completer3 ------------------')
 
     nnz = len(inds)
     print("Number of observed entries:",nnz)

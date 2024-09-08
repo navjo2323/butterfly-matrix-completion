@@ -177,7 +177,13 @@ print('ranks for butterfly completion are ', ranks)
 
 # Can give assymetric ranks, if needed
 
-r_LR = r_BF
+
+
+
+
+
+
+
 nnz = 5*int((r_BF)*n*np.log2(n))
 
 print('m*n is',m*n)
@@ -191,60 +197,57 @@ print('--here--')
 
 indices = create_inds(I, J, nnz,rng)
 indices_test = create_inds(I, J, nnz,rng)
-
+print('check num nonzeros',len(indices))
 inds = index_convert(indices, I, J, L)
 inds_test = index_convert(indices_test, I, J, L)
 T_sparse = get_T_sparse(T,inds,L)
 T_sparse_test = get_T_sparse(T,inds_test,L)
 
 
-omega = create_omega_from_indices(indices,I,J)
-mat_sparse = mat*omega
 
-print('check num nonzeros in matrix omega',np.sum(omega))
+num_iters = 1
+L_LR = 0
+r_LR = r_BF
+ranks_LR = [r_LR]
+inds_LR = index_convert(indices, I, J, L_LR)
+inds_test_LR = index_convert(indices_test, I, J, L_LR)
+T_sparse_LR = get_T_sparse(T,inds_LR,L_LR)
+T_sparse_test_LR = get_T_sparse(T,inds_test_LR,L_LR)
 
 print('Low-rank completion rank',r_LR)
-
-left_mat,right_mat = matrix_completion(mat,mat_sparse,omega, r=r_LR,num_iter = 0)
-
-# mat = left_mat@right_mat.T
+s = time.time()
+rng = np.random.RandomState(np.random.randint(1000))
+g_lst,h_lst = gen_tensor_inputs(m,n,L_LR,0,ranks_LR,rng)
+g_lst,h_lst = butterfly_completer3(T_sparse_LR,inds_LR,T_sparse_test_LR, inds_test_LR, L_LR, g_lst, h_lst, num_iters=num_iters, tol=1e-4)
 e = time.time()
+left_mat = g_lst[0]
+right_mat = h_lst[0]
 print('--time in low-rank completion:',e-s)
-
-# T_mat = get_butterfly_tens_from_mat(left_mat@right_mat.T,L,lc,c)   # Get tensor from low rank matrix
 
 
 errors = []
 
 
-
 rng = np.random.RandomState(np.random.randint(1000))
-
 g_lst,h_lst = gen_tensor_inputs(m,n,L,lc,ranks,rng)
-
 # Unoptimized way of doing butterfly decomposition
 # s = time.time()
 # left,g_lst,h_lst,right = butterfly_completer(T_sparse,T_mat,Omega,L,left,g_lst,h_lst,right,num_iters,tol=1e-3)
 # e = time.time()
 # print('--time in low-rank to butterfly conversion:',e-s)
-
-
 s=time.time()
 g_lst,h_lst = butterfly_decompose_low_rank(left_mat,right_mat,L,ranks,g_lst,h_lst)
 e = time.time()
 print('--time in low-rank to butterfly conversion with new:',e-s)
 
 
-
 print('starting completion now')
-
 
 
 
 num_iters = 10
 s = time.time()
-# g_lst,h_lst = butterfly_completer2(T,inds, L, g_lst, h_lst, num_iters=10, tol=1e-4)
-g_lst,h_lst = butterfly_completer3(T_sparse,inds,T_sparse_test, inds_test, L, g_lst, h_lst, num_iters=10, tol=1e-4)
+g_lst,h_lst = butterfly_completer3(T_sparse,inds,T_sparse_test, inds_test, L, g_lst, h_lst, num_iters=num_iters, tol=1e-4)
 e = time.time()
 print('--time in butterfly completion:',e-s)
 
