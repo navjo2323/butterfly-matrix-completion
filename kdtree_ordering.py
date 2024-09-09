@@ -6,7 +6,7 @@ class Node:
         self.right = right
 
 def build_kd_tree(points, depth=0):
-    if len(points)<=1:
+    if len(points)==0:
         return None
     
     k = len(points[0])  # Assumes all points have the same dimension
@@ -14,10 +14,11 @@ def build_kd_tree(points, depth=0):
     
     points.sort(key=lambda x: x[axis])
     median = len(points) // 2
+    # print(len(points[:median]),len(points[median:]),depth)
     return Node(
         point=points[median],
         left=build_kd_tree(points[:median], depth + 1),
-        right=build_kd_tree(points[median:], depth + 1)
+        right=build_kd_tree(points[median+1:], depth + 1)
     )
 
 def in_order_traversal(node, result=None):

@@ -292,6 +292,34 @@ def index_convert(indices, I, J, L):
     return tuple(inds)
 
 
+## the following is the same as above, but optimized by chatGPT. 
+def index_convert(indices, I, J, L, c):
+    # Preallocate the result array
+    num_indices = len(indices)
+    inds = np.zeros((num_indices, 2 * L + 2), dtype=int)
+
+    # Convert indices to NumPy array for efficient vectorized operations
+    indices = np.array(indices)
+    ind_is = indices[:, 0]//c
+    ind_js = indices[:, 1]//c
+
+    # Precompute powers of 2 for binary decomposition
+    powers_of_2 = 2**np.arange(L - 1, -1, -1)
+
+    # Left part: Extract L bits from ind_is (most significant bits first)
+    inds[:, :L] = (ind_is[:, None] & powers_of_2) > 0
+
+    # Right part: Extract L bits from ind_js (most significant bits first)
+    inds[:, L:2*L] = (ind_js[:, None] & powers_of_2) > 0
+
+    # Remaining bits for ind_is and ind_js after extracting L bits
+    inds[:, 2 * L] = indices[:, 0]%c
+    inds[:, 2 * L + 1] = indices[:, 1]%c
+
+    return tuple(map(tuple, inds))
+
+
+
 
 def contract_all(inds,g_lst,h_lst,L):
 	# inds are given in tensor format instead of (m,n)
@@ -343,13 +371,23 @@ def gen_einsum_string(L,lc):
 	full_string += '->'+tensor_inds
 	return full_string
 
-def create_inds(I, J, nnz,rng):
-    unique_tuples = set()
-    while len(unique_tuples) < nnz:
-        Is = rng.randint(low=0, high=I)
-        Js = rng.randint(low=0, high=J)
-        unique_tuples.add((Is, Js))
-    return tuple(unique_tuples)
+# def create_inds(I, J, nnz,rng):
+#     unique_tuples = set()
+#     while len(unique_tuples) < nnz:
+#         Is = rng.randint(low=0, high=I)
+#         Js = rng.randint(low=0, high=J)
+#         unique_tuples.add((Is, Js))
+#     return tuple(unique_tuples)
+
+## the following is the same as above, but optimized by chatGPT. Not sure if it will cause memory issue due to the use of meshgrid
+def create_inds(I, J, nnz, rng):
+    # Generate all possible pairs (i, j) in the range
+    all_indices = np.array(np.meshgrid(np.arange(I), np.arange(J))).T.reshape(-1, 2)
+    # Randomly select `nnz` unique pairs
+    selected_indices = rng.choice(len(all_indices), size=nnz, replace=False)
+    # Return the selected indices as a tuple of pairs
+    return tuple(map(tuple, all_indices[selected_indices]))
+
 
 def const_butterfly_tensor(m,n,L,lc,ranks,rng):
 	g_lst,h_lst = gen_tensor_inputs(m,n,L,lc,ranks,rng)
@@ -424,7 +462,7 @@ def butterfly_completer3(T_sparse,inds,T_sparse_test, inds_test, L, g_lst, h_lst
     #inds = index_convert(indices, I, J, L)
     # T_sparse = get_T_sparse(T,inds,L)
     # T_sparse_test = get_T_sparse(T,inds_test,L)
-    logging.debug('---------------Entering butterfly_completer3 ------------------')
+    logging.debug('---------------Entering butterfly_completer3 (L=%s) ------------------'%(L))
 
     nnz = len(inds)
     print("Number of observed entries:",nnz)
@@ -456,11 +494,15 @@ def butterfly_completer3(T_sparse,inds,T_sparse_test, inds_test, L, g_lst, h_lst
         
         # recon = recon_butterfly_tensor(g_lst,h_lst, L, int(L/2))
         # error = la.norm(T - recon) / la.norm(T)
+        s = time.time()
         recon_sparse_test = contract_all(inds_test,g_lst,h_lst,L)
         error = la.norm(T_sparse_test - recon_sparse_test) / la.norm(T_sparse_test)
         errors.append(error)
         recon_sparse = contract_all(inds,g_lst,h_lst,L)
         sparse_error = la.norm(T_sparse - recon_sparse) / la.norm(T_sparse)
+        e = time.time()
+        print('Time in error test of iteration', iters+1 ,':', e-s)
+
         print('Relative error in observed entries: ',sparse_error)
         print('Relative error in test entries after', iters + 1,' iterations: ',error)
         print('-----------------')

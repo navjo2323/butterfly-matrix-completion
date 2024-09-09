@@ -56,7 +56,7 @@ def butterfly_rank(matrix, block_size,tol):
 
 
 
-def get_greens_kernel(c,L,ppw):
+def get_greens_kernel(c,L,ppw,inds=None):
     # Define the number of points and the wavenumber
     #wavelen = 0.35/(2 ** 2.5)
     
@@ -81,8 +81,6 @@ def get_greens_kernel(c,L,ppw):
     Nperdimx = Nperdim
     Nperdimy = Nperdim
 
-    # Initialize the Green's function matrix
-    G = np.zeros((Nperdimx*Nperdimy, Nperdimx*Nperdimy))
 
     pts = [(x,y) for x in np.linspace(0,1,Nperdimx) for y in np.linspace(0,1,Nperdimy)]
     
@@ -97,20 +95,34 @@ def get_greens_kernel(c,L,ppw):
     #         G[i,j] = np.cos(-1 * waven* dist) / dist
     
     
-
     order_pts = generate_kd_tree(pts)
-    
-    i = 0
-    for p in order_pts:
-        j=0
-        for q in order_pts:
-            dist = np.sqrt(la.norm(p-q)**2 + 1)   #np.sqrt( np.sum((p - q)**2) +1)
-            G[i,j] = np.cos(-1 * waven* dist) / dist
-            j+=1
-        i+=1
-            
 
-    return G
+    if(inds is None):
+        # Initialize the Green's function matrix
+        G = np.zeros((Nperdimx*Nperdimy, Nperdimx*Nperdimy))
+        i = 0
+        for p in order_pts:
+            j=0
+            for q in order_pts:
+                dist = np.sqrt(la.norm(p-q)**2 + 1)   #np.sqrt( np.sum((p - q)**2) +1)
+                G[i,j] = np.cos(-1 * waven* dist) / dist
+                j+=1
+            i+=1
+        return G
+    else:
+        T_sparse = np.zeros(len(inds))
+        i=0
+        for ind in inds:
+            ind_i = ind[0]
+            ind_j = ind[1]  
+            p=order_pts[ind_i] 
+            q=order_pts[ind_j]
+            dist = np.sqrt(la.norm(p-q)**2 + 1)   #np.sqrt( np.sum((p - q)**2) +1)
+            T_sparse[i] = np.cos(-1 * waven* dist) / dist             
+            i+=1
+        return T_sparse
+
+
 
 def create_omega_from_indices(indices,I,J):
     Omega = np.zeros((I,J))
@@ -123,49 +135,52 @@ def create_omega_from_indices(indices,I,J):
 
 rng = np.random.RandomState(np.random.randint(1000))
 
-c = 1024
+get_true_rank=0
+c = 4
 #Should be perfect square, 4 and 9 options
 
-L = 0
+L = 10
 
 #Should be even, becomes too slow after 10 for this version of code
 
-
+tol=1e-3
+ppw=10
 
 lc = int(L/2) 
-s = time.time()
-mat= get_greens_kernel(c,L,ppw=10)
-e = time.time()
-#np.save('greens_matN-48ppw15.npy',mat)
-
-#mat = np.load('greens_matN-48ppw15.npy')
-
 I = c*2**L
 J = c*2**L
 
 
-print('greens mat generated of shape',I)
-print('--time in greens mat generation:',e-s)
+if(get_true_rank==1):
+    s = time.time()
+    mat= get_greens_kernel(c,L,ppw=ppw)
+    e = time.time()
+    #np.save('greens_matN-48ppw15.npy',mat)
 
-s = time.time()
-tol=1e-3
-true_r_lr = numerical_rank(mat,tol)
-e = time.time()
-print('--time in computing the LR rank of mat:',e-s, ' rank:',true_r_lr, ' with tolerence', tol)
+    #mat = np.load('greens_matN-48ppw15.npy')
+    print('greens mat generated of shape',I)
+    print('--time in greens mat generation:',e-s)
+
+    s = time.time()
+
+    true_r_lr = numerical_rank(mat,tol)
+    e = time.time()
+    print('--time in computing the LR rank of mat:',e-s, ' rank:',true_r_lr, ' with tolerence', tol)
+
+    s = time.time()
+    blocksize = int(c*2**(L/2))
+    true_bf_ranks = butterfly_rank(mat,blocksize,tol)
+    e = time.time()
+    print('--time in computing the BF rank of mat:',e-s, ' min/max rank:',np.min(true_bf_ranks),np.max(true_bf_ranks), ' with tolerence', tol)
 
 
-s = time.time()
-blocksize = int(c*2**(L/2))
-true_bf_ranks = butterfly_rank(mat,blocksize,tol)
-e = time.time()
-print('--time in computing the BF rank of mat:',e-s, ' min/max rank:',np.min(true_bf_ranks),np.max(true_bf_ranks), ' with tolerence', tol)
 
 
 
 m = I
 n= m
 
-r_BF= 20
+r_BF= 10
 ranks = [r_BF for _ in range(L-lc+1 )] 
 
 for i in range(len(ranks)):
@@ -190,49 +205,47 @@ print('m*n is',m*n)
 print('nnz is',nnz)
 print('ratio of nonzeros is',nnz/(m*n))
 s = time.time()
-T = get_butterfly_tens_from_mat(mat,L,lc,c)
-
-print(T.shape)
-print('--here--')
-
 indices = create_inds(I, J, nnz,rng)
 indices_test = create_inds(I, J, nnz,rng)
-print('check num nonzeros',len(indices))
-inds = index_convert(indices, I, J, L)
-inds_test = index_convert(indices_test, I, J, L)
-T_sparse = get_T_sparse(T,inds,L)
-T_sparse_test = get_T_sparse(T,inds_test,L)
-
+e = time.time()
+print('--time in creating indices:',e-s)
+s = time.time()
+inds = index_convert(indices, I, J, L, c)
+inds_test = index_convert(indices_test, I, J, L, c)
+e = time.time()
+print('--time in index conversion:',e-s)
+s = time.time()
+T_sparse = get_greens_kernel(c,L,ppw=ppw,inds=indices)
+T_sparse_test = get_greens_kernel(c,L,ppw=ppw,inds=indices_test)
+e = time.time()
+print('--time in entry generation:',e-s)
 
 
 num_iters = 1
 L_LR = 0
 r_LR = r_BF
 ranks_LR = [r_LR]
-inds_LR = index_convert(indices, I, J, L_LR)
-inds_test_LR = index_convert(indices_test, I, J, L_LR)
-T_sparse_LR = get_T_sparse(T,inds_LR,L_LR)
-T_sparse_test_LR = get_T_sparse(T,inds_test_LR,L_LR)
+inds_LR = index_convert(indices, I, J, L_LR,I)
+inds_test_LR = index_convert(indices_test, I, J, L_LR,I)
+T_sparse_LR = T_sparse
+T_sparse_test_LR = T_sparse_test
 
-print('Low-rank completion rank',r_LR)
+print('Low-rank completion (initial guess for butterlfy completion) rank',r_LR)
 s = time.time()
 rng = np.random.RandomState(np.random.randint(1000))
 g_lst,h_lst = gen_tensor_inputs(m,n,L_LR,0,ranks_LR,rng)
-g_lst,h_lst = butterfly_completer3(T_sparse_LR,inds_LR,T_sparse_test_LR, inds_test_LR, L_LR, g_lst, h_lst, num_iters=num_iters, tol=1e-4)
+g_lst,h_lst = butterfly_completer3(T_sparse_LR,inds_LR,T_sparse_test_LR, inds_test_LR, L_LR, g_lst, h_lst, num_iters=num_iters, tol=tol)
 e = time.time()
 left_mat = g_lst[0]
 right_mat = h_lst[0]
 print('--time in low-rank completion:',e-s)
 
 
-errors = []
-
-
 rng = np.random.RandomState(np.random.randint(1000))
 g_lst,h_lst = gen_tensor_inputs(m,n,L,lc,ranks,rng)
 # Unoptimized way of doing butterfly decomposition
 # s = time.time()
-# left,g_lst,h_lst,right = butterfly_completer(T_sparse,T_mat,Omega,L,left,g_lst,h_lst,right,num_iters,tol=1e-3)
+# left,g_lst,h_lst,right = butterfly_completer(T_sparse,T_mat,Omega,L,left,g_lst,h_lst,right,num_iters,tol=tol)
 # e = time.time()
 # print('--time in low-rank to butterfly conversion:',e-s)
 s=time.time()
@@ -241,13 +254,10 @@ e = time.time()
 print('--time in low-rank to butterfly conversion with new:',e-s)
 
 
-print('starting completion now')
-
-
-
+print('starting butterfly completion now')
 num_iters = 10
 s = time.time()
-g_lst,h_lst = butterfly_completer3(T_sparse,inds,T_sparse_test, inds_test, L, g_lst, h_lst, num_iters=num_iters, tol=1e-4)
+g_lst,h_lst = butterfly_completer3(T_sparse,inds,T_sparse_test, inds_test, L, g_lst, h_lst, num_iters=num_iters, tol=tol)
 e = time.time()
 print('--time in butterfly completion:',e-s)
 
