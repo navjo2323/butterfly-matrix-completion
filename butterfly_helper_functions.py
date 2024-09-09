@@ -3,6 +3,11 @@ import numpy.linalg as la
 import itertools
 import logging
 import time
+from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
+
+
 
 # convention to use l=L for outer ones, and l= lc for middle
 # r_c= 0 means g_lst side and r_c = 1 h_lst side
@@ -206,10 +211,17 @@ def contract_RHS_T(T,inds,g_lst,h_lst,level,L,lc,r_c):
 		k+=1
 	return output
 
+
+def make_tuple_hashable(tup):
+    return tuple('slice(None)' if isinstance(x, slice) else x for x in tup)
+def convert_back_to_slice(tup):
+    return tuple(slice(None) if x == 'slice(None)' else x for x in tup)
+
 def ALS_solve(T,inds,g_lst,h_lst,level,L,lc,r_c,regu):
 	assert ( level <= L and level >= lc)
 
 	lst_ind = L- level 
+	s = time.time()
 	if r_c ==0:
 		output = np.zeros_like(g_lst[lst_ind])
 		if lst_ind ==0:
@@ -222,22 +234,56 @@ def ALS_solve(T,inds,g_lst,h_lst,level,L,lc,r_c,regu):
 			LHS = np.zeros(h_lst[lst_ind].shape + (h_lst[lst_ind].shape[-1],))
 		else:
 			LHS = np.zeros(h_lst[lst_ind].shape[:-2] + (h_lst[lst_ind].shape[-1]*h_lst[lst_ind].shape[-2],h_lst[lst_ind].shape[-1]*h_lst[lst_ind].shape[-2]))
-	
-	k=0
+	e = time.time()
+	print('Time in allocating LHS:', e-s)
+	s = time.time()
+
 	#sort indices with respect to the solve index
 	#then loop over the inds, accumulate and solve
 	#do this later
-	for index in inds:
-		output_index1 = figure_output_index(index,level,L,lc,r_c)
+	# k=0
+	# for index in inds:
+	# 	output_index1 = figure_output_index(index,level,L,lc,r_c)
+	# 	mats = multiply_mats(g_lst,h_lst,level,L,lc,r_c,index)
+	# 	output[output_index1] += T[k]*mats
+	# 	if lst_ind ==0:
+	# 		output_index2 = output_index1 + (slice(None),)
+	# 	else:
+	# 		output_index2 = output_index1
+	# 	LHS[output_index2] += np.outer(mats.reshape(-1),mats.reshape(-1)) 
+	# 	k+=1
+	
+
+
+	matss=[]
+	for k, index in enumerate(inds):
 		mats = multiply_mats(g_lst,h_lst,level,L,lc,r_c,index)
-		output[output_index1] += T[k]*mats
+		matss.append(mats)
+
+	index_groups = defaultdict(list)
+	for k, index in enumerate(inds):
+		output_index1 = figure_output_index(index, level, L, lc, r_c)
+		hashable_output_index = make_tuple_hashable(output_index1)
+		index_groups[hashable_output_index].append(k)  # Store the index where the tuple appears
+		
+	for output_tuple, ks in index_groups.items():
+		output_index1 = convert_back_to_slice(output_tuple)
+		stacked_mats = np.stack([matss[k] for k in ks], axis=-1)	
+		T_array = np.array([T[k] for k in ks]).reshape(1, 1, -1)
+		output[output_index1] = np.sum(stacked_mats * T_array, axis=-1)
 		if lst_ind ==0:
 			output_index2 = output_index1 + (slice(None),)
 		else:
 			output_index2 = output_index1
-		LHS[output_index2] += np.outer(mats.reshape(-1),mats.reshape(-1)) 
-		k+=1
+		reshaped_mats = stacked_mats.reshape(-1, len(ks))
+		LHS[output_index2] = np.dot(reshaped_mats, reshaped_mats.T)
+
+	e = time.time()
+	print('Time in filling LHS:', e-s, len(inds))
+
+
 	if lst_ind ==0:
+		s = time.time()
 		if r_c ==0:
 			rows = g_lst[0].shape[-2]
 		else:
@@ -251,6 +297,8 @@ def ALS_solve(T,inds,g_lst,h_lst,level,L,lc,r_c,regu):
 					else:
 						h_lst[lst_ind][combination+ (row,slice(None))] = la.solve(LHS[combination + (row,slice(None),slice(None))]+ regu*np.eye(output.shape[-1]),
 							output[combination + (row,slice(None))])
+		e = time.time()
+		print('Time in solve:', e-s)
 	else:
 		for combination in itertools.product([0, 1], repeat=L+1):
 			if not np.allclose(output[combination + (slice(None), slice(None))],np.zeros_like(output[combination + (slice(None), slice(None))])):
@@ -469,16 +517,14 @@ def butterfly_completer3(T_sparse,inds,T_sparse_test, inds_test, L, g_lst, h_lst
     
     errors = []
     
-    # recon = recon_butterfly_tensor(g_lst,h_lst, L, int(L/2))
-    # error = la.norm(T - recon) / la.norm(T)
-    recon_sparse_test = contract_all(inds_test,g_lst,h_lst,L)
-    error = la.norm(T_sparse_test - recon_sparse_test) / la.norm(T_sparse_test)
-    errors.append(error)
+    # recon_sparse_test = contract_all(inds_test,g_lst,h_lst,L)
+    # error = la.norm(T_sparse_test - recon_sparse_test) / la.norm(T_sparse_test)
+    # errors.append(error)
 
-    recon_sparse = contract_all(inds,g_lst,h_lst,L)
-    sparse_error = la.norm(T_sparse - recon_sparse) / la.norm(T_sparse)
-    print('Initial relative error in observed entries:',sparse_error)
-    print('Initial relative error in test entries:',error)
+    # recon_sparse = contract_all(inds,g_lst,h_lst,L)
+    # sparse_error = la.norm(T_sparse - recon_sparse) / la.norm(T_sparse)
+    # print('Initial relative error in observed entries:',sparse_error)
+    # print('Initial relative error in test entries:',error)
     
     for iters in range(num_iters):
         s = time.time()
