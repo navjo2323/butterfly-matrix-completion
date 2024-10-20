@@ -358,7 +358,10 @@ def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu):
 
 
 def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol):
-    print('------------------tensor train completion----------------------------')
+    if(L==0):
+        print('------------------matrix completion----------------------------')
+    else:
+        print('------------------butterfly completion----------------------------')
     nnz = len(inds)
     print("Number of observed entries:",nnz)
     
