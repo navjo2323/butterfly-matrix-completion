@@ -142,13 +142,19 @@ def get_2dradon_kernel(c, L, inds=None):
         inds = np.array(inds)
         x = pts[inds[:, 0]]  # Extract points for ind_i
         y = pts[inds[:, 1]]  # Extract points for ind_j
-        y = y*Nperdim-Nperdim/2.0
-        c1 = (2+np.sin(2*np.pi*x[0])*np.sin(2*np.pi*x[1]))/16.0
-        c2 = (2+np.cos(2*np.pi*x[0])*np.cos(2*np.pi*x[1]))/16.0
-        phi = x*y + np.sqrt(c1**2*y[0]**2 + c2**2*y[1]**2)
+        y = y * Nperdim - Nperdim / 2.0  # Adjust y coordinates
+        y2 = y**2
 
-        # Compute T_sparse using vectorized operations
-        T_sparse = np.cos(2*np.pi*phi)
+        c1 = (2 + np.sin(2 * np.pi * x[:, 0]) * np.sin(2 * np.pi * x[:, 1])) / 16.0
+        c1 = c1**2
+        c2 = (2 + np.cos(2 * np.pi * x[:, 0]) * np.cos(2 * np.pi * x[:, 1])) / 16.0
+        c2 = c2**2
+        
+        # Calculate phi ensuring shape is (num_pts,)
+        phi = np.sqrt(c1 * y2[:, 0] + c2 * y2[:, 1]) + np.sum(x * y, axis=1)
+
+        # Compute T_sparse using the new shape of phi
+        T_sparse = np.cos(2 * np.pi * phi)
         
         return T_sparse
 
@@ -198,7 +204,7 @@ def get_1dradon_kernel(c, L, inds=None):
         # Compute T_sparse using vectorized operations
         T_sparse = np.cos(2*np.pi*phi)
         
-        return T_sparse
+        return T_sparse.reshape(-1)
 
 rng = np.random.RandomState(np.random.randint(1000))
 
