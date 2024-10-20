@@ -267,30 +267,38 @@ def compute_sparse_butterfly(inds, tensor_lst, L):
 
 
 def multiply_mats(inds_tups, tensor_lst, level, L, row_shape):
-
     num_tuples = len(inds_tups)
+
     if level == 0:
-        H = [tensor_lst[L+1][inds_tups[i][:,L+1]] for i in range(num_tuples) ]    
+        # Pre-compute indices for the last tensor
+        H = [tensor_lst[L+1][inds[:, L+1]] for inds in inds_tups]
+
+        # Iterate in reverse order and apply einsum
         for i in range(L, 0, -1):
-            H = [np.einsum('irz,iz->ir',tensor_lst[i][inds_tups[j][:,i]] ,H[j]) for j in range(num_tuples) ]
+            H = [np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H[j],optimize=True) for j, inds in enumerate(inds_tups)]
 
+    elif level == L + 1:
+        # Pre-compute indices for the first tensor
+        H = [tensor_lst[0][inds[:, 0]] for inds in inds_tups]
 
-    elif level == L+ 1:
-        H = [tensor_lst[0][inds_tups[i][:,0]] for i in range(num_tuples) ]
-        for i in range(1,L+1):
-            H = [np.einsum('ir,irz->iz',H[j],tensor_lst[i][inds_tups[j][:,i]] ) for j in range(num_tuples) ]
+        # Iterate forwards and apply einsum
+        for i in range(1, L + 1):
+            H = [np.einsum('ir,irz->iz', H[j], tensor_lst[i][inds[:, i]],optimize=True) for j, inds in enumerate(inds_tups)]
 
     else:
-        H1 = [tensor_lst[0][inds_tups[i][:,0]] for i in range(num_tuples) ]
-        H2 = [tensor_lst[L+1][inds_tups[i][:,L+1]] for i in range(num_tuples) ]
+        # Handle the case where level is between 0 and L+1
+        H1 = [tensor_lst[0][inds[:, 0]] for inds in inds_tups]
+        H2 = [tensor_lst[L+1][inds[:, L+1]] for inds in inds_tups]
 
+        # Compute H1 by iterating forward up to 'level'
         for i in range(1, level):
-            H1 = [np.einsum('ir,irz->iz',H1[j],tensor_lst[i][inds_tups[j][:,i]] ) for j in range(num_tuples) ]
-
+            H1 = [np.einsum('ir,irz->iz', H1[j], tensor_lst[i][inds[:, i]],optimize=True) for j, inds in enumerate(inds_tups)]
+        # Compute H2 by iterating backward from L down to 'level'
         for i in range(L, level, -1):
-            H2 = [np.einsum('irz,iz->ir',tensor_lst[i][inds_tups[j][:,i]] ,H2[j]) for j in range(num_tuples) ]
+            H2 = [np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H2[j],optimize=True) for j, inds in enumerate(inds_tups)]
 
-        H = [np.einsum('ir,iz->irz',H1[j],H2[j]).reshape((len(inds_tups[j]),row_shape)) for j in range(num_tuples) ]
+        # Combine H1 and H2
+        H = [np.einsum('ir,iz->irz', H1[j], H2[j],optimize=True).reshape((len(inds), row_shape)) for j, inds in enumerate(inds_tups)]
 
     return H
 
