@@ -188,7 +188,7 @@ def make_two_lists(tensor_lst):
 
     h_lst = tensor_lst[ len(tensor_lst) // 2 : ]
     h_lst = h_lst[::-1]
-    h_lst[1:] = [arr.transpose(0, 2, 1) for arr in h_lst[1:]]
+    h_lst[1:] = [arr.conj().transpose(0, 2, 1) for arr in h_lst[1:]]
 
     return g_lst, h_lst
 
@@ -350,10 +350,10 @@ def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu):
     Hs = multiply_mats(inds_tups, tensor_lst, level, L, row_shape) 
 
 
-    RHS = np.array([np.dot(T_new[starts[i]: starts[i] + counts[i] ], Hs[i]) for i in range(len(unqs))])
+    RHS = np.array([np.dot(T_new[starts[i]: starts[i] + counts[i] ], Hs[i].conj()) for i in range(len(unqs))])
 
 
-    LHS = np.array([np.dot(H.T ,H) + I for H in Hs])
+    LHS = np.array([np.dot(H.conj().T ,H) + I for H in Hs])
 
     result = la.solve(LHS , RHS)
 
