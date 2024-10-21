@@ -177,7 +177,7 @@ def make_one_list(g_lst,h_lst):
 
     # We still need to transpose each tensor in H, except the last one since it will be easier to 
     # index into rows
-    h_lst[:-1] = [arr.transpose(0, 2, 1) for arr in h_lst[:-1]]
+    h_lst[:-1] = [arr.conj().transpose(0, 2, 1) for arr in h_lst[:-1]]
 
     return g_lst + h_lst
 
