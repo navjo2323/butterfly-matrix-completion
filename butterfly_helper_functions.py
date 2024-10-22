@@ -41,7 +41,7 @@ def get_index(i,j,L,c):
 def get_butterfly_mat_from_tens(T,L,lc,c):
     # T is constructed from the lst
     big_side = c*2**L
-    mat = np.zeros((big_side,big_side))
+    mat = np.zeros((big_side,big_side), dtype= np.complex_)
     for i in range(2**L):
         for j in range(2**L):
             left, right = get_index(i,j,L,c)
@@ -58,7 +58,7 @@ def get_butterfly_tens_from_mat(mat,L,lc,c):
     shape.append(block_m)
     shape += [2 for l in range(L)]
     shape.append(block_n)
-    T = np.zeros(shape)
+    T = np.zeros(shape, dtype= np.complex_)
     for i in range(2**L):
         for j in range(2**L):
             left,right = get_index(i,j,L,c)
@@ -666,13 +666,15 @@ def create_inds(I, J, nnz, rng):
 def const_butterfly_tensor(m,n,L,lc,ranks,rng):
     g_lst,h_lst = gen_tensor_inputs(m,n,L,lc,ranks,rng)
     strng = gen_einsum_string(L,lc)
-    T = np.einsum(strng,g_lst[0],*g_lst[1:],*h_lst[1:][::-1],h_lst[0],optimize=True)
+    h_lst_conj = [arr.conj() for arr in h_lst]
+    T = np.einsum(strng,g_lst[0],*g_lst[1:],*h_lst_conj[1:][::-1],h_lst_conj[0],optimize=True)
     return T,g_lst,h_lst
 
 def recon_butterfly_tensor(g_lst,h_lst,L,lc):
     strng = gen_einsum_string(L,lc)
     #print(strng)
-    T = np.einsum(strng,g_lst[0],*g_lst[1:],*h_lst[1:][::-1],h_lst[0],optimize=True)
+    h_lst_conj = [arr.conj() for arr in h_lst]
+    T = np.einsum(strng,g_lst[0],*g_lst[1:],*h_lst_conj[1:][::-1],h_lst_conj[0],optimize=True)
     return T
 
 def get_T_sparse(T,inds,L):

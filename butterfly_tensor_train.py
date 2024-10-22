@@ -4,16 +4,24 @@ import time
 import logging
 
 
-def gen_tensor_train_list(L, c , ranks ,rng ):
-    tensor_lst = [rng.uniform(-1,1,size= (c*(2**L), ranks[0]))]
+def gen_tensor_train_list(L, c, ranks, rng):
+    # Generate the initial tensor with complex numbers
+    tensor_lst = [rng.uniform(-1, 1, size=(c * (2**L), ranks[0])) + 
+                  1j * rng.uniform(-1, 1, size=(c * (2**L), ranks[0]))]
 
-    for i in range(L//2):
-        tensor_lst.append(rng.uniform(-1,1,size=(2**(L+1), ranks[i], ranks[i+1])))
+    # Generate tensors for the first half of the list with complex numbers
+    for i in range(L // 2):
+        tensor_lst.append(rng.uniform(-1, 1, size=(2**(L+1), ranks[i], ranks[i+1])) + 
+                          1j * rng.uniform(-1, 1, size=(2**(L+1), ranks[i], ranks[i+1])))
 
-    for i in range(L//2, 0, -1):
-        tensor_lst.append(rng.uniform(-1,1,size=(2**(L+1), ranks[i], ranks[i-1])))
+    # Generate tensors for the second half of the list with complex numbers
+    for i in range(L // 2, 0, -1):
+        tensor_lst.append(rng.uniform(-1, 1, size=(2**(L+1), ranks[i], ranks[i-1])) + 
+                          1j * rng.uniform(-1, 1, size=(2**(L+1), ranks[i], ranks[i-1])))
 
-    tensor_lst.append(rng.uniform(-1,1, size = (c*2**L, ranks[0])))
+    # Generate the final tensor with complex numbers
+    tensor_lst.append(rng.uniform(-1, 1, size=(c * 2**L, ranks[0])) + 
+                      1j * rng.uniform(-1, 1, size=(c * 2**L, ranks[0])))
 
     return tensor_lst
 
@@ -47,7 +55,7 @@ def reverse_from_binary_shape(binary_array):
     N = M * c
     
     # Initialize the output array with shape (N, R)
-    integer_array = np.zeros((N, R))
+    integer_array = np.zeros((N, R), dtype = np.complex_)
     
     # Precompute powers of 2 for bit conversion
     powers_of_2 = 1 << np.arange(L)[::-1]
@@ -79,7 +87,7 @@ def convert_to_binary_shape(array, c):
 
     # Initialize a new array with binary dimensions
     new_shape = (2,) * L + (c, R)
-    new_array = np.zeros(new_shape)
+    new_array = np.zeros(new_shape, dtype=np.complex_)
 
     # Fill in the new array using binary indices
     for idx in range(N):
@@ -103,7 +111,7 @@ def reverse_to_binary_array(integer_array):
     
     # Initialize the binary array with the shape (2, 2, ..., 2, R, R)
     binary_shape = (2,) * num_binary_dims + (R1, R2)
-    binary_array = np.zeros(binary_shape)
+    binary_array = np.zeros(binary_shape, dtype= np.complex_)
     
     # Fill the binary array with values based on the integer indices
     for index in range(N):
@@ -178,6 +186,7 @@ def make_one_list(g_lst,h_lst):
     # We still need to transpose each tensor in H, except the last one since it will be easier to 
     # index into rows
     h_lst[:-1] = [arr.conj().transpose(0, 2, 1) for arr in h_lst[:-1]]
+    h_lst[-1] = h_lst[-1].conj()
 
     return g_lst + h_lst
 
@@ -189,6 +198,7 @@ def make_two_lists(tensor_lst):
     h_lst = tensor_lst[ len(tensor_lst) // 2 : ]
     h_lst = h_lst[::-1]
     h_lst[1:] = [arr.conj().transpose(0, 2, 1) for arr in h_lst[1:]]
+    h_lst[0] = h_lst[0].conj()
 
     return g_lst, h_lst
 
@@ -380,7 +390,7 @@ def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tenso
 
         for level in range(L+2):
             print('At level: ',level)
-            tensor_lst = tensor_train_ALS_solve(T_sparse, inds, tensor_lst, level, L, regu=1e-8)
+            tensor_lst = tensor_train_ALS_solve(T_sparse, inds, tensor_lst, level, L, regu=1e-10)
         
         e = time.time()
         print('Time in iteration', iters+1 ,':', e-s)

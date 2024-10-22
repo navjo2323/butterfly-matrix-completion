@@ -6,7 +6,7 @@ import numpy.linalg as la
 import scipy.linalg as sla
 
 from butterfly_helper_functions import *
-from tensor_formulated_butterfly import get_butterfly_tens_from_mat,const_butterfly_tensor,gen_solve_einsum, solve_for_inner
+#from tensor_formulated_butterfly import get_butterfly_tens_from_mat,const_butterfly_tensor,gen_solve_einsum, solve_for_inner
 
 # import signal
 
@@ -18,6 +18,25 @@ from tensor_formulated_butterfly import get_butterfly_tens_from_mat,const_butter
 # signal.alarm(5)  # Set a 5-second timeout
 
 
+def get_index2(i,j,L,c):
+    ind_i = i
+    ind_j = j
+    left = []
+    right = []
+    num1 = 2**L
+    num2 = 2**L
+    for m in range(L):
+        val1 = int(ind_i >= num1//2)
+        val2 = int(ind_j >= num2//2)
+        left.append(val1)
+        right.append(val2)
+        num1 = num1//2
+        num2 = num2//2
+        if val1:
+            ind_i -= num1
+        if val2:
+            ind_j -= num2
+    return left,right
 
 def get_index(i,L,c):
     ind_i = i
@@ -38,10 +57,26 @@ def get_butterfly_tens_from_factor(mat,L,lc,c):
     shape = [2 for l in range(L)]
     shape.append(block_m)
     shape.append(r)
-    T = np.zeros(shape)
+    T = np.zeros(shape,dtype=np.complex_)
     for i in range(2**L):
         left = get_index(i,L,c)
         T[tuple(left +[slice(None)] )] = mat[c*i:c*(i+1),: ]
+    return T
+
+def get_butterfly_tens_from_mat(mat,L,lc,c):
+    m = mat.shape[0]
+    n = mat.shape[1]
+    block_m = int(m/2**L)
+    block_n = int(n/2**L)
+    shape = [2 for l in range(L)]
+    shape.append(block_m)
+    shape += [2 for l in range(L)]
+    shape.append(block_n)
+    T = np.zeros(shape,dtype=np.complex_)
+    for i in range(2**L):
+        for j in range(2**L):
+            left,right = get_index2(i,j,L,c)
+            T[tuple(left +[slice(None)] + right + [slice(None)])] = mat[c*i:c*(i+1),c*j:c*(j+1) ]
     return T
 
 def butterfly_rhs_full(T,g_lst,h_lst,w,level,L,lc,extra=1):
@@ -151,7 +186,6 @@ def last_solve_full(T,g_lst,h_lst,L):
     
     full_einstr += '->' + result_str
     
-    print(full_einstr)
     result = np.einsum(full_einstr, T, *g_lst,*h_lst,optimize=True)
     
     return result
@@ -188,7 +222,7 @@ def butterfly_rhs(left,right,g_lst,h_lst,w,level,L,lc,extra=1):
         einstr += result_str
         random_mat = np.random.randn(*shape)
         #print('multiplying random matrix',einstr)
-        mat = np.einsum(einstr,left,right,random_mat,optimize=True)
+        mat = np.einsum(einstr,left,right.conj(),random_mat,optimize=True)
         
         result_str = left_str + right_tensor_inds[: (L-level)] + left_side_ranks[L-level]
         if level !=L:
@@ -199,7 +233,9 @@ def butterfly_rhs(left,right,g_lst,h_lst,w,level,L,lc,extra=1):
             full_einstr += ',' + result_str + '->'
             full_einstr += left_str[:-( L-level)]+right_str[:(L-level)]+left_side_ranks[(L-level-1):(L-level)+1]
             #print('einstring to get the factor',full_einstr)
-            mat = np.einsum(full_einstr,*g_lst[:L-level],mat,optimize=True)
+            lst_mult = [element.conj() for element in g_lst[:L-level]]
+            #mat = np.einsum(full_einstr,*g_lst[:L-level],mat,optimize=True)
+            mat = np.einsum(full_einstr,*lst_mult,mat,optimize=True)
             
     else:
         shape = list(g_lst[0].shape[(L-level):-1]) + [h_lst[L-level].shape[-1] +extra]
@@ -210,7 +246,7 @@ def butterfly_rhs(left,right,g_lst,h_lst,w,level,L,lc,extra=1):
         einstr += result_str
         #print('multiplying random matrix',einstr)
         random_mat = np.random.randn(*shape)
-        mat = np.einsum(einstr,left,right,random_mat,optimize=True)
+        mat = np.einsum(einstr,left,right.conj(),random_mat,optimize=True)
         
         result_str = left_tensor_inds[: (L-level)] + right_str  + right_side_ranks[L-level]
         if level !=L:
@@ -221,7 +257,7 @@ def butterfly_rhs(left,right,g_lst,h_lst,w,level,L,lc,extra=1):
             full_einstr += ',' + result_str + '->'
             full_einstr +=  left_str[:(L-level)] + right_str[:-( L-level)]+ right_side_ranks[(L-level-1):(L-level)+1]
             #print('einstring to get the factor',full_einstr)
-            mat = np.einsum(full_einstr,*h_lst[:L-level],mat,optimize=True)
+            mat = np.einsum(full_einstr,*h_lst[:L-level],mat,optimize=True).conj()
     return mat,random_mat
 
 def last_solve(left,right,g_lst,h_lst,L):
@@ -263,7 +299,11 @@ def last_solve(left,right,g_lst,h_lst,L):
     full_einstr +=  '->' + result1
 
     #print(full_einstr)
-    inter = np.einsum(full_einstr,left,*g_lst,optimize=True)
+    g_lst_conj = [elem.conj() for elem in g_lst]
+
+    #inter = np.einsum(full_einstr,left,*g_lst,optimize=True)
+    inter = np.einsum(full_einstr,left,*g_lst_conj,optimize=True)
+
 
 
     full_einstr = right_str +'z'
@@ -276,7 +316,7 @@ def last_solve(left,right,g_lst,h_lst,L):
 
     
     #print(full_einstr)
-    inter2 = np.einsum(full_einstr,right,*h_lst,optimize=True)
+    inter2 = np.einsum(full_einstr,right.conj(),*h_lst,optimize=True)
 
 
     full_einstr = result1 + ',' + result2 + '->' + final_result_str
@@ -289,7 +329,7 @@ def qr_factor(factor,L,level,w,extra=1):
     shape = list(factor.shape)
     shape[-1] -= extra
     rank = shape[-1]
-    output = np.zeros(shape)
+    output = np.zeros(shape,dtype=np.complex_)
     if level==L:
         for comb in itertools.product([0,1],repeat=level):
             tup = comb + (slice(None),slice(None))
@@ -321,8 +361,8 @@ def butterfly_decompose_low_rank(left_mat,right_mat,L,ranks,g_lst,h_lst):
     lc = int(L/2)
     c = g_lst[0].shape[-2]
     
-    
-    input_mat = left_mat@right_mat.T
+    # This line should be commented out for large scale
+    input_mat = left_mat@right_mat.conj().T
     # create tensors from matrices
     left_tensor = get_butterfly_tens_from_factor(left_mat,L,lc,c)
     right_tensor = get_butterfly_tens_from_factor(right_mat,L,lc,c)
@@ -342,10 +382,11 @@ def butterfly_decompose_low_rank(left_mat,right_mat,L,ranks,g_lst,h_lst):
     mats = last_solve(left_tensor,right_tensor,g_lst,h_lst,L)
     g_lst = absorb_factor(mats,g_lst,L)
             
-    
+    # This line should be commented out for large scale
     recon = recon_butterfly_tensor( g_lst, h_lst, L, int(L/2))
     
     
+    # These lines should be commented out for large scale
     T = get_butterfly_tens_from_mat(input_mat,L,lc,c)
     error = la.norm(T - recon) / la.norm(T)
     
