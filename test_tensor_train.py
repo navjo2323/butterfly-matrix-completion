@@ -44,6 +44,7 @@ def butterfly_rank(matrix, block_size,tol):
             
             # Compute the numerical rank of the block
             rank = numerical_rank(block, tol)
+            # print(int(i/block_size),int(j/block_size),rank)
             row_blocks.append(rank)
         block_ranks.append(row_blocks)
     
@@ -188,7 +189,8 @@ def get_1dradon_kernel(c, L, inds=None):
         phi = np.dot(c, yabs.T) + np.dot(x, y.T)
 
         # Compute Radon transform values
-        G = np.cos(2*np.pi*phi)
+        # G = np.cos(2*np.pi*phi) 
+        G = np.cos(2*np.pi*phi) + 1j*np.sin(2*np.pi*phi)
         
         return G
     else:
@@ -202,16 +204,18 @@ def get_1dradon_kernel(c, L, inds=None):
         phi = x*y + c*yabs
 
         # Compute T_sparse using vectorized operations
-        T_sparse = np.cos(2*np.pi*phi)
+        # T_sparse = np.cos(2*np.pi*phi)
+        T_sparse = np.cos(2*np.pi*phi) + 1j*np.sin(2*np.pi*phi)
+        
         
         return T_sparse.reshape(-1)
 
 rng = np.random.RandomState(np.random.randint(1000))
 
-kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
+kernel=3 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
 get_true_rank=1
 lowrank_only=0
-c = 4
+c = 1 # 4 9
 #Should be perfect square, 4 and 9 options
 
 L = 8
@@ -226,8 +230,12 @@ I = c*2**L
 J = c*2**L
 
 
-r_BF= 11
-ranks_lr = [110] # [r_BF*10]
+r_BF= 12
+ranks_lr = [256] # [r_BF*10]
+if(lowrank_only==0):
+    nnz = min(int(3*(r_BF)*I*np.log2(I)),I**2)
+else:
+    nnz = min(10*(ranks_lr[0])*I,I**2)
 ranks = [r_BF for _ in range(L- L//2+1 )] 
 
 for i in range(len(ranks)):
@@ -268,10 +276,7 @@ if(get_true_rank==1):
 
 
 
-if(lowrank_only==0):
-    nnz = int(6*(r_BF)*I*np.log2(I))
-else:
-    nnz = 10*(ranks_lr[0])*I
+
 
 print('matrix shape is',I)
 print('nnz is',nnz)
@@ -306,7 +311,7 @@ print('--time in entry generation:',e-s)
 ##### TEST CODE FOR GREENS ########
 L_lr = 0
 c_lr = I
-num_iter_lr = 20
+num_iter_lr = 10
 print('--matrix completion rank:',ranks_lr)
 
 s = time.time()
