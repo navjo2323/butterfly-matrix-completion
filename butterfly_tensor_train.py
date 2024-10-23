@@ -400,7 +400,7 @@ def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu):
     return tensor_lst
 
 
-def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol):
+def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu):
     if(L==0):
         print('------------------matrix completion----------------------------')
     else:
@@ -415,7 +415,7 @@ def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tenso
 
         for level in range(L+2):
             print('At level: ',level)
-            tensor_lst = tensor_train_ALS_solve(T_sparse, inds, tensor_lst, level, L, regu=1e-10)
+            tensor_lst = tensor_train_ALS_solve(T_sparse, inds, tensor_lst, level, L, regu=regu)
         
         e = time.time()
         print('Time in iteration', iters+1 ,':', e-s)

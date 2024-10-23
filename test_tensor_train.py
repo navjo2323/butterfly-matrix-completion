@@ -226,8 +226,8 @@ def get_1dradon_kernel(c, L, inds=None,real=1):
 
 rng = np.random.RandomState(np.random.randint(1000))
 
-kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
-real=1 # 1: real-valued kernels, 0: complex-valued kernels
+kernel=3 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
+real=0 # 1: real-valued kernels, 0: complex-valued kernels
 get_true_rank=1
 lowrank_only=0
 errorcheck_lr2bf=1
@@ -247,7 +247,7 @@ J = c*2**L
 
 
 r_BF= 11
-ranks_lr = [r_BF*10] # [r_BF*10]
+ranks_lr = [2*r_BF] # [r_BF*10]
 if(lowrank_only==0):
     nnz = min(int(6*(r_BF)*I*np.log2(I)),I**2)
 else:
@@ -260,6 +260,23 @@ for i in range(len(ranks)):
     else:
         ranks[i] = min(2*ranks[i-1],ranks[i])
 print('ranks for butterfly completion are ', ranks)
+
+
+if(kernel==1):
+    if(real==1):
+        print('Testing real-valued Green function')
+    else:
+        print('Testing complex-valued Green function')
+elif(kernel==2):
+    if(real==1):
+        print('Testing real-valued 2D Radon transform')
+    else:
+        print('Testing complex-valued 2D Radon transform')
+elif(kernel==3):
+    if(real==1):
+        print('Testing real-valued 1D Radon transform')
+    else:
+        print('Testing complex-valued 1D Radon transform')
 
 
 if(get_true_rank==1):
@@ -343,7 +360,7 @@ print('--time to generate inputs for matrix completion',e-s)
 
 
 s = time.time()
-tensor_lst_lr = butterfly_tensor_train_completer(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol)
+tensor_lst_lr = butterfly_tensor_train_completer(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4)
 left_mat = tensor_lst_lr[0]
 right_mat = tensor_lst_lr[1].conj()
 e = time.time()
@@ -374,7 +391,7 @@ if(lowrank_only==0):
     print('--time in index conversion 2 :',e-s)
 
     s= time.time()
-    tensor_lst = butterfly_tensor_train_completer(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol)
+    tensor_lst = butterfly_tensor_train_completer(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu=1e-10)
     e= time.time()
     print('--time for butterfly completion',e-s)
 
