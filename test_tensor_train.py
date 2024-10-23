@@ -54,7 +54,7 @@ def butterfly_rank(matrix, block_size,tol):
 def is_perfect_square(n):
     return n == int(math.isqrt(n))**2
 
-def get_greens_kernel(c, L, ppw, inds=None):
+def get_greens_kernel(c, L, ppw, inds=None,real=1):
     # Validate inputs
     assert is_perfect_square(c), f"{c} should be a perfect square"
     assert L % 2 == 0, f"{L} is not an even number"
@@ -83,7 +83,10 @@ def get_greens_kernel(c, L, ppw, inds=None):
         dist = np.sqrt(np.sum(delta**2, axis=-1) + 1)
         
         # Compute Green's function values
-        G = np.cos(-1 * waven * dist) / dist
+        if(real==1):
+            G = (np.cos(-1 * waven * dist))/ dist
+        else:
+            G = (np.cos(-1 * waven * dist)+ 1j* np.sin(-1 * waven * dist))/ dist
         
         return G
     else:
@@ -96,14 +99,17 @@ def get_greens_kernel(c, L, ppw, inds=None):
         dist = np.sqrt(np.sum((p - q)**2, axis=1) + 1)
         
         # Compute T_sparse using vectorized operations
-        T_sparse = np.cos(-1 * waven * dist) / dist
+        if(real==1):
+            T_sparse = (np.cos(-1 * waven * dist)) / dist
+        else:
+            T_sparse = (np.cos(-1 * waven * dist) + 1j*np.sin(-1 * waven * dist)) / dist
         
         return T_sparse
 
 
 
 
-def get_2dradon_kernel(c, L, inds=None):
+def get_2dradon_kernel(c, L, inds=None,real=1):
     # Validate inputs
     assert is_perfect_square(c), f"{c} should be a perfect square"
     assert L % 2 == 0, f"{L} is not an even number"
@@ -135,8 +141,10 @@ def get_2dradon_kernel(c, L, inds=None):
         phi = np.sqrt(np.outer(c1,y2[:,0]) + np.outer(c2,y2[:,1])) + np.dot(x, y.T)
 
         # Compute Radon transform values
-        G = np.cos(2*np.pi*phi)
-        
+        if(real==1):
+            G = np.cos(2*np.pi*phi)
+        else:
+            G = np.cos(2*np.pi*phi) + 1j*np.sin(2*np.pi*phi)    
         return G
     else:
         # Vectorized computation for T_sparse
@@ -155,13 +163,15 @@ def get_2dradon_kernel(c, L, inds=None):
         phi = np.sqrt(c1 * y2[:, 0] + c2 * y2[:, 1]) + np.sum(x * y, axis=1)
 
         # Compute T_sparse using the new shape of phi
-        T_sparse = np.cos(2 * np.pi * phi)
-        
+        if(real==1):
+            T_sparse = np.cos(2 * np.pi * phi)
+        else:
+            T_sparse = np.cos(2 * np.pi * phi)  + 1j*np.sin(2 * np.pi * phi)    
         return T_sparse
 
 
 
-def get_1dradon_kernel(c, L, inds=None):
+def get_1dradon_kernel(c, L, inds=None,real=1):
     # Validate inputs
     assert is_perfect_square(c), f"{c} should be a perfect square"
     assert L % 2 == 0, f"{L} is not an even number"
@@ -189,8 +199,10 @@ def get_1dradon_kernel(c, L, inds=None):
         phi = np.dot(c, yabs.T) + np.dot(x, y.T)
 
         # Compute Radon transform values
-        # G = np.cos(2*np.pi*phi) 
-        G = np.cos(2*np.pi*phi) + 1j*np.sin(2*np.pi*phi)
+        if(real==1):
+            G = np.cos(2*np.pi*phi) 
+        else:
+            G = np.cos(2*np.pi*phi) + 1j*np.sin(2*np.pi*phi)
         
         return G
     else:
@@ -204,21 +216,25 @@ def get_1dradon_kernel(c, L, inds=None):
         phi = x*y + c*yabs
 
         # Compute T_sparse using vectorized operations
-        # T_sparse = np.cos(2*np.pi*phi)
-        T_sparse = np.cos(2*np.pi*phi) + 1j*np.sin(2*np.pi*phi)
+        if(real==1):
+            T_sparse = np.cos(2*np.pi*phi)
+        else:
+            T_sparse = np.cos(2*np.pi*phi) + 1j*np.sin(2*np.pi*phi)
         
         
         return T_sparse.reshape(-1)
 
 rng = np.random.RandomState(np.random.randint(1000))
 
-kernel=3 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
+kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
+real=1 # 1: real-valued kernels, 0: complex-valued kernels
 get_true_rank=1
 lowrank_only=0
-c = 1 # 4 9
+errorcheck_lr2bf=1
+c = 4 # 4 9
 #Should be perfect square, 4 and 9 options
 
-L = 8
+L = 10
 
 #Should be even, becomes too slow after 10 for this version of code
 
@@ -230,10 +246,10 @@ I = c*2**L
 J = c*2**L
 
 
-r_BF= 12
-ranks_lr = [256] # [r_BF*10]
+r_BF= 11
+ranks_lr = [r_BF*10] # [r_BF*10]
 if(lowrank_only==0):
-    nnz = min(int(3*(r_BF)*I*np.log2(I)),I**2)
+    nnz = min(int(6*(r_BF)*I*np.log2(I)),I**2)
 else:
     nnz = min(10*(ranks_lr[0])*I,I**2)
 ranks = [r_BF for _ in range(L- L//2+1 )] 
@@ -249,11 +265,11 @@ print('ranks for butterfly completion are ', ranks)
 if(get_true_rank==1):
     s = time.time()
     if(kernel==1):
-        mat= get_greens_kernel(c,L,ppw=ppw)
+        mat= get_greens_kernel(c,L,ppw=ppw,real=real)
     elif(kernel==2):
-        mat= get_2dradon_kernel(c,L)
+        mat= get_2dradon_kernel(c,L,real=real)
     elif(kernel==3):
-        mat= get_1dradon_kernel(c,L)
+        mat= get_1dradon_kernel(c,L,real=real)
 
     e = time.time()
     #np.save('greens_matN-48ppw15.npy',mat)
@@ -292,14 +308,14 @@ print('--time in creating indices:',e-s)
 
 s = time.time()
 if(kernel==1):
-    T_sparse = get_greens_kernel(c,L,ppw=ppw,inds=indices)
-    T_sparse_test = get_greens_kernel(c,L,ppw=ppw,inds=indices_test)
+    T_sparse = get_greens_kernel(c,L,ppw=ppw,inds=indices,real=real)
+    T_sparse_test = get_greens_kernel(c,L,ppw=ppw,inds=indices_test,real=real)
 elif(kernel==2):
-    T_sparse = get_2dradon_kernel(c,L,inds=indices)
-    T_sparse_test = get_2dradon_kernel(c,L,inds=indices_test)    
+    T_sparse = get_2dradon_kernel(c,L,inds=indices,real=real)
+    T_sparse_test = get_2dradon_kernel(c,L,inds=indices_test,real=real)    
 elif(kernel==3):
-    T_sparse = get_1dradon_kernel(c,L,inds=indices)
-    T_sparse_test = get_1dradon_kernel(c,L,inds=indices_test)    
+    T_sparse = get_1dradon_kernel(c,L,inds=indices,real=real)
+    T_sparse_test = get_1dradon_kernel(c,L,inds=indices_test,real=real)    
 
 
 e = time.time()
@@ -321,7 +337,7 @@ e = time.time()
 print('--time in index conversion:',e-s)
 
 s= time.time()
-tensor_lst_lr = gen_tensor_train_list(L_lr, c_lr, ranks_lr ,rng )
+tensor_lst_lr = gen_tensor_train_list(L_lr, c_lr, ranks_lr ,rng, real=real )
 e = time.time()
 print('--time to generate inputs for matrix completion',e-s)
 
@@ -338,9 +354,9 @@ if(lowrank_only==0):
 
     s = time.time()
     g_lst,h_lst = gen_tensor_inputs(I, J, L, L//2, ranks, rng)
-    g_lst, h_lst = butterfly_decompose_low_rank(left_mat,right_mat,L,ranks,g_lst,h_lst)
+    g_lst, h_lst = butterfly_decompose_low_rank(left_mat,right_mat,L,ranks,g_lst,h_lst,errorcheck_lr2bf)
     e= time.time()
-    print('--time for butterfly decomposition', e-s)
+    print('--time for low-rank to butterfly conversion', e-s)
 
 
     num_iters = 20

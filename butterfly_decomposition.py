@@ -57,7 +57,11 @@ def get_butterfly_tens_from_factor(mat,L,lc,c):
     shape = [2 for l in range(L)]
     shape.append(block_m)
     shape.append(r)
-    T = np.zeros(shape,dtype=np.complex_)
+    if np.issubdtype(mat.dtype, np.floating):
+        T = np.zeros(shape,dtype=np.float64)
+    else:
+        T = np.zeros(shape,dtype=np.complex128)
+    
     for i in range(2**L):
         left = get_index(i,L,c)
         T[tuple(left +[slice(None)] )] = mat[c*i:c*(i+1),: ]
@@ -72,7 +76,11 @@ def get_butterfly_tens_from_mat(mat,L,lc,c):
     shape.append(block_m)
     shape += [2 for l in range(L)]
     shape.append(block_n)
-    T = np.zeros(shape,dtype=np.complex_)
+    if np.issubdtype(mat.dtype, np.floating):
+        T = np.zeros(shape,dtype=np.float64)
+    else:
+        T = np.zeros(shape,dtype=np.complex128)
+
     for i in range(2**L):
         for j in range(2**L):
             left,right = get_index2(i,j,L,c)
@@ -329,7 +337,11 @@ def qr_factor(factor,L,level,w,extra=1):
     shape = list(factor.shape)
     shape[-1] -= extra
     rank = shape[-1]
-    output = np.zeros(shape,dtype=np.complex_)
+    if np.issubdtype(factor.dtype, np.floating):
+        output = np.zeros(shape,dtype=np.float64)
+    else:
+        output = np.zeros(shape,dtype=np.complex128)
+
     if level==L:
         for comb in itertools.product([0,1],repeat=level):
             tup = comb + (slice(None),slice(None))
@@ -357,7 +369,7 @@ def qr_factor(factor,L,level,w,extra=1):
     
 
 
-def butterfly_decompose_low_rank(left_mat,right_mat,L,ranks,g_lst,h_lst):
+def butterfly_decompose_low_rank(left_mat,right_mat,L,ranks,g_lst,h_lst,errorcheck=0):
     lc = int(L/2)
     c = g_lst[0].shape[-2]
     
@@ -382,15 +394,11 @@ def butterfly_decompose_low_rank(left_mat,right_mat,L,ranks,g_lst,h_lst):
     mats = last_solve(left_tensor,right_tensor,g_lst,h_lst,L)
     g_lst = absorb_factor(mats,g_lst,L)
             
-    # This line should be commented out for large scale
-    recon = recon_butterfly_tensor( g_lst, h_lst, L, int(L/2))
-    
-    
-    # These lines should be commented out for large scale
-    T = get_butterfly_tens_from_mat(input_mat,L,lc,c)
-    error = la.norm(T - recon) / la.norm(T)
-    
-    print('error is',error)
+    if(errorcheck==1):
+        recon = recon_butterfly_tensor( g_lst, h_lst, L, int(L/2))
+        T = get_butterfly_tens_from_mat(input_mat,L,lc,c)
+        error = la.norm(T - recon) / la.norm(T)        
+        print('error is',error)
 
     return g_lst,h_lst
     

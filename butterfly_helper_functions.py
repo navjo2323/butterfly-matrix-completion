@@ -41,7 +41,10 @@ def get_index(i,j,L,c):
 def get_butterfly_mat_from_tens(T,L,lc,c):
     # T is constructed from the lst
     big_side = c*2**L
-    mat = np.zeros((big_side,big_side), dtype= np.complex_)
+    if np.issubdtype(T.dtype, np.floating):
+        mat = np.zeros((big_side,big_side), dtype= np.float64)
+    else:
+        mat = np.zeros((big_side,big_side), dtype= np.complex128) 
     for i in range(2**L):
         for j in range(2**L):
             left, right = get_index(i,j,L,c)
@@ -58,7 +61,11 @@ def get_butterfly_tens_from_mat(mat,L,lc,c):
     shape.append(block_m)
     shape += [2 for l in range(L)]
     shape.append(block_n)
-    T = np.zeros(shape, dtype= np.complex_)
+    if np.issubdtype(mat.dtype, np.floating):
+        T = np.zeros(shape, dtype= np.float64)
+    else:
+        T = np.zeros(shape, dtype= np.complex128)
+
     for i in range(2**L):
         for j in range(2**L):
             left,right = get_index(i,j,L,c)
