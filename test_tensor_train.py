@@ -246,10 +246,10 @@ I = c*2**L
 J = c*2**L
 
 
-r_BF= 8
+r_BF= 10
 ranks_lr = [r_BF] # [r_BF*10]
 if(lowrank_only==0):
-    nnz = min(int(6*(r_BF)*I*np.log2(I)),I**2)
+    nnz = min(int(7*(r_BF)*I*np.log2(I)),I**2)
 else:
     nnz = min(25*(ranks_lr[0])*I,I**2)
 ranks = [r_BF for _ in range(L- L//2+1 )] 
