@@ -292,6 +292,82 @@ def sort_inds_and_T(tuples, T, k = None):
     return sorted_array, reordered_T
 
 
+
+def reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L):
+
+    num_tuples = len(inds_tups)
+    Xs = np.zeros(nnz)
+
+    if level == 0:
+        # Pre-compute indices for the last tensor
+        H = [tensor_lst[L+1][inds[:, L+1]] for inds in inds_tups]
+
+        # Iterate in reverse order and apply einsum
+        for i in range(L, 0, -1):
+            H = [np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H[j],optimize=True) for j, inds in enumerate(inds_tups)]
+
+        for i in range(len(counts)):
+            Xs[starts[i]: starts[i] + counts[i]] = np.einsum('iz,z->i',H[i],tensor_lst[level][unqs[i],:],optimize=True)
+
+    elif level == L + 1:
+        # Pre-compute indices for the first tensor
+        H = [tensor_lst[0][inds[:, 0]] for inds in inds_tups]
+
+        # Iterate forwards and apply einsum
+        for i in range(1, L + 1):
+            H = [np.einsum('ir,irz->iz', H[j], tensor_lst[i][inds[:, i]],optimize=True) for j, inds in enumerate(inds_tups)]
+
+        for i in range(len(counts)):
+            Xs[starts[i]: starts[i] + counts[i]] = np.einsum('iz,z->i',H[i],tensor_lst[level][unqs[i],:],optimize=True)
+
+    else:
+        # Handle the case where level is between 0 and L+1
+        H1 = [tensor_lst[0][inds[:, 0]] for inds in inds_tups]
+        H2 = [tensor_lst[L+1][inds[:, L+1]] for inds in inds_tups]
+
+        # Compute H1 by iterating forward up to 'level'
+        for i in range(1, level):
+            H1 = [np.einsum('ir,irz->iz', H1[j], tensor_lst[i][inds[:, i]],optimize=True) for j, inds in enumerate(inds_tups)]
+        # Compute H2 by iterating backward from L down to 'level'
+        for i in range(L, level, -1):
+            H2 = [np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H2[j],optimize=True) for j, inds in enumerate(inds_tups)]
+
+        # Combine H1 and H2
+        for i in range(len(counts)):
+            Xs[starts[i]: starts[i] + counts[i]] = np.einsum('ir,iz,rz->i',H1[i],H2[i],tensor_lst[level][unqs[i],:,:],optimize=True)
+        
+    return Xs
+
+
+def compute_error_sparse(T, inds, tensor_lst, L):
+
+    level = 0
+    s = time.time()
+
+    sorted_tuples, T_new = sort_inds_and_T(inds, T, level)
+
+    e = time.time()
+
+
+    #print('Time in sorting',e-s)
+
+    nnz = len(sorted_tuples)
+
+    s = time.time()
+
+
+    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index = True, return_counts = True)
+
+    inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
+
+
+    recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L)
+
+    return la.norm(T_new - recon)/la.norm(T_new)
+
+
+
+
 def compute_sparse_butterfly(inds, tensor_lst, L):
     vecs = tensor_lst[0][inds[:, 0]]
     for i in range(1,L+1):
@@ -385,6 +461,7 @@ def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu):
     Hs = multiply_mats(inds_tups, tensor_lst, level, L, row_shape) 
 
 
+
     RHS = np.array([np.dot(T_new[starts[i]: starts[i] + counts[i] ], Hs[i].conj()) for i in range(len(unqs))])
 
 
@@ -400,11 +477,99 @@ def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu):
     return tensor_lst
 
 
+def tensor_train_gradient(T, inds, tensor_lst, level, L, regu):
+    if level ==0 or level == L + 1:
+        row_shape = tensor_lst[level].shape[-1]
+    else:
+        row_shape = np.prod(tensor_lst[level].shape[1:])
+
+    s = time.time()
+
+    sorted_tuples, T_new = sort_inds_and_T(inds, T, level)
+
+    e = time.time()
+
+
+    #print('Time in sorting',e-s)
+
+    nnz = len(sorted_tuples)
+
+    s = time.time()
+
+
+    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index = True, return_counts = True)
+
+    inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
+
+
+    recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L)
+
+
+    tensor = T_new - recon
+
+    Hs = multiply_mats(inds_tups, tensor_lst, level, L, row_shape) 
+
+    neg_grad = np.array([np.dot(tensor[starts[i]: starts[i] + counts[i] ], Hs[i].conj()) for i in range(len(unqs))])
+
+    neg_grad = neg_grad.reshape( (len(unqs),) + tensor_lst[level].shape[1:])
+
+    neg_grad -= regu*tensor_lst[level]
+
+    return neg_grad
+
+
+
+def ADAM_tensor_train_completion(T_sparse, inds, T_test, inds_test, L, tensor_lst, 
+    regu=1e-9, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=100, tol=1e-6):
+    """
+    ADAM optimizer for unconstrained optimization.
+    
+    """
+    m = [np.zeros_like(x) for x in tensor_lst]          # First moment vector (mean of gradients)
+    v = [np.zeros_like(x) for x in tensor_lst]          # Second moment vector (uncentered variance of gradients)
+    errors = []
+    for t in range(1, max_iter + 1):
+        
+        grads = []
+        for level in range(len(tensor_lst)):
+            grads.append(tensor_train_gradient(T_sparse, inds, tensor_lst, level, L, regu))
+        # Update biased first moment estimate
+        m = [beta1*x + (1 - beta1)*g for x, g in zip(m, grads)]
+        
+        # Update biased second raw moment estimate
+        v = [beta2*x + (1 - beta2)* (g**2) for x, g in zip(v,grads)]
+
+        
+        # Correct bias in first and second moments
+        m_hat = [x / (1 - beta1 ** t) for x in m]
+        v_hat = [x / (1 - beta2 ** t) for x in v]
+        
+        # Update parameters
+        tensor_lst = [x + lr * x1 / (np.sqrt(x2) + epsilon) for x, x1, x2 in zip(tensor_lst, m_hat, v_hat)]
+        
+        # Check convergence based on gradient norm
+        if max([la.norm(g) for g in grads]) < tol:
+            print(f"Converged in {t} iterations.")
+            return tensor_lst
+
+        s= time.time()
+        error = compute_error_sparse(T_sparse, inds, tensor_lst, L)
+        errors.append(error)
+        test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L)
+        e = time.time()
+        print('Time in error computation',e-s)
+        print('Relative error in observed entries: ',error)
+        print('Relative test error after', t,' iterations: ',test_error)
+    print("Maximum iterations reached without convergence.")
+    return tensor_lst
+
+
+
 def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu):
     if(L==0):
         print('------------------matrix completion----------------------------')
     else:
-        print('------------------butterfly completion----------------------------')
+        print('------------------butterfly/ tensor train completion----------------------------')
     nnz = len(inds)
     print("Number of observed entries:",nnz)
     
@@ -421,9 +586,11 @@ def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tenso
         print('Time in iteration', iters+1 ,':', e-s)
         
         s= time.time()
-        error = la.norm(T_sparse - compute_sparse_butterfly(inds, tensor_lst, L)) / la.norm(T_sparse)
+        #error = la.norm(T_sparse - compute_sparse_butterfly(inds, tensor_lst, L)) / la.norm(T_sparse)
+        error = compute_error_sparse(T_sparse, inds, tensor_lst, L)
         errors.append(error)
-        test_error = la.norm(T_test - compute_sparse_butterfly(inds_test,tensor_lst,L)) / la.norm(T_sparse)
+        #test_error = la.norm(T_test - compute_sparse_butterfly(inds_test,tensor_lst,L)) / la.norm(T_test)
+        test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L)
         e = time.time()
         print('Time in error computation',e-s)
         print('Relative error in observed entries: ',error)
@@ -437,4 +604,6 @@ def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tenso
             break
     
     return tensor_lst
+
+
 
