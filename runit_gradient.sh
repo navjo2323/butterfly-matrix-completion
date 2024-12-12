@@ -7,6 +7,8 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mail-user=liuyangzhuan@lbl.gov
 #SBATCH --mail-type=BEGIN
-#SBATCH -e ./tmp.err
+#SBATCH -e ./tmp.er
 module load python
-python -u test_tensor_train.py | tee a.out_L10_c4_rBF12_7rnlogn_1Dradon_complex
+python -u test_tensor_train_gradient.py | tee a.out_L12_c4_rBF11_6rnlogn_gradient
+
+

@@ -228,7 +228,7 @@ rng = np.random.RandomState(np.random.randint(1000))
 
 kernel=3 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
 real=0 # 1: real-valued kernels, 0: complex-valued kernels
-get_true_rank=1
+get_true_rank=0
 lowrank_only=0
 errorcheck_lr2bf=1
 c = 4 # 4 9
@@ -246,12 +246,15 @@ I = c*2**L
 J = c*2**L
 
 
-r_BF= 10
-ranks_lr = [r_BF] # [r_BF*10]
+r_BF= 12
+
 if(lowrank_only==0):
-    nnz = min(int(7*(r_BF)*I*np.log2(I)),I**2)
+    ranks_lr = [r_BF] # [r_BF*10]
+    nnz = min(int(6*(r_BF)*I*np.log2(I)),I**2)
 else:
-    nnz = min(25*(ranks_lr[0])*I,I**2)
+    ranks_lr = [r_BF*40] # [r_BF*10]
+    nnz = min(25*(ranks_lr)*I,I**2)
+    # nnz = min(int(7*(r_BF)*I*np.log2(I)),I**2)
 ranks = [r_BF for _ in range(L- L//2+1 )] 
 
 for i in range(len(ranks)):

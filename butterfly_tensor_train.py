@@ -530,6 +530,7 @@ def ADAM_tensor_train_completion(T_sparse, inds, T_test, inds_test, L, tensor_ls
     errors = []
     for t in range(1, max_iter + 1):
         
+        s = time.time()
         grads = []
         for level in range(len(tensor_lst)):
             grads.append(tensor_train_gradient(T_sparse, inds, tensor_lst, level, L, regu))
@@ -546,18 +547,23 @@ def ADAM_tensor_train_completion(T_sparse, inds, T_test, inds_test, L, tensor_ls
         
         # Update parameters
         tensor_lst = [x + lr * x1 / (np.sqrt(x2) + epsilon) for x, x1, x2 in zip(tensor_lst, m_hat, v_hat)]
+
+        e = time.time()
+        print('Time in gradient computation', e-s)
+
         
         # Check convergence based on gradient norm
         if max([la.norm(g) for g in grads]) < tol:
             print(f"Converged in {t} iterations.")
             return tensor_lst
 
-        s= time.time()
+        s1= time.time()
         error = compute_error_sparse(T_sparse, inds, tensor_lst, L)
         errors.append(error)
         test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L)
-        e = time.time()
-        print('Time in error computation',e-s)
+        e1 = time.time()
+        print('Time in error computation',e1-s1)
+        print('Total Time in iteration', t, e-s+e1-s1)
         print('Relative error in observed entries: ',error)
         print('Relative test error after', t,' iterations: ',test_error)
     print("Maximum iterations reached without convergence.")

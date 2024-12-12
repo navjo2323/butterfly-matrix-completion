@@ -248,21 +248,22 @@ J = c*2**L
 
 
 r_BF= 13
-r_TT = r_BF + 10
+# r_TT = r_BF + 10
 
 ranks_lr = [r_BF] # [r_BF*10]
 if(lowrank_only==0):
-    nnz = min(int(6*(r_BF)*I*np.log2(I)),I**2)
+    nnz = min(int((r_BF)*I*np.log2(I)),I**2)
+    # nnz = min(int(6*(r_BF)*I*np.log2(I)),I**2)
 else:
     nnz = min(25*(ranks_lr[0])*I,I**2)
-ranks = [r_BF for _ in range(L- L//2+1 )] 
+# ranks = [r_BF for _ in range(L- L//2+1 )] 
 
-for i in range(len(ranks)):
-    if i==0:
-        ranks[0] = min(ranks[0],c)
-    else:
-        ranks[i] = min(2*ranks[i-1],ranks[i])
-print('ranks for butterfly completion are ', ranks)
+# for i in range(len(ranks)):
+#     if i==0:
+#         ranks[0] = min(ranks[0],c)
+#     else:
+#         ranks[i] = min(2*ranks[i-1],ranks[i])
+# print('ranks for butterfly completion are ', ranks)
 
 
 
@@ -385,7 +386,7 @@ print('--time for matrix completion',e-s)
 #     r_shape = r_shape/4
 #     max_r = int(min(l_shape,r_shape))
 
-start = 8
+start = 100
 intermediate = [start + 2 * i for i in range(L)]
 
 ranks_TT = [1] + intermediate + [1]
