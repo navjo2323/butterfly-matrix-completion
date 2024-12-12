@@ -234,7 +234,7 @@ errorcheck_lr2bf=1
 c = 4 # 4 9
 #Should be perfect square, 4 and 9 options
 
-L = 10
+L = 8
 
 #Should be even, becomes too slow after 10 for this version of code
 
@@ -246,11 +246,11 @@ I = c*2**L
 J = c*2**L
 
 
-r_BF= 12
+r_BF= 10
 
 if(lowrank_only==0):
     ranks_lr = [r_BF] # [r_BF*10]
-    nnz = min(int(6*(r_BF)*I*np.log2(I)),I**2)
+    nnz = min(int(7*(r_BF)*I*np.log2(I)),I**2)
 else:
     ranks_lr = [r_BF*40] # [r_BF*10]
     nnz = min(25*(ranks_lr)*I,I**2)
