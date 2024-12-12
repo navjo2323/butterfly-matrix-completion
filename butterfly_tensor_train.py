@@ -296,7 +296,10 @@ def sort_inds_and_T(tuples, T, k = None):
 def reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L):
 
     num_tuples = len(inds_tups)
-    Xs = np.zeros(nnz)
+    if np.issubdtype(tensor_lst[0][0].dtype, np.floating):
+        Xs = np.zeros(nnz, dtype= np.float64)
+    else:
+        Xs = np.zeros(nnz, dtype= np.complex128)    
 
     if level == 0:
         # Pre-compute indices for the last tensor

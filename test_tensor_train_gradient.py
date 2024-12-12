@@ -234,7 +234,7 @@ errorcheck_lr2bf=1
 c = 4 # 4 9
 #Should be perfect square, 4 and 9 options
 
-L = 6
+L = 8
 
 #Should be even, becomes too slow after 10 for this version of code
 
@@ -246,7 +246,7 @@ I = c*2**L
 J = c*2**L
 
 
-r_BF= 12
+r_BF= 10
 
 if(lowrank_only==0):
     ranks_lr = [r_BF] # [r_BF*10]
