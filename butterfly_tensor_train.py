@@ -299,8 +299,10 @@ def reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst
     if np.issubdtype(tensor_lst[0][0].dtype, np.floating):
         Xs = np.zeros(nnz, dtype= np.float64)
     else:
-        Xs = np.zeros(nnz, dtype= np.complex128)    
+        Xs = np.zeros(nnz, dtype= np.complex128)
 
+
+    # A conjugate needs to be done based on level    
     if level == 0:
         # Pre-compute indices for the last tensor
         H = [tensor_lst[L+1][inds[:, L+1]] for inds in inds_tups]
@@ -310,7 +312,7 @@ def reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst
             H = [np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H[j],optimize=True) for j, inds in enumerate(inds_tups)]
 
         for i in range(len(counts)):
-            Xs[starts[i]: starts[i] + counts[i]] = np.einsum('iz,z->i',H[i],tensor_lst[level][unqs[i],:],optimize=True)
+            Xs[starts[i]: starts[i] + counts[i]] = np.einsum('iz,z->i',H[i],tensor_lst[level][unqs[i]],optimize=True)
 
     elif level == L + 1:
         # Pre-compute indices for the first tensor
@@ -321,7 +323,7 @@ def reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst
             H = [np.einsum('ir,irz->iz', H[j], tensor_lst[i][inds[:, i]],optimize=True) for j, inds in enumerate(inds_tups)]
 
         for i in range(len(counts)):
-            Xs[starts[i]: starts[i] + counts[i]] = np.einsum('iz,z->i',H[i],tensor_lst[level][unqs[i],:],optimize=True)
+            Xs[starts[i]: starts[i] + counts[i]] = np.einsum('iz,z->i',H[i],tensor_lst[level][unqs[i]],optimize=True)
 
     else:
         # Handle the case where level is between 0 and L+1
@@ -480,7 +482,7 @@ def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu):
     return tensor_lst
 
 
-def tensor_train_gradient(T, inds, tensor_lst, level, L, regu):
+def tensor_train_gradient(tensor, inds, tensor_lst, level, L, regu):
     if level ==0 or level == L + 1:
         row_shape = tensor_lst[level].shape[-1]
     else:
@@ -488,7 +490,7 @@ def tensor_train_gradient(T, inds, tensor_lst, level, L, regu):
 
     s = time.time()
 
-    sorted_tuples, T_new = sort_inds_and_T(inds, T, level)
+    sorted_tuples, tensor_new = sort_inds_and_T(inds, tensor, level)
 
     e = time.time()
 
@@ -505,14 +507,14 @@ def tensor_train_gradient(T, inds, tensor_lst, level, L, regu):
     inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
 
 
-    recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L)
+    #recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L)
 
 
-    tensor = T_new - recon
+    #tensor = T_new - recon
 
     Hs = multiply_mats(inds_tups, tensor_lst, level, L, row_shape) 
 
-    neg_grad = np.array([np.dot(tensor[starts[i]: starts[i] + counts[i] ], Hs[i].conj()) for i in range(len(unqs))])
+    neg_grad = np.array([np.dot(tensor_new[starts[i]: starts[i] + counts[i] ], Hs[i].conj()) for i in range(len(unqs))])
 
     neg_grad = neg_grad.reshape( (len(unqs),) + tensor_lst[level].shape[1:])
 
@@ -531,12 +533,21 @@ def ADAM_tensor_train_completion(T_sparse, inds, T_test, inds_test, L, tensor_ls
     m = [np.zeros_like(x) for x in tensor_lst]          # First moment vector (mean of gradients)
     v = [np.zeros_like(x) for x in tensor_lst]          # Second moment vector (uncentered variance of gradients)
     errors = []
+
+    inds, T_sparse = sort_inds_and_T(inds, T_sparse, 0)
+    unqs, starts, counts = np.unique(inds[:, 0], return_index = True, return_counts = True)
+    inds_tups = [inds[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
+    nnz = len(T_sparse)
+
     for t in range(1, max_iter + 1):
-        
+        recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,0, L)
+        tensor = T_sparse - recon
+
         s = time.time()
         grads = []
+        
         for level in range(len(tensor_lst)):
-            grads.append(tensor_train_gradient(T_sparse, inds, tensor_lst, level, L, regu))
+            grads.append(tensor_train_gradient(tensor, inds, tensor_lst, level, L, regu))
         # Update biased first moment estimate
         m = [beta1*x + (1 - beta1)*g for x, g in zip(m, grads)]
         

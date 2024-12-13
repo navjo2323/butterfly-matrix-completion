@@ -395,7 +395,7 @@ if(lowrank_only==0):
 
     s= time.time()
     tensor_lst = ADAM_tensor_train_completion(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, 
-        regu=1e-9, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=100, tol=1e-6)
+        regu=1e-9, lr=0.1, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=100, tol=1e-6)
     e= time.time()
     print('--time for butterfly completion',e-s)
 
