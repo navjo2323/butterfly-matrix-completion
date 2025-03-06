@@ -7,7 +7,7 @@ import time
 import math
 import numpy.linalg as la
 
-
+global ppw
 
 def numerical_rank(matrix, tol):
     # Perform Singular Value Decomposition (SVD)
@@ -54,7 +54,7 @@ def butterfly_rank(matrix, block_size,tol):
 def is_perfect_square(n):
     return n == int(math.isqrt(n))**2
 
-def get_greens_kernel(c, L, ppw, inds=None,real=1):
+def get_greens_kernel(c, L, inds=None,real=1):
     # Validate inputs
     assert is_perfect_square(c), f"{c} should be a perfect square"
     assert L % 2 == 0, f"{L} is not an even number"
@@ -224,13 +224,23 @@ def get_1dradon_kernel(c, L, inds=None,real=1):
         
         return T_sparse.reshape(-1)
 
+
+kernel_funcs = [None,  # index 0 not used
+    lambda c, L, inds, real: get_greens_kernel(c=c, L=L, inds=inds, real=real),
+    lambda c, L, inds, real: get_2dradon_kernel(c=c, L=L, inds=inds, real=real),
+    lambda c, L, inds, real: get_1dradon_kernel(c=c, L=L, inds=inds, real=real)
+]
+
+
+
 rng = np.random.RandomState(np.random.randint(1000))
 
-kernel=3 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
+kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
 real=0 # 1: real-valued kernels, 0: complex-valued kernels
 get_true_rank=0
+plot_full=1
 lowrank_only=0
-errorcheck_lr2bf=1
+errorcheck_lr2bf=0
 c = 4 # 4 9
 #Should be perfect square, 4 and 9 options
 
@@ -246,11 +256,11 @@ I = c*2**L
 J = c*2**L
 
 
-r_BF= 10
+r_BF= 11
 
 if(lowrank_only==0):
     ranks_lr = [r_BF] # [r_BF*10]
-    nnz = min(int(7*(r_BF)*I*np.log2(I)),I**2)
+    nnz = min(int(6*(r_BF)*I*np.log2(I)),I**2)
 else:
     ranks_lr = [r_BF*40] # [r_BF*10]
     nnz = min(25*(ranks_lr)*I,I**2)
@@ -284,12 +294,7 @@ elif(kernel==3):
 
 if(get_true_rank==1):
     s = time.time()
-    if(kernel==1):
-        mat= get_greens_kernel(c,L,ppw=ppw,real=real)
-    elif(kernel==2):
-        mat= get_2dradon_kernel(c,L,real=real)
-    elif(kernel==3):
-        mat= get_1dradon_kernel(c,L,real=real)
+    mat= kernel_funcs[kernel](c,L,inds=None,real=real)
 
     e = time.time()
     #np.save('greens_matN-48ppw15.npy',mat)
@@ -327,16 +332,12 @@ print('--time in creating indices:',e-s)
 
 
 s = time.time()
-if(kernel==1):
-    T_sparse = get_greens_kernel(c,L,ppw=ppw,inds=indices,real=real)
-    T_sparse_test = get_greens_kernel(c,L,ppw=ppw,inds=indices_test,real=real)
-elif(kernel==2):
-    T_sparse = get_2dradon_kernel(c,L,inds=indices,real=real)
-    T_sparse_test = get_2dradon_kernel(c,L,inds=indices_test,real=real)    
-elif(kernel==3):
-    T_sparse = get_1dradon_kernel(c,L,inds=indices,real=real)
-    T_sparse_test = get_1dradon_kernel(c,L,inds=indices_test,real=real)    
 
+T_sparse = kernel_funcs[kernel](c,L,inds=indices,real=real)
+T_sparse_test = kernel_funcs[kernel](c,L,inds=indices_test,real=real)
+if(plot_full==1):
+    indices_plot = create_inds(I, J, I*J,rng)
+    T_plot = kernel_funcs[kernel](c,L,inds=indices_plot,real=real)
 
 e = time.time()
 print('--time in entry generation:',e-s)
@@ -397,6 +398,52 @@ if(lowrank_only==0):
     tensor_lst = butterfly_tensor_train_completer(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu=1e-10)
     e= time.time()
     print('--time for butterfly completion',e-s)
+
+
+
+if(plot_full==1):
+    mat_obs = get_fullmat_from_sparse(T_sparse, indices, I, J)
+    mat_ref = get_fullmat_from_sparse(T_plot, indices_plot, I, J)
+    error_LR,inds_plot_sort,T_plot_LR = compute_error_sparse(T_plot, indices_plot, tensor_lst_lr, L=L_lr, returnmore=1)
+    mat_LR = get_fullmat_from_sparse(T_plot_LR, inds_plot_sort, I, J)
+    inds_tt_plot = encode_tuples(indices_plot, L, c)
+    error_BF,inds_tt_plot_sort,T_plot_BF = compute_error_sparse(T_plot, inds_tt_plot, tensor_lst, L=L, returnmore=1)
+    mat_BF = get_fullmat_from_sparse(T_plot_BF, inds_plot_sort, I, J) # note that we use inds_plot_sort instead of inds_tt_plot_sort here. They are essentially the same ordering, but inds_tt_plot_sort has been quantized. 
+    print('LR reconstruction error:', np.linalg.norm(mat_LR-mat_ref)/np.linalg.norm(mat_ref))
+    print('BF reconstruction error:', np.linalg.norm(mat_BF-mat_ref)/np.linalg.norm(mat_ref))
+
+
+
+    import matplotlib.pyplot as plt
+    # Plot the matrix
+    plt.figure(figsize=(6,6))  # Set figure size
+    plt.imshow(np.real(mat_ref), cmap='viridis', origin='upper')  # Use colormap for better visualization
+    plt.colorbar(label="Value")  # Add colorbar
+    plt.title("Ground truth)")  # Add title
+    plt.savefig("ref.pdf", format='pdf', bbox_inches='tight')
+    plt.show(block=False)
+
+    plt.figure(figsize=(6,6))  # Set figure size
+    plt.imshow(np.real(mat_obs), cmap='viridis', origin='upper')  # Use colormap for better visualization
+    plt.colorbar(label="Value")  # Add colorbar
+    plt.title("Known samples)")  # Add title
+    plt.savefig("sample.pdf", format='pdf', bbox_inches='tight')
+    plt.show(block=False)
+
+    plt.figure(figsize=(6,6))  # Set figure size
+    plt.imshow(np.real(mat_LR), cmap='viridis', origin='upper')  # Use colormap for better visualization
+    plt.colorbar(label="Value")  # Add colorbar
+    plt.title("Reconstruction (LR)")  # Add title
+    plt.savefig("LR_recon.pdf", format='pdf', bbox_inches='tight')
+    plt.show(block=False)
+
+    plt.figure(figsize=(6,6))  # Set figure size
+    plt.imshow(np.real(mat_BF), cmap='viridis', origin='upper')  # Use colormap for better visualization
+    plt.colorbar(label="Value")  # Add colorbar
+    plt.title("Reconstruction (BF)")  # Add title
+    plt.savefig("BF_recon.pdf", format='pdf', bbox_inches='tight')
+    plt.show(block=False)
+
 
 
 
