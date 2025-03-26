@@ -364,7 +364,8 @@ print('--time to generate inputs for matrix completion',e-s)
 
 
 s = time.time()
-tensor_lst_lr = butterfly_tensor_train_completer(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4)
+tensor_lst_lr = butterfly_tensor_train_completer(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, 
+    tensor_lst_lr, num_iter_lr, tol, regu=1e-4, no_batch_lr=True)
 left_mat = tensor_lst_lr[0]
 right_mat = tensor_lst_lr[1].conj()
 e = time.time()
