@@ -42,6 +42,14 @@ def gen_tensor_train_list(L, c, ranks, rng, real=1):
     return tensor_lst
 
 def create_inds(I, J, nnz, rng):
+
+    # If nnz equals the total number of indices, return all index pairs.
+    if nnz == I * J:
+        # Using np.indices to generate a grid of indices:
+        row_indices, col_indices = np.indices((I, J))
+        # Reshape and stack into a (I*J, 2) array.
+        return np.column_stack((row_indices.ravel(), col_indices.ravel()))
+
     unique_tuples = set()
     while len(unique_tuples) < nnz:
         # Generate a batch of random indices
@@ -344,7 +352,7 @@ def reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst
     return Xs
 
 
-def compute_error_sparse(T, inds, tensor_lst, L, no_batch_lr=False):
+def compute_error_sparse(T, inds, tensor_lst, L, no_batch_lr=False, returnmore=None):
 
     level = 0
     s = time.time()
@@ -379,15 +387,46 @@ def compute_error_sparse(T, inds, tensor_lst, L, no_batch_lr=False):
             recon[starts[i]: starts[i] + counts[i] ] = np.einsum('ir,ir->i',H1,H2,optimize=True)
 
 
-
     else:
 
         inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
 
 
         recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L)
+        
+    if(returnmore is not None):
+        return la.norm(T_new - recon)/la.norm(T_new), sorted_tuples, recon
+    else: 
+        return la.norm(T_new - recon)/la.norm(T_new)
 
-    return la.norm(T_new - recon)/la.norm(T_new)
+
+
+def reconstruct_sparse_from_tensorlist(inds, tensor_lst, L):
+
+    level = 0
+    sorted_indices = np.argsort(inds[:, level])
+    sorted_tuples = inds[sorted_indices]
+    nnz = len(sorted_tuples)
+    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index = True, return_counts = True)
+    inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
+    recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L)
+
+    return sorted_tuples, recon
+
+
+
+
+
+def get_fullmat_from_sparse(T, inds, I, J):
+
+    if np.issubdtype(T.dtype, np.floating):
+        mat = np.zeros((I, J), dtype = np.float64)
+    else:
+        mat = np.zeros((I, J), dtype = np.complex128)
+
+    for idx in range(len(inds)):
+        mat[inds[idx][0],inds[idx][1]] = T[idx]
+    return mat 
 
 
 
