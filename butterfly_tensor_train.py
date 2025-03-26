@@ -344,7 +344,7 @@ def reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst
     return Xs
 
 
-def compute_error_sparse(T, inds, tensor_lst, L):
+def compute_error_sparse(T, inds, tensor_lst, L, no_batch_lr=False):
 
     level = 0
     s = time.time()
@@ -363,10 +363,29 @@ def compute_error_sparse(T, inds, tensor_lst, L):
 
     unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index = True, return_counts = True)
 
-    inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
+
+    if no_batch_lr:
+        # This is only for matrix completion when rank is very large
+        # and we have a lot of nonzeros
+        recon = np.zeros_like(T_new)
+
+        for i in range(len(unqs)):
+
+            inds_for_row = sorted_tuples[starts[i]: starts[i] + counts[i]]
+            H1 = tensor_lst[-1][inds_for_row[:,L+1]]      # N x R 
+            
+            H2 = tensor_lst[0][inds_for_row[:,0]]         # N x R
+
+            recon[starts[i]: starts[i] + counts[i] ] = np.einsum('ir,ir->i',H1,H2,optimize=True)
 
 
-    recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L)
+
+    else:
+
+        inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
+
+
+        recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L)
 
     return la.norm(T_new - recon)/la.norm(T_new)
 
@@ -384,6 +403,7 @@ def compute_sparse_butterfly(inds, tensor_lst, L):
 
 def multiply_mats(inds_tups, tensor_lst, level, L, row_shape):
     num_tuples = len(inds_tups)
+
 
     if level == 0:
         # Pre-compute indices for the last tensor
@@ -436,12 +456,15 @@ the remaining part will proceed as first list proceeded.
 if it was vice versa then the remaining part will proceed as second list proceeded.
 '''
 
-def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu):
+def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu, no_batch_lr=False):
 
     if level ==0 or level == L + 1:
         row_shape = tensor_lst[level].shape[-1]
     else:
         row_shape = np.prod(tensor_lst[level].shape[1:])
+
+
+    I = regu*np.eye(row_shape)
 
     s = time.time()
 
@@ -452,32 +475,50 @@ def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu):
 
     #print('Time in sorting',e-s)
 
-    s = time.time()
-
-    I = regu*np.eye(row_shape)
 
     unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index = True, return_counts = True)
 
     inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
 
 
-    # Further can be optimized based on sorted indices
-    # For now lets keep it this way
-    Hs = multiply_mats(inds_tups, tensor_lst, level, L, row_shape) 
+    if no_batch_lr:
+        # This is only for matrix completion when rank is very large
+        # and we have a lot of nonzeros
+        for i in range(len(unqs)):
+            LHS = np.zeros((row_shape,row_shape),dtype = T_new.dtype)
+            RHS = np.zeros((row_shape),dtype = T_new.dtype)
+
+            inds_for_row = sorted_tuples[starts[i]: starts[i] + counts[i]]
+            if level == 0:
+                H = tensor_lst[-1][inds_for_row[:,L+1]]        # N x R
+            else:
+                H = tensor_lst[0][inds_for_row[:,0]]         # N x R
+
+            LHS = np.dot(H.conj().T,H) + I                                           # R x R
+            RHS = np.dot(T_new[starts[i]: starts[i] + counts[i] ], H.conj())        # R
+
+            tensor_lst[level][unqs[i]] = la.solve(LHS,RHS)
 
 
-
-    RHS = np.array([np.dot(T_new[starts[i]: starts[i] + counts[i] ], Hs[i].conj()) for i in range(len(unqs))])
-
-
-    LHS = np.array([np.dot(H.conj().T ,H) + I for H in Hs])
-
-    result = la.solve(LHS , RHS)
-
-    if level ==0 or level == L + 1:
-        tensor_lst[level][unqs] = result 
     else:
-        tensor_lst[level][unqs] = result.reshape( (len(unqs),) + tensor_lst[level].shape[1:])
+
+        # Further can be optimized based on sorted indices
+        # For now lets keep it this way
+        Hs = multiply_mats(inds_tups, tensor_lst, level, L, row_shape) 
+
+
+
+        RHS = np.array([np.dot(T_new[starts[i]: starts[i] + counts[i] ], Hs[i].conj()) for i in range(len(unqs))])
+
+
+        LHS = np.array([np.dot(H.conj().T ,H) + I for H in Hs])
+
+        result = la.solve(LHS , RHS)
+
+        if level ==0 or level == L + 1:
+            tensor_lst[level][unqs] = result 
+        else:
+            tensor_lst[level][unqs] = result.reshape( (len(unqs),) + tensor_lst[level].shape[1:])
         
     return tensor_lst
 
@@ -585,7 +626,7 @@ def ADAM_tensor_train_completion(T_sparse, inds, T_test, inds_test, L, tensor_ls
 
 
 
-def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu):
+def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu, no_batch_lr=False):
     if(L==0):
         print('------------------matrix completion----------------------------')
     else:
@@ -600,17 +641,17 @@ def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tenso
 
         for level in range(L+2):
             print('At level: ',level)
-            tensor_lst = tensor_train_ALS_solve(T_sparse, inds, tensor_lst, level, L, regu=regu)
+            tensor_lst = tensor_train_ALS_solve(T_sparse, inds, tensor_lst, level, L, regu=regu, no_batch_lr=no_batch_lr)
         
         e = time.time()
         print('Time in iteration', iters+1 ,':', e-s)
         
         s= time.time()
         #error = la.norm(T_sparse - compute_sparse_butterfly(inds, tensor_lst, L)) / la.norm(T_sparse)
-        error = compute_error_sparse(T_sparse, inds, tensor_lst, L)
+        error = compute_error_sparse(T_sparse, inds, tensor_lst, L,no_batch_lr=no_batch_lr)
         errors.append(error)
         #test_error = la.norm(T_test - compute_sparse_butterfly(inds_test,tensor_lst,L)) / la.norm(T_test)
-        test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L)
+        test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L,no_batch_lr=no_batch_lr)
         e = time.time()
         print('Time in error computation',e-s)
         print('Relative error in observed entries: ',error)
