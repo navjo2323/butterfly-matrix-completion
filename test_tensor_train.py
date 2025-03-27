@@ -6,6 +6,7 @@ from kdtree_ordering import generate_kd_tree
 import time
 import math
 import numpy.linalg as la
+import matplotlib.colors as mcolors
 
 global ppw
 
@@ -238,8 +239,8 @@ rng = np.random.RandomState(np.random.randint(1000))
 kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
 real=0 # 1: real-valued kernels, 0: complex-valued kernels
 get_true_rank=0
-plot_full=1
-lowrank_only=0
+plot_full=0
+lowrank_only=1
 errorcheck_lr2bf=0
 c = 4 # 4 9
 #Should be perfect square, 4 and 9 options
@@ -260,10 +261,13 @@ r_BF= 11
 
 if(lowrank_only==0):
     ranks_lr = [r_BF] # [r_BF*10]
-    nnz = min(int(6*(r_BF)*I*np.log2(I)),I**2)
+    nnz = min(int(7*(r_BF)*I*np.log2(I)),I**2)
 else:
-    ranks_lr = [r_BF*40] # [r_BF*10]
-    nnz = min(25*(ranks_lr)*I,I**2)
+    # # ranks_lr = [r_BF*40] # [r_BF*10]
+    # ranks_lr = [I] # [r_BF*10]
+    # nnz = min(25*(ranks_lr[0])*I,I**2)    
+    ranks_lr = [I] # [r_BF*10]
+    nnz = I**2
     # nnz = min(int(7*(r_BF)*I*np.log2(I)),I**2)
 ranks = [r_BF for _ in range(L- L//2+1 )] 
 
@@ -402,7 +406,7 @@ if(lowrank_only==0):
 
 
 if(plot_full==1):
-    mat_obs = get_fullmat_from_sparse(T_sparse, indices, I, J)
+    mat_obs = get_masked_fullmat_from_sparse(T_sparse, indices, I, J)
     mat_ref = get_fullmat_from_sparse(T_plot, indices_plot, I, J)
     error_LR,inds_plot_sort,T_plot_LR = compute_error_sparse(T_plot, indices_plot, tensor_lst_lr, L=L_lr, returnmore=1)
     mat_LR = get_fullmat_from_sparse(T_plot_LR, inds_plot_sort, I, J)
@@ -411,36 +415,44 @@ if(plot_full==1):
     mat_BF = get_fullmat_from_sparse(T_plot_BF, inds_plot_sort, I, J) # note that we use inds_plot_sort instead of inds_tt_plot_sort here. They are essentially the same ordering, but inds_tt_plot_sort has been quantized. 
     print('LR reconstruction error:', np.linalg.norm(mat_LR-mat_ref)/np.linalg.norm(mat_ref))
     print('BF reconstruction error:', np.linalg.norm(mat_BF-mat_ref)/np.linalg.norm(mat_ref))
-
-
-
+    
+    fontsize=14
+    norm = mcolors.Normalize(vmin=np.real(mat_ref).min(), vmax=np.real(mat_ref).max())
     import matplotlib.pyplot as plt
+    # plt.rcParams['text.usetex'] = True
     # Plot the matrix
     plt.figure(figsize=(6,6))  # Set figure size
-    plt.imshow(np.real(mat_ref), cmap='viridis', origin='upper')  # Use colormap for better visualization
-    plt.colorbar(label="Value")  # Add colorbar
-    plt.title("Ground truth)")  # Add title
+    plt.imshow(np.real(mat_ref), cmap='viridis', origin='upper',norm=norm)  # Use colormap for better visualization
+    cbar = plt.colorbar()  # Add colorbar
+    cbar.ax.tick_params(labelsize=fontsize)
+    plt.title(r'${\mathbf{T}}$',fontsize=fontsize)  # Add title
+    plt.tick_params(labelsize=fontsize)
     plt.savefig("ref.pdf", format='pdf', bbox_inches='tight')
     plt.show(block=False)
 
     plt.figure(figsize=(6,6))  # Set figure size
-    plt.imshow(np.real(mat_obs), cmap='viridis', origin='upper')  # Use colormap for better visualization
-    plt.colorbar(label="Value")  # Add colorbar
-    plt.title("Known samples)")  # Add title
+    cmap = plt.cm.viridis  # or any other colormap you like
+    cmap.set_bad(color='white')  # Set masked values to appear white    
+    plt.imshow(np.real(mat_obs), cmap=cmap, origin='upper', interpolation='nearest',norm=norm)  # Use colormap for better visualization
+    # plt.colorbar(label="Value")  # Add colorbar
+    plt.title(r'${\mathbf{T}}_\Omega$',fontsize=fontsize)  # Add title
+    plt.tick_params(labelsize=fontsize)
     plt.savefig("sample.pdf", format='pdf', bbox_inches='tight')
     plt.show(block=False)
 
     plt.figure(figsize=(6,6))  # Set figure size
-    plt.imshow(np.real(mat_LR), cmap='viridis', origin='upper')  # Use colormap for better visualization
-    plt.colorbar(label="Value")  # Add colorbar
-    plt.title("Reconstruction (LR)")  # Add title
+    plt.imshow(np.real(mat_LR), cmap='viridis', origin='upper',norm=norm)  # Use colormap for better visualization
+    # plt.colorbar(label="Value")  # Add colorbar
+    plt.title(r'${\mathbf{X}}$ (Low-rank)',fontsize=fontsize)  # Add title
+    plt.tick_params(labelsize=fontsize)
     plt.savefig("LR_recon.pdf", format='pdf', bbox_inches='tight')
     plt.show(block=False)
 
     plt.figure(figsize=(6,6))  # Set figure size
-    plt.imshow(np.real(mat_BF), cmap='viridis', origin='upper')  # Use colormap for better visualization
-    plt.colorbar(label="Value")  # Add colorbar
-    plt.title("Reconstruction (BF)")  # Add title
+    plt.imshow(np.real(mat_BF), cmap='viridis', origin='upper',norm=norm)  # Use colormap for better visualization
+    # plt.colorbar(label="Value")  # Add colorbar
+    plt.title(r'${\mathbf{X}}$ (Butterfly)',fontsize=fontsize)  # Add title
+    plt.tick_params(labelsize=fontsize)
     plt.savefig("BF_recon.pdf", format='pdf', bbox_inches='tight')
     plt.show(block=False)
 

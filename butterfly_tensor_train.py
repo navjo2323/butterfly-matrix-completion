@@ -410,6 +410,21 @@ def get_fullmat_from_sparse(T, inds, I, J):
     return mat 
 
 
+def get_masked_fullmat_from_sparse(T, inds, I, J):
+    if np.issubdtype(T.dtype, np.floating):
+        mat = np.zeros((I, J), dtype = np.float64)
+    else:
+        mat = np.zeros((I, J), dtype = np.complex128)
+    
+    mask = np.zeros_like(mat, dtype=bool)
+    mask[:] = True
+    for idx in range(len(inds)):
+        mat[inds[idx][0],inds[idx][1]] = T[idx]
+        mask[inds[idx][0],inds[idx][1]] = False
+    mat_masked = np.ma.masked_array(mat, mask=mask)
+    return mat_masked 
+
+
 
 
 def compute_sparse_butterfly(inds, tensor_lst, L):
