@@ -236,11 +236,11 @@ kernel_funcs = [None,  # index 0 not used
 
 rng = np.random.RandomState(np.random.randint(1000))
 
-kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
+kernel=3 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
 real=0 # 1: real-valued kernels, 0: complex-valued kernels
 get_true_rank=0
-plot_full=0
-lowrank_only=1
+plot_full=1
+lowrank_only=0
 errorcheck_lr2bf=0
 c = 4 # 4 9
 #Should be perfect square, 4 and 9 options
@@ -257,16 +257,16 @@ I = c*2**L
 J = c*2**L
 
 
-r_BF= 11
+r_BF= 12
 
 if(lowrank_only==0):
     ranks_lr = [r_BF] # [r_BF*10]
     nnz = min(int(7*(r_BF)*I*np.log2(I)),I**2)
 else:
     # # ranks_lr = [r_BF*40] # [r_BF*10]
-    # ranks_lr = [I] # [r_BF*10]
-    # nnz = min(25*(ranks_lr[0])*I,I**2)    
     ranks_lr = [I] # [r_BF*10]
+    # nnz = min(25*(ranks_lr[0])*I,I**2)    
+    # ranks_lr = [160] # [r_BF*10]
     nnz = I**2
     # nnz = min(int(7*(r_BF)*I*np.log2(I)),I**2)
 ranks = [r_BF for _ in range(L- L//2+1 )] 
@@ -423,7 +423,7 @@ if(plot_full==1):
     # plt.rcParams['text.usetex'] = True
     # Plot the matrix
     plt.figure(figsize=(6,6))  # Set figure size
-    plt.imshow(np.real(mat_ref), cmap='viridis', origin='upper',norm=norm)  # Use colormap for better visualization
+    plt.imshow(np.real(mat_ref), cmap='viridis', origin='upper',interpolation='nearest',norm=norm)  # Use colormap for better visualization
     cbar = plt.colorbar()  # Add colorbar
     cbar.ax.tick_params(labelsize=fontsize)
     plt.title(r'${\mathbf{T}}$',fontsize=fontsize)  # Add title
@@ -435,23 +435,26 @@ if(plot_full==1):
     cmap = plt.cm.viridis  # or any other colormap you like
     cmap.set_bad(color='white')  # Set masked values to appear white    
     plt.imshow(np.real(mat_obs), cmap=cmap, origin='upper', interpolation='nearest',norm=norm)  # Use colormap for better visualization
-    # plt.colorbar(label="Value")  # Add colorbar
+    cbar = plt.colorbar()  # Add colorbar
+    cbar.ax.tick_params(labelsize=fontsize)
     plt.title(r'${\mathbf{T}}_\Omega$',fontsize=fontsize)  # Add title
     plt.tick_params(labelsize=fontsize)
     plt.savefig("sample.pdf", format='pdf', bbox_inches='tight')
     plt.show(block=False)
 
     plt.figure(figsize=(6,6))  # Set figure size
-    plt.imshow(np.real(mat_LR), cmap='viridis', origin='upper',norm=norm)  # Use colormap for better visualization
-    # plt.colorbar(label="Value")  # Add colorbar
+    plt.imshow(np.real(mat_LR), cmap='viridis', origin='upper',interpolation='nearest',norm=norm)  # Use colormap for better visualization
+    cbar = plt.colorbar()  # Add colorbar
+    cbar.ax.tick_params(labelsize=fontsize)
     plt.title(r'${\mathbf{X}}$ (Low-rank)',fontsize=fontsize)  # Add title
     plt.tick_params(labelsize=fontsize)
     plt.savefig("LR_recon.pdf", format='pdf', bbox_inches='tight')
     plt.show(block=False)
 
     plt.figure(figsize=(6,6))  # Set figure size
-    plt.imshow(np.real(mat_BF), cmap='viridis', origin='upper',norm=norm)  # Use colormap for better visualization
-    # plt.colorbar(label="Value")  # Add colorbar
+    plt.imshow(np.real(mat_BF), cmap='viridis', origin='upper',interpolation='nearest',norm=norm)  # Use colormap for better visualization
+    cbar = plt.colorbar()  # Add colorbar
+    cbar.ax.tick_params(labelsize=fontsize)
     plt.title(r'${\mathbf{X}}$ (Butterfly)',fontsize=fontsize)  # Add title
     plt.tick_params(labelsize=fontsize)
     plt.savefig("BF_recon.pdf", format='pdf', bbox_inches='tight')
