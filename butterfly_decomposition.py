@@ -220,52 +220,141 @@ def butterfly_rhs(left,right,g_lst,h_lst,w,level,L,lc,extra=1):
     
     #disjoint_str = "".join([chr(ord('s')+j) for j in range(lc)])
     
-    
+    start = time.time()
     if w==0:
         shape = list(h_lst[0].shape[(L-level):-1]) + [g_lst[L-level].shape[-1] +extra]
         #print(shape)
-        einstr = left_str +'z' + ',' + right_str + 'z' + ',' + right_str[(L-level):] + left_side_ranks[L-level] +'->'
-        result_str = left_str + right_str[: (L-level)] + left_side_ranks[L-level]
+        #einstr = left_str +'z' + ',' + right_str + 'z' + ',' + right_str[(L-level):] + left_side_ranks[L-level] +'->'
+        
+        einstr = right_str + 'z' + ',' + right_str[(L-level):] + left_side_ranks[L-level] +'->'
+
+        #result_str = left_str + right_str[: (L-level)] + left_side_ranks[L-level]
+
+        result_str = 'z' + right_str[: (L-level)] + left_side_ranks[L-level]
         
         einstr += result_str
+
         random_mat = np.random.randn(*shape)
+
         #print('multiplying random matrix',einstr)
-        mat = np.einsum(einstr,left,right.conj(),random_mat,optimize=True)
+
+        #mat = np.einsum(einstr,left,right.conj(),random_mat,optimize=True)
+
+        mat_right = np.einsum(einstr,right.conj(),random_mat,optimize=True)
         
-        result_str = left_str + right_tensor_inds[: (L-level)] + left_side_ranks[L-level]
+        
+
+        #result_str = left_str + right_tensor_inds[: (L-level)] + left_side_ranks[L-level]
+
+
         if level !=L:
             full_einstr =  left_str+ left_side_ranks[0]
             for i in range(L-level-1):
                 full_einstr += ',' + left_str[:-( i +1)]+right_str[:i+1]+left_side_ranks[i:i+2] 
             
-            full_einstr += ',' + result_str + '->'
-            full_einstr += left_str[:-( L-level)]+right_str[:(L-level)]+left_side_ranks[(L-level-1):(L-level)+1]
+            #full_einstr += ',' + result_str + '->'
+            full_einstr += ',' + left_str + 'z' + '->'
+
+            #full_einstr += left_str[:-( L-level)]+right_str[:(L-level)]+left_side_ranks[(L-level-1):(L-level)+1]
+
+            full_einstr += left_str[:-( L-level)]+right_str[:(L-level -1)]+left_side_ranks[(L-level-1)] + 'z'
+
             #print('einstring to get the factor',full_einstr)
+            
             lst_mult = [element.conj() for element in g_lst[:L-level]]
-            #mat = np.einsum(full_einstr,*g_lst[:L-level],mat,optimize=True)
-            mat = np.einsum(full_einstr,*lst_mult,mat,optimize=True)
+
+
+            #mat = np.einsum(full_einstr,*lst_mult,mat,optimize=True)
+
+            mat = np.einsum(full_einstr,*lst_mult,left,optimize=True)
+
+            final_einstr = left_str[:-( L-level)]+right_str[:(L-level-1)]+left_side_ranks[(L-level-1)] + 'z'
+            final_einstr += ',' + result_str
+            final_einstr += '->'+ left_str[:-( L-level)]+right_str[:(L-level)]+left_side_ranks[(L-level-1):(L-level)+1]
+
+            #print('final einstr is',final_einstr)
+            mat = np.einsum(final_einstr, mat,mat_right,optimize=True)
+
+        else:
+            final_einstr = left_str + 'z'
+            final_einstr += ',' + result_str
+            final_einstr += '->' + left_str + left_side_ranks[0]
+
+            #print('final einstr is',final_einstr)
+            mat = np.einsum(final_einstr, left,mat_right,optimize=True)
+
             
     else:
         shape = list(g_lst[0].shape[(L-level):-1]) + [h_lst[L-level].shape[-1] +extra]
+
         #print(shape)
-        einstr = left_str + 'z' + ','+ right_str + 'z'+ ',' + left_str[(L-level):]  +right_side_ranks[L-level] +'->'
-        result_str = left_str[: (L-level)] + right_str   + right_side_ranks[L-level]
+        #einstr = left_str + 'z' + ','+ right_str + 'z'+ ',' + left_str[(L-level):]  +right_side_ranks[L-level] +'->'
+        einstr = left_str + 'z' + ',' + left_str[(L-level):]  +right_side_ranks[L-level] +'->'
+
+
+
+        #result_str = left_str[: (L-level)] + right_str   + right_side_ranks[L-level]
+
+        result_str = 'z' + left_str[: (L-level)]   + right_side_ranks[L-level]
         
+
+
         einstr += result_str
         #print('multiplying random matrix',einstr)
+
         random_mat = np.random.randn(*shape)
-        mat = np.einsum(einstr,left,right.conj(),random_mat,optimize=True)
+        #mat = np.einsum(einstr,left,right.conj(),random_mat,optimize=True)
         
-        result_str = left_tensor_inds[: (L-level)] + right_str  + right_side_ranks[L-level]
+
+        mat_left = np.einsum(einstr,left,random_mat,optimize=True)
+
+        
+        #result_str = left_tensor_inds[: (L-level)] + right_str  + right_side_ranks[L-level]
+
         if level !=L:
             full_einstr =  right_str+ right_side_ranks[0]
             for i in range(L-level-1):
                 full_einstr += ',' + left_str[:i+1]+ right_str[:-( i +1)]+ right_side_ranks[i:i+2] 
             
-            full_einstr += ',' + result_str + '->'
-            full_einstr +=  left_str[:(L-level)] + right_str[:-( L-level)]+ right_side_ranks[(L-level-1):(L-level)+1]
+            #full_einstr += ',' + result_str + '->'
+            full_einstr += ',' + right_str + 'z' + '->'
+            
+
+            #full_einstr +=  left_str[:(L-level)] + right_str[:-( L-level)]+ right_side_ranks[(L-level-1):(L-level)+1]
+            
+            full_einstr +=  left_str[:(L-level-1)] + right_str[:-( L-level)]+ right_side_ranks[(L-level-1)] + 'z'
+            
+
+
             #print('einstring to get the factor',full_einstr)
-            mat = np.einsum(full_einstr,*h_lst[:L-level],mat,optimize=True).conj()
+            #mat = np.einsum(full_einstr,*h_lst[:L-level],mat,optimize=True).conj()
+
+
+            mat = np.einsum(full_einstr,*h_lst[:L-level],right.conj(),optimize=True).conj()             
+
+            #Check recon_butterfly, H_lst is conjugated again to reconstruct the tensor
+            
+
+            final_einstr = left_str[:(L-level-1)] + right_str[:-( L-level)]+ right_side_ranks[(L-level-1)] + 'z'
+            final_einstr += ',' + result_str
+            final_einstr += '->'+ left_str[:(L-level)] + right_str[:-( L-level)]+ right_side_ranks[(L-level-1):(L-level)+1]
+
+            #print('final einstr is',final_einstr)
+            mat = np.einsum(final_einstr, mat,mat_left,optimize=True)
+
+
+        else:
+            final_einstr = right_str + 'z'
+            final_einstr += ',' + result_str
+            final_einstr += '->' + right_str + right_side_ranks[0]
+
+            #print('final einstr is',final_einstr)
+            mat = np.einsum(final_einstr, right.conj(),mat_left,optimize=True)
+
+    
+    end = time.time()
+
+    #print('time taken for ',w,'is',end-start)
     return mat,random_mat
 
 def last_solve(left,right,g_lst,h_lst,L):
