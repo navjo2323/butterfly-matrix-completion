@@ -7,8 +7,10 @@ import time
 import math
 import numpy.linalg as la
 import matplotlib.colors as mcolors
+from scipy.io import loadmat
 
-global ppw
+
+global ppw, filename
 
 def numerical_rank(matrix, tol):
     # Perform Singular Value Decomposition (SVD)
@@ -226,19 +228,61 @@ def get_1dradon_kernel(c, L, inds=None,real=1):
         return T_sparse.reshape(-1)
 
 
+
+
+
+def get_fullmat_kernel(c, L, inds=None,real=1):
+    # Validate inputs
+    assert is_perfect_square(c), f"{c} should be a perfect square"
+    assert L % 2 == 0, f"{L} is not an even number"
+
+    # Calculate parameters
+    Nperdim = c * 2**(L)
+
+    data = loadmat(filename)
+    A=data['D_t']
+    assert Nperdim <= A.shape[0], f"Nperdim is larger than the matrix dimensions"
+    G = A[0:Nperdim,0:Nperdim]
+
+    print('Reading the full matrix from file')
+    print("Number per dim is", Nperdim)
+    
+    if inds is None:
+        if(real==1):
+            return np.real(G)
+        else:
+            return G
+    else:
+        # Vectorized computation for T_sparse
+        inds = np.array(inds)
+        if(real==1):
+            T_sparse = np.real(G[inds[:, 0], inds[:, 1]])
+        else:
+            T_sparse = G[inds[:, 0], inds[:, 1]]
+        
+        
+        return T_sparse.reshape(-1)
+
+
+
+
 kernel_funcs = [None,  # index 0 not used
     lambda c, L, inds, real: get_greens_kernel(c=c, L=L, inds=inds, real=real),
     lambda c, L, inds, real: get_2dradon_kernel(c=c, L=L, inds=inds, real=real),
-    lambda c, L, inds, real: get_1dradon_kernel(c=c, L=L, inds=inds, real=real)
+    lambda c, L, inds, real: get_1dradon_kernel(c=c, L=L, inds=inds, real=real),
+    lambda c, L, inds, real: get_fullmat_kernel(c=c, L=L, inds=inds, real=real)
 ]
 
 
 
 rng = np.random.RandomState(np.random.randint(1000))
 
-kernel=3 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
+kernel=4 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform 4: full matrix loaded from file
+filename='G_250_trans.mat'
+# filename='G_250_reflect_colocate.mat'
+# filename='G_250_reflect_no_colocate.mat'
 real=0 # 1: real-valued kernels, 0: complex-valued kernels
-get_true_rank=0
+get_true_rank=1
 plot_full=1
 lowrank_only=0
 errorcheck_lr2bf=0
@@ -257,11 +301,11 @@ I = c*2**L
 J = c*2**L
 
 
-r_BF= 12
+r_BF= 9
 
 if(lowrank_only==0):
-    ranks_lr = [r_BF] # [r_BF*10]
-    nnz = min(int(7*(r_BF)*I*np.log2(I)),I**2)
+    ranks_lr = [120] # [r_BF*10]
+    nnz = min(int(3*(r_BF)*I*np.log2(I)),I**2)
 else:
     # # ranks_lr = [r_BF*40] # [r_BF*10]
     ranks_lr = [I] # [r_BF*10]
@@ -294,7 +338,11 @@ elif(kernel==3):
         print('Testing real-valued 1D Radon transform')
     else:
         print('Testing complex-valued 1D Radon transform')
-
+elif(kernel==4):
+    if(real==1):
+        print('Testing real-valued matrix from file')
+    else:
+        print('Testing complex-valued matrix from file')
 
 if(get_true_rank==1):
     s = time.time()
