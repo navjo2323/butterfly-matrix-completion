@@ -5,7 +5,7 @@ import itertools
 import numpy.linalg as la
 import scipy.linalg as sla
 
-from butterfly_helper_functions import *
+from dependencies.butterfly_helper_functions import *
 #from tensor_formulated_butterfly import get_butterfly_tens_from_mat,const_butterfly_tensor,gen_solve_einsum, solve_for_inner
 
 # import signal

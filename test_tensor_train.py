@@ -1,8 +1,8 @@
 import numpy as np
-from butterfly_tensor_train import *
-from butterfly_helper_functions import index_convert, gen_tensor_inputs, ALS_solve
-from butterfly_decomposition import butterfly_decompose_low_rank
-from kdtree_ordering import generate_kd_tree
+from dependencies.butterfly_tensor_train import *
+from dependencies.butterfly_helper_functions import index_convert, gen_tensor_inputs, ALS_solve
+from dependencies.butterfly_decomposition import butterfly_decompose_low_rank
+from dependencies.kdtree_ordering import generate_kd_tree
 import time
 import math
 import numpy.linalg as la
@@ -278,9 +278,9 @@ kernel_funcs = [None,  # index 0 not used
 rng = np.random.RandomState(np.random.randint(1000))
 
 kernel=4 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform 4: full matrix loaded from file
-filename='G_250_trans.mat'
-# filename='G_250_reflect_colocate.mat'
-# filename='G_250_reflect_no_colocate.mat'
+filename='data/G_250_trans.mat'
+# filename='./data/G_250_reflect_colocate.mat'
+# filename='./data/G_250_reflect_no_colocate.mat'
 real=0 # 1: real-valued kernels, 0: complex-valued kernels
 get_true_rank=1
 plot_full=1
@@ -508,53 +508,6 @@ if(plot_full==1):
     plt.savefig("BF_recon.pdf", format='pdf', bbox_inches='tight')
     plt.show(block=False)
 
-
-
-
-
-### TEST CODE FOR GREENS #######
-
-
-
-# #TEST CODE FOR CHECKING SOLVES ###########
-
-# s = time.time()
-# inds = index_convert(indices, I, J, L, c)
-# e = time.time()
-# print('--time in index conversion 1:',e-s)
-
-# g_lst,h_lst = gen_tensor_inputs(I,J,L,L//2,ranks,rng)
-
-# g_lst3d, h_lst3d = convert_lst_to_3d(g_lst,h_lst, L, c)
-
-# tensor_lst = make_one_list(g_lst3d,h_lst3d)
-
-
-# regu = 1e-7
-# for iters in range(2):
-#     for level in range(L,L//2-1,-1):
-#         for r_c in range(2):
-#             g_lst, h_lst = ALS_solve(T_sparse, inds, g_lst, h_lst, level, L, L//2, r_c, regu)
-#             print(la.norm(h_lst[0]))
-
-# print('---------------')
-
-# for iters in range(10):
-#     for level_tt in range(L+2):
-#         tensor_lst = tensor_train_ALS_solve(T_sparse, inds_tt, tensor_lst, level_tt, L, regu=1e-7)
-#     val = compute_sparse_butterfly(inds_tt, tensor_lst, L)
-#     print('error norm is', (la.norm(T_sparse - val)/la.norm(T_sparse)))
-
-# g_lst3d, h_lst3d = make_two_lists(tensor_lst)
-
-# g_lst_tt, h_lst_tt = convert_lst_to_Nd(g_lst3d, h_lst3d, L, c)
-
-
-# for i in range(len(h_lst)):
-#     print(la.norm(g_lst[i] - g_lst_tt[i]))
-#     print(la.norm(h_lst[i] - h_lst_tt[i]))
-
-############### TEST CODE FOR CHECKING SOLVES ###############
 
 
 
