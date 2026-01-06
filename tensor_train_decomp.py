@@ -1,12 +1,30 @@
 import numpy as np
 import tensorly as tl
-from tensorly.decomposition import matrix_product_state
+#from tensorly.decomposition import matrix_product_state
+from tensorly.decomposition import tensor_train as matrix_product_state
 import numpy.linalg as la
 import time
-from butterfly_tensor_train import tensor_train_ALS_solve, compute_sparse_butterfly
-
+from dependencies.butterfly_tensor_train import reconstruct_sparse_butterfly, tensor_train_ALS_solve, compute_sparse_butterfly, tensor_train_gradient, compute_error_sparse
+import scipy.linalg as sla
 
 import numpy as np
+
+
+
+def sort_inds_and_T(tuples, T, k = None):
+    """
+    Sorts a numpy array of tuples according to kth index as above
+    if k is not given, do the sort lexicographically
+    """
+    if k is None:
+        sorted_indices = np.lexsort(np.fliplr(tuples).T)
+    else:
+        sorted_indices = np.argsort(tuples[:, k])
+
+    sorted_array = tuples[sorted_indices]
+    reordered_T = T[sorted_indices]
+
+    return sorted_array,  reordered_T
 
 def convert_matrix_to_QTT_indices(L, c, indices):
     indices = np.array(indices)
@@ -139,6 +157,60 @@ def tensor_train_decomposition(mat, L, c, ranks):
     return numpy_factors
 
 
+def qr_factor_tensor_train(factor, outer, side):
+    shape = list(factor.shape)
+    
+    if outer:
+        # Assuming factor is 2D at the last level
+        Q, R_fac = sla.qr(factor, pivoting=False, mode='economic')
+        output = Q  # Already 2D
+
+    else:
+        if side == 0:
+            mat = factor.reshape((shape[0]*shape[1], shape[2]))
+        else:
+            mat = factor.transpose(0, 2, 1).reshape((shape[0]*shape[2], shape[1]))
+        
+        Q, R_fac = sla.qr(mat, pivoting=False, mode='economic')
+
+        if side == 0:
+            output = Q.reshape((shape[0], shape[1], shape[2]))
+        else:
+            output = Q.reshape((shape[0], shape[2], shape[1])).transpose(0, 2, 1)
+
+    return output, R_fac
+
+
+def absorb_factor(R_fac,next_factor, side):
+    shape = list(next_factor.shape)
+    if len(shape) == 3:
+        if side == 0:
+            output = np.einsum('ij,ajk->aik', R_fac, next_factor, optimize=True) #coming from the left
+        else:
+            output = np.einsum('ij,akj->aki', R_fac, next_factor, optimize=True) # coming from the right
+    else:
+        output = np.einsum('ij,aj->ai', R_fac, next_factor, optimize=True) # direction does not matter
+    
+    return output
+
+
+def orthogonalize_all(tensor_lst, wrt):
+    length = len(tensor_lst) - 1
+    if  wrt == 0:
+        for level in range(length,0,-1):
+            outer = (level == length)
+            tensor_lst[level], R_fac = qr_factor_tensor_train(tensor_lst[level], outer=outer, side=1)
+            tensor_lst[level-1] = absorb_factor(R_fac, tensor_lst[level-1], side=1)  
+    else:
+        for level in range(length):
+            outer = (level == 0)
+            tensor_lst[level], R_fac = qr_factor_tensor_train(tensor_lst[level], outer=outer, side=0)
+            tensor_lst[level+1] = absorb_factor(R_fac, tensor_lst[level+1], side=0)
+    
+    return tensor_lst
+
+
+
 
 def tensor_train_completion(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu):
     # We should have L +1 length list for QTT
@@ -183,6 +255,69 @@ def tensor_train_completion(T_sparse, inds, T_test, inds_test, L, tensor_lst, nu
             break
     
     return tensor_lst
+
+
+def tensor_train_ADF(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu=0):
+    print('------------------tensor train ADF completion----------------------------')
+    errors = []
+
+    inds,  T_sparse = sort_inds_and_T(inds,  T_sparse, 0)
+    unqs, starts, counts = np.unique(inds[:, 0], return_index = True, return_counts = True)
+    inds_tups = [inds[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
+    nnz = len(T_sparse)
+    print("Number of observed entries:",nnz)
+    recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,0, L-1)
+    grad_tensor = T_sparse - recon
+
+    
+    for iters in range(num_iters):
+        print("Iteration", iters+1,"/",num_iters)
+        #Since we are going to start from 0 to L+1, we will orthogonalize all factors wrt first
+        tensor_lst = orthogonalize_all(tensor_lst, wrt=0)
+        s = time.time()
+        for level in range(L+1):
+            print('At level: ',level)
+            N = tensor_train_gradient(grad_tensor, inds, tensor_lst, level, L-1, regu) # N as used in paper algo 5
+            
+            new_lst = tensor_lst.copy()
+            new_lst[level] = N
+            Z = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,new_lst,0, L-1) # paper algo 5
+            alpha = la.norm(N)**2 / (la.norm(Z))**2 # We may need to change alpha for each slice in the level
+            #For now lets test it like this
+
+            tensor_lst[level] += alpha*N
+            grad_tensor -= alpha*Z
+
+            # Now we have to orthogonalize wrt the next level
+            # This only requires one orthogonalization
+            if level != L:
+                output, R_fac = qr_factor_tensor_train(tensor_lst[level], outer= (level==0), side=0)
+                tensor_lst[level] = output
+                tensor_lst[level+1] = absorb_factor(R_fac, tensor_lst[level+1], side=0)
+            
+        
+        e = time.time()
+        print('Time in iteration', iters+1 ,':', e-s)
+        
+        s= time.time()
+        # Same arguments here as above
+        error = compute_error_sparse(T_sparse, inds, tensor_lst, L-1)
+        errors.append(error)
+        test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L-1)
+        e = time.time()
+        print('Time in error computation',e-s)
+        print('Relative error in observed entries: ',error)
+        print('Relative test error after', iters + 1,' iterations: ',test_error)
+        print('-----------------')
+        if iters + 1 >= 5 and error >= 3:
+            print('Overfitting or error not reducing, stopping iterations')
+            break
+        if error < tol:
+            print('converged')
+            break
+    
+    return tensor_lst
+
 
 
 

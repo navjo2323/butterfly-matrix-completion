@@ -1,9 +1,10 @@
 import numpy as np
-from butterfly_tensor_train import *
-from butterfly_helper_functions import index_convert, gen_tensor_inputs, ALS_solve
-from butterfly_decomposition import butterfly_decompose_low_rank
+from dependencies.butterfly_tensor_train import *
+from dependencies.butterfly_helper_functions import index_convert, gen_tensor_inputs, ALS_solve
+from dependencies.butterfly_decomposition import butterfly_decompose_low_rank
 from tensor_train_decomp import tensor_train_decomposition_low, tensor_train_decomposition, convert_matrix_to_QTT_indices, tensor_train_completion
-from kdtree_ordering import generate_kd_tree
+from tensor_train_decomp import tensor_train_ADF
+from dependencies.kdtree_ordering import generate_kd_tree
 import time
 import math
 import numpy.linalg as la
@@ -235,7 +236,7 @@ errorcheck_lr2bf=1
 c = 4 # 4 9
 #Should be perfect square, 4 and 9 options
 
-L = 10
+L = 8
 
 #Should be even, becomes too slow after 10 for this version of code
 
@@ -386,7 +387,7 @@ print('--time for matrix completion',e-s)
 #     r_shape = r_shape/4
 #     max_r = int(min(l_shape,r_shape))
 
-start = 100
+start = 50
 intermediate = [start + 2 * i for i in range(L)]
 
 ranks_TT = [1] + intermediate + [1]
@@ -420,12 +421,19 @@ print('--time for conversion of indices for tensor train completion',e-s)
 
 
 
+# num_iters = 20
+# s = time.time()
+# tensor_lst = tensor_train_completion(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = 1e-10)
+# e = time.time()
+
+# print('--time for tensor train completion',e-s)
+
+
+
 num_iters = 20
 s = time.time()
-tensor_lst = tensor_train_completion(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = 1e-10)
+tensor_lst = tensor_train_ADF(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = 0)
 e = time.time()
-
-print('--time for tensor train completion',e-s)
 
 # if(lowrank_only==0):
 
