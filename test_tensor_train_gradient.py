@@ -234,7 +234,7 @@ errorcheck_lr2bf=1
 c = 4 # 4 9
 #Should be perfect square, 4 and 9 options
 
-L = 8
+L = 10
 
 #Should be even, becomes too slow after 10 for this version of code
 
@@ -246,7 +246,7 @@ I = c*2**L
 J = c*2**L
 
 
-r_BF= 10
+r_BF= 12
 
 if(lowrank_only==0):
     ranks_lr = [r_BF] # [r_BF*10]
@@ -395,7 +395,7 @@ if(lowrank_only==0):
 
     s= time.time()
     tensor_lst = ADAM_tensor_train_completion(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, 
-        regu=1e-9, lr=0.1, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=100, tol=1e-6)
+        regu=1e-9, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=100, tol=1e-6)
     e= time.time()
     print('--time for butterfly completion',e-s)
 

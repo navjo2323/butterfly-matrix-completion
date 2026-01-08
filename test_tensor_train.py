@@ -198,8 +198,8 @@ def get_1dradon_kernel(c, L, inds=None,real=1):
         y = pts
         y = y*Nperdim-Nperdim/2.0
         yabs = np.abs(y)
-        c = (2+np.sin(2*np.pi*x))/8.0
-        phi = np.dot(c, yabs.T) + np.dot(x, y.T)
+        cs = (2+np.sin(2*np.pi*x))/8.0
+        phi = np.dot(cs, yabs.T) + np.dot(x, y.T)
 
         # Compute Radon transform values
         if(real==1):
@@ -215,8 +215,8 @@ def get_1dradon_kernel(c, L, inds=None,real=1):
         y = pts[inds[:, 1]]  # Extract points for ind_j
         y = y*Nperdim-Nperdim/2.0
         yabs = np.abs(y)
-        c = (2+np.sin(2*np.pi*x))/8.0
-        phi = x*y + c*yabs
+        cs = (2+np.sin(2*np.pi*x))/8.0
+        phi = x*y + cs*yabs
 
         # Compute T_sparse using vectorized operations
         if(real==1):
@@ -283,7 +283,7 @@ filename='data/G_250_trans.mat'
 # filename='./data/G_250_reflect_no_colocate.mat'
 real=0 # 1: real-valued kernels, 0: complex-valued kernels
 get_true_rank=1
-plot_full=1
+plot_full=0
 lowrank_only=0
 errorcheck_lr2bf=0
 c = 4 # 4 9
@@ -293,7 +293,9 @@ L = 8
 
 #Should be even, becomes too slow after 10 for this version of code
 
+alg='ALS'
 tol=1e-3
+regu=1e-10
 ppw=10
 
 lc = int(L/2) 
@@ -302,17 +304,28 @@ J = c*2**L
 
 
 r_BF= 9
-
-if(lowrank_only==0):
-    ranks_lr = [120] # [r_BF*10]
-    nnz = min(int(3*(r_BF)*I*np.log2(I)),I**2)
+r_LR = 43
+nnz_bf=6*r_BF*I*np.log2(I)
+if isinstance(nnz_bf, str):
+    nnz_bf_val = int(eval(nnz_bf))
 else:
-    # # ranks_lr = [r_BF*40] # [r_BF*10]
-    ranks_lr = [I] # [r_BF*10]
-    # nnz = min(25*(ranks_lr[0])*I,I**2)    
-    # ranks_lr = [160] # [r_BF*10]
-    nnz = I**2
-    # nnz = min(int(7*(r_BF)*I*np.log2(I)),I**2)
+    nnz_bf_val = int(nnz_bf)
+
+# nnz_lr=10*r_LR*I
+ranks_lr = [r_LR] # [r_BF*10]
+nnz = min(nnz_bf_val,I**2)
+
+# if(lowrank_only==0):
+#     ranks_lr = [r_LR] # [r_BF*10]
+#     nnz = min(nnz_bf,I**2)
+# else:
+#     # # ranks_lr = [r_BF*40] # [r_BF*10]
+#     ranks_lr = [r_LR] # [r_BF*10]
+#     nnz = min(nnz_lr,I**2)
+#     # nnz = min(25*(ranks_lr[0])*I,I**2)    
+#     # ranks_lr = [160] # [r_BF*10]
+#     # nnz = I**2
+#     # nnz = min(int(7*(r_BF)*I*np.log2(I)),I**2)
 ranks = [r_BF for _ in range(L- L//2+1 )] 
 
 for i in range(len(ranks)):
@@ -448,7 +461,7 @@ if(lowrank_only==0):
     print('--time in index conversion 2 :',e-s)
 
     s= time.time()
-    tensor_lst = butterfly_tensor_train_completer(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu=1e-10)
+    tensor_lst = butterfly_tensor_train_completer(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu=regu)
     e= time.time()
     print('--time for butterfly completion',e-s)
 

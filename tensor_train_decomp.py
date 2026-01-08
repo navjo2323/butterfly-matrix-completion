@@ -157,6 +157,84 @@ def tensor_train_decomposition(mat, L, c, ranks):
     return numpy_factors
 
 
+
+def tensor_train_truerank(mat, L, c, tol):
+    
+    max_r = c*2**L
+    T = reshape_matrix_to_tensor_QTT(mat, L, c)
+    cores, ranks = tt_svd(T,tol)   
+    
+    # T_rec = tt_reconstruct(cores)
+    # rel_error = np.linalg.norm(T - T_rec) / np.linalg.norm(T)
+    # print("Relative error:", rel_error)    
+    
+    return ranks
+
+
+def tt_reconstruct(cores):
+    T = cores[0]
+    for G in cores[1:]:
+        T = np.tensordot(T, G, axes=([-1], [0]))
+    return T.squeeze()
+
+
+def tt_svd(T, tol):
+    from sklearn.utils.extmath import randomized_svd
+
+    dims = T.shape
+    d = len(dims)
+    cores = []
+    ranks = [1]
+
+    # total Frobenius norm
+    norm_T = np.linalg.norm(T)
+    eps = tol * norm_T / np.sqrt(d - 1)
+
+    tensor = T.copy()
+    r_prev = 1
+
+    for k in range(d - 1):
+        n_k = dims[k]
+
+        # reshape to matrix
+        tensor = tensor.reshape(r_prev * n_k, -1)
+
+        # SVD
+        U, S, Vh = np.linalg.svd(tensor, full_matrices=False)
+        
+        # # randomized SVD
+        # r_try = min(tensor.shape[0], tensor.shape[1])
+        # U, S, Vh = randomized_svd(tensor,n_components=r_try)
+
+
+        # determine rank via tolerance
+        r_k = len(S)
+        for i in range(len(S)):
+            if S[i] <= S[0]*tol/np.sqrt(d - 1):
+                r_k = i
+                break
+        # truncate
+        U = U[:, :r_k]
+        S = S[:r_k]
+        Vh = Vh[:r_k, :]
+
+        # form TT core
+        core = U.reshape(r_prev, n_k, r_k)
+        cores.append(core)
+        ranks.append(r_k)
+
+        # prepare next tensor
+        tensor = np.diag(S) @ Vh
+        r_prev = r_k
+
+    # last core
+    cores.append(tensor.reshape(r_prev, dims[-1], 1))
+    ranks.append(1)
+
+    return cores, ranks
+
+
+
 def qr_factor_tensor_train(factor, outer, side):
     shape = list(factor.shape)
     

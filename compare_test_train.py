@@ -2,14 +2,14 @@ import numpy as np
 from dependencies.butterfly_tensor_train import *
 from dependencies.butterfly_helper_functions import index_convert, gen_tensor_inputs, ALS_solve
 from dependencies.butterfly_decomposition import butterfly_decompose_low_rank
-from tensor_train_decomp import tensor_train_decomposition_low, tensor_train_decomposition, convert_matrix_to_QTT_indices, tensor_train_completion
+from tensor_train_decomp import tensor_train_decomposition_low, tensor_train_truerank, tensor_train_decomposition, convert_matrix_to_QTT_indices, tensor_train_completion
 from tensor_train_decomp import tensor_train_ADF
 from dependencies.kdtree_ordering import generate_kd_tree
 import time
 import math
 import numpy.linalg as la
 
-
+global ppw, filename
 
 def numerical_rank(matrix, tol):
     # Perform Singular Value Decomposition (SVD)
@@ -56,7 +56,7 @@ def butterfly_rank(matrix, block_size,tol):
 def is_perfect_square(n):
     return n == int(math.isqrt(n))**2
 
-def get_greens_kernel(c, L, ppw, inds=None,real=1):
+def get_greens_kernel(c, L, inds=None,real=1):
     # Validate inputs
     assert is_perfect_square(c), f"{c} should be a perfect square"
     assert L % 2 == 0, f"{L} is not an even number"
@@ -197,8 +197,8 @@ def get_1dradon_kernel(c, L, inds=None,real=1):
         y = pts
         y = y*Nperdim-Nperdim/2.0
         yabs = np.abs(y)
-        c = (2+np.sin(2*np.pi*x))/8.0
-        phi = np.dot(c, yabs.T) + np.dot(x, y.T)
+        cs = (2+np.sin(2*np.pi*x))/8.0
+        phi = np.dot(cs, yabs.T) + np.dot(x, y.T)
 
         # Compute Radon transform values
         if(real==1):
@@ -214,8 +214,8 @@ def get_1dradon_kernel(c, L, inds=None,real=1):
         y = pts[inds[:, 1]]  # Extract points for ind_j
         y = y*Nperdim-Nperdim/2.0
         yabs = np.abs(y)
-        c = (2+np.sin(2*np.pi*x))/8.0
-        phi = x*y + c*yabs
+        cs = (2+np.sin(2*np.pi*x))/8.0
+        phi = x*y + cs*yabs
 
         # Compute T_sparse using vectorized operations
         if(real==1):
@@ -226,12 +226,60 @@ def get_1dradon_kernel(c, L, inds=None,real=1):
         
         return T_sparse.reshape(-1)
 
+
+
+
+
+def get_fullmat_kernel(c, L, inds=None,real=1):
+    # Validate inputs
+    assert is_perfect_square(c), f"{c} should be a perfect square"
+    assert L % 2 == 0, f"{L} is not an even number"
+
+    # Calculate parameters
+    Nperdim = c * 2**(L)
+
+    data = loadmat(filename)
+    A=data['D_t']
+    assert Nperdim <= A.shape[0], f"Nperdim is larger than the matrix dimensions"
+    G = A[0:Nperdim,0:Nperdim]
+
+    print('Reading the full matrix from file')
+    print("Number per dim is", Nperdim)
+    
+    if inds is None:
+        if(real==1):
+            return np.real(G)
+        else:
+            return G
+    else:
+        # Vectorized computation for T_sparse
+        inds = np.array(inds)
+        if(real==1):
+            T_sparse = np.real(G[inds[:, 0], inds[:, 1]])
+        else:
+            T_sparse = G[inds[:, 0], inds[:, 1]]
+        
+        
+        return T_sparse.reshape(-1)
+
+
+
+
+kernel_funcs = [None,  # index 0 not used
+    lambda c, L, inds, real: get_greens_kernel(c=c, L=L, inds=inds, real=real),
+    lambda c, L, inds, real: get_2dradon_kernel(c=c, L=L, inds=inds, real=real),
+    lambda c, L, inds, real: get_1dradon_kernel(c=c, L=L, inds=inds, real=real),
+    lambda c, L, inds, real: get_fullmat_kernel(c=c, L=L, inds=inds, real=real)
+]
+
+
+
 rng = np.random.RandomState(np.random.randint(1000))
 
 kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
 real=1 # 1: real-valued kernels, 0: complex-valued kernels
 get_true_rank=1
-lowrank_only= 1
+# lowrank_only= 1
 errorcheck_lr2bf=1
 c = 4 # 4 9
 #Should be perfect square, 4 and 9 options
@@ -240,34 +288,24 @@ L = 8
 
 #Should be even, becomes too slow after 10 for this version of code
 
-tol=1e-3
+tol=1e-6
 ppw=10
 
 lc = int(L/2) 
 I = c*2**L
 J = c*2**L
 
-
-r_BF= 13
-# r_TT = r_BF + 10
-
-ranks_lr = [r_BF] # [r_BF*10]
-if(lowrank_only==0):
-    nnz = min(int((r_BF)*I*np.log2(I)),I**2)
-    # nnz = min(int(6*(r_BF)*I*np.log2(I)),I**2)
+alg='ALS'
+regu=1e-5
+r_LR=13
+start=20 # defining QTT ranks
+ranks_lr = [r_LR] # 
+nnz_qtt=3*start*I #3rN
+if isinstance(nnz_qtt, str):
+    nnz_qtt = eval(nnz_qtt)
 else:
-    nnz = min(25*(ranks_lr[0])*I,I**2)
-# ranks = [r_BF for _ in range(L- L//2+1 )] 
-
-# for i in range(len(ranks)):
-#     if i==0:
-#         ranks[0] = min(ranks[0],c)
-#     else:
-#         ranks[i] = min(2*ranks[i-1],ranks[i])
-# print('ranks for butterfly completion are ', ranks)
-
-
-
+    nnz_qtt = nnz_qtt
+nnz = min(int(nnz_qtt),I**2)
 
 
 if(kernel==1):
@@ -285,16 +323,15 @@ elif(kernel==3):
         print('Testing real-valued 1D Radon transform')
     else:
         print('Testing complex-valued 1D Radon transform')
-
+elif(kernel==4):
+    if(real==1):
+        print('Testing real-valued matrix from file')
+    else:
+        print('Testing complex-valued matrix from file')
 
 if(get_true_rank==1):
     s = time.time()
-    if(kernel==1):
-        mat= get_greens_kernel(c,L,ppw=ppw,real=real)
-    elif(kernel==2):
-        mat= get_2dradon_kernel(c,L,real=real)
-    elif(kernel==3):
-        mat= get_1dradon_kernel(c,L,real=real)
+    mat= kernel_funcs[kernel](c,L,inds=None,real=real)
 
     e = time.time()
     #np.save('greens_matN-48ppw15.npy',mat)
@@ -303,18 +340,12 @@ if(get_true_rank==1):
     print('full mat generated of shape',I)
     print('--time in full mat generation:',e-s)
 
-    # s = time.time()
+    s = time.time()
+    true_tt_ranks = tensor_train_truerank(mat, L, c, tol*10)
+    e = time.time()
+    print('--time in computing the TT rank of mat:',e-s, ' rank:',true_tt_ranks, ' with tolerence', tol)
 
-    # true_r_lr = numerical_rank(mat,tol)
-    # e = time.time()
-    # print('--time in computing the LR rank of mat:',e-s, ' rank:',true_r_lr, ' with tolerence', tol)
-
-    # s = time.time()
-    # blocksize = int(c*2**(L/2))
-    # true_bf_ranks = butterfly_rank(mat,blocksize,tol)
-    # e = time.time()
-    # print('--time in computing the BF rank of mat:',e-s, ' min/max rank:',np.min(true_bf_ranks),np.max(true_bf_ranks), ' with tolerence', tol)
-
+   
     
 
 
@@ -332,16 +363,9 @@ print('--time in creating indices:',e-s)
 
 
 s = time.time()
-if(kernel==1):
-    T_sparse = get_greens_kernel(c,L,ppw=ppw,inds=indices,real=real)
-    T_sparse_test = get_greens_kernel(c,L,ppw=ppw,inds=indices_test,real=real)
-elif(kernel==2):
-    T_sparse = get_2dradon_kernel(c,L,inds=indices,real=real)
-    T_sparse_test = get_2dradon_kernel(c,L,inds=indices_test,real=real)    
-elif(kernel==3):
-    T_sparse = get_1dradon_kernel(c,L,inds=indices,real=real)
-    T_sparse_test = get_1dradon_kernel(c,L,inds=indices_test,real=real)    
 
+T_sparse = kernel_funcs[kernel](c,L,inds=indices,real=real)
+T_sparse_test = kernel_funcs[kernel](c,L,inds=indices_test,real=real)
 
 e = time.time()
 print('--time in entry generation:',e-s)
@@ -387,7 +411,7 @@ print('--time for matrix completion',e-s)
 #     r_shape = r_shape/4
 #     max_r = int(min(l_shape,r_shape))
 
-start = 50
+
 intermediate = [start + 2 * i for i in range(L)]
 
 ranks_TT = [1] + intermediate + [1]
@@ -403,7 +427,7 @@ for i in range(1,len(ranks_TT)-1):
 
 
 
-print('tensor train ranks are',ranks_TT)
+print('tensor train ranks for completion are',ranks_TT)
 s = time.time()
 factors = tensor_train_decomposition_low(left_mat, right_mat, L, c, ranks_TT)
 e = time.time()
@@ -432,8 +456,13 @@ print('--time for conversion of indices for tensor train completion',e-s)
 
 num_iters = 20
 s = time.time()
-tensor_lst = tensor_train_ADF(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = 0)
+if alg=='ADF':
+    tensor_lst = tensor_train_ADF(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
+elif alg=='ALS':
+    tensor_lst = tensor_train_completion(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
 e = time.time()
+
+print('--time for tensor train completion',e-s)
 
 # if(lowrank_only==0):
 

@@ -1,14 +1,82 @@
-#!/bin/bash
-#SBATCH -A m2957
-#SBATCH -C cpu
-#SBATCH -q regular
-#SBATCH -t 23:00:00
+#!/bin/bash -l
+
+#SBATCH --account=m2957
+#SBATCH -q premium
 #SBATCH -N 1
-#SBATCH --ntasks-per-node=1
+#SBATCH --constraint=cpu
+#SBATCH -t 47:59:00
+#SBATCH -J QTT_completion
 #SBATCH --mail-user=liuyangzhuan@lbl.gov
-#SBATCH --mail-type=BEGIN
-#SBATCH -e ./tmp.er
+
+
 module load python
-python -u compare_test_train.py | tee a.out_L10_c4_rTT50_6rnlogn
+rootdir=$PWD/../
+export PYTHONPATH=$rootdir:$PYTHONPATH
+outputdir=output
+
+cd $rootdir
+mkdir -p $outputdir
+cd $outputdir
+
+exe="compare_test_train.py"                               # ← your original file
+ts=$(date '+%Y%m%d_%H%M%S')                  # e.g. 20250518_2147 23
+
+# split name and extension so the stamp goes before the dot
+base=${exe%.*}                               # "file"
+ext=${exe##*.}                               # "txt"  (empty if no dot)
+
+pyfile="${base}_${ts}.${ext}"
+cp -- "$rootdir/$exe" $pyfile 
 
 
+# ── 1. declare the values you want ────────────────────────────────────────────
+alg='ADF'
+regu=0
+r_LR=13
+start=40 # defining QTT ranks
+nnz_qtt='3.25*start*I'
+tol=1e-3
+L=10
+c=4
+kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
+real=1 # 1: real-valued kernels, 0: complex-valued kernels
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+# helper: update/insert one line  var = value   (comment preserved)
+update_py_var() {
+    local var="$1" newval="$2"
+    local quote=""
+    # Only quote true strings, NOT expressions
+    if [[ $newval =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+        quote="'"
+    elif [[ $newval =~ ^\".*\"$ || $newval =~ ^\'.*\'$ ]]; then
+        quote=""
+    else
+        quote=""
+    fi
+    # 1st - try to replace the line if it exists (ignore trailing comment)
+    # 2nd - if not present, append a new assignment
+    if grep -qE "^[[:space:]]*$var[[:space:]]*=" "$pyfile"; then
+        sed -Ei "s|^([[:space:]]*$var[[:space:]]*=[[:space:]]*).*|\1${quote}${newval}${quote}|g" "$pyfile"
+    else
+        echo -e "\n$var = ${quote}${newval}${quote}" >> "$pyfile"
+    fi
+}
+
+# --- 2. overwrite the Python file -------------------------------------------
+update_py_var alg   "$alg"
+update_py_var regu   "$regu"
+update_py_var start   "$start"
+update_py_var nnz_qtt   "$nnz_qtt"
+update_py_var r_LR   "$r_LR"
+update_py_var tol "$tol"
+update_py_var L      "$L"
+update_py_var c "$c"
+update_py_var kernel        "$kernel"
+update_py_var real        "$real"
+
+logname=a.out_L${L}_c${c}_rTT${start}_nnz${nnz_qtt}_rLR${r_LR}_regu${regu}_alg${alg}_tol${tol}_kernel${kernel}_real${real}
+
+python -u ${pyfile} | tee ${logname}_${ts}
+rm ${pyfile}
