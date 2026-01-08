@@ -2,7 +2,7 @@ import numpy as np
 from dependencies.butterfly_tensor_train import *
 from dependencies.butterfly_helper_functions import index_convert, gen_tensor_inputs, ALS_solve
 from dependencies.butterfly_decomposition import butterfly_decompose_low_rank
-from tensor_train_decomp import tensor_train_decomposition_low, tensor_train_truerank, tensor_train_decomposition, convert_matrix_to_QTT_indices, tensor_train_completion
+from tensor_train_decomp import tensor_train_decomposition_low, tensor_train_decomposition, tensor_train_truerank, convert_matrix_to_QTT_indices, tensor_train_completion, ADAM_tensor_train
 from tensor_train_decomp import tensor_train_ADF
 from dependencies.kdtree_ordering import generate_kd_tree
 import time
@@ -454,12 +454,20 @@ print('--time for conversion of indices for tensor train completion',e-s)
 
 
 
+# num_iters = 20
+# s = time.time()
+# tensor_lst = tensor_train_ADF(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = 0)
+# e = time.time()
+
+
 num_iters = 20
 s = time.time()
 if alg=='ADF':
     tensor_lst = tensor_train_ADF(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
 elif alg=='ALS':
     tensor_lst = tensor_train_completion(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
+elif alg=='ADAM':    
+    tensor_lst = ADAM_tensor_train(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, regu =regu, max_iter=num_iters, tol=tol)
 e = time.time()
 
 print('--time for tensor train completion',e-s)

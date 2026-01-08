@@ -240,7 +240,7 @@ def qr_factor_tensor_train(factor, outer, side):
     
     if outer:
         # Assuming factor is 2D at the last level
-        Q, R_fac = sla.qr(factor, pivoting=False, mode='economic')
+        Q, R_fac = la.qr(factor,  mode='reduced')
         output = Q  # Already 2D
 
     else:
@@ -249,7 +249,7 @@ def qr_factor_tensor_train(factor, outer, side):
         else:
             mat = factor.transpose(0, 2, 1).reshape((shape[0]*shape[2], shape[1]))
         
-        Q, R_fac = sla.qr(mat, pivoting=False, mode='economic')
+        Q, R_fac = la.qr(mat,  mode='reduced')
 
         if side == 0:
             output = Q.reshape((shape[0], shape[1], shape[2]))
@@ -288,6 +288,69 @@ def orthogonalize_all(tensor_lst, wrt):
     return tensor_lst
 
 
+
+def ADAM_tensor_train(T_sparse, inds, T_test, inds_test, L, tensor_lst, 
+    regu=1e-9, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=100, tol=1e-6):
+    """
+    ADAM optimizer for unconstrained optimization.
+    
+    """
+    m = [np.zeros_like(x) for x in tensor_lst]          # First moment vector (mean of gradients)
+    v = [np.zeros_like(x) for x in tensor_lst]          # Second moment vector (uncentered variance of gradients)
+    errors = []
+
+    inds, T_sparse = sort_inds_and_T(inds, T_sparse, 0)
+    unqs, starts, counts = np.unique(inds[:, 0], return_index = True, return_counts = True)
+    inds_tups = [inds[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
+    nnz = len(T_sparse)
+
+    for t in range(1, max_iter + 1):
+        recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,0, L-1)
+        tensor = T_sparse - recon
+
+        s = time.time()
+        grads = []
+        
+        for level in range(len(tensor_lst)):
+            grads.append(tensor_train_gradient(tensor, inds, tensor_lst, level, L-1, regu))
+        # Update biased first moment estimate
+        m = [beta1*x + (1 - beta1)*g for x, g in zip(m, grads)]
+        
+        # Update biased second raw moment estimate
+        v = [beta2*x + (1 - beta2)* (g**2) for x, g in zip(v,grads)]
+
+        
+        # Correct bias in first and second moments
+        m_hat = [x / (1 - beta1 ** t) for x in m]
+        v_hat = [x / (1 - beta2 ** t) for x in v]
+        
+        # Update parameters
+        tensor_lst = [x + lr * x1 / (np.sqrt(x2) + epsilon) for x, x1, x2 in zip(tensor_lst, m_hat, v_hat)]
+
+        e = time.time()
+        grad_time = e-s
+        print('Time in gradient computation', grad_time)
+
+        
+
+        s = time.time()
+        # Check convergence based on gradient norm
+        if max([la.norm(g) for g in grads]) < tol:
+            print(f"Converged in {t} iterations.")
+            return tensor_lst
+        e= time.time()
+
+        s1= time.time()
+        error = compute_error_sparse(T_sparse, inds, tensor_lst, L-1)
+        errors.append(error)
+        test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L-1)
+        e1 = time.time()
+        print('Time in error computation',e1-s1)
+        print('Total time in iteration without error computation', t, e-s + grad_time)
+        print('Relative error in observed entries: ',error)
+        print('Relative test error after', t,' iterations: ',test_error)
+    print("Maximum iterations reached without convergence.")
+    return tensor_lst
 
 
 def tensor_train_completion(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu):
@@ -352,14 +415,27 @@ def tensor_train_ADF(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters
         print("Iteration", iters+1,"/",num_iters)
         #Since we are going to start from 0 to L+1, we will orthogonalize all factors wrt first
         tensor_lst = orthogonalize_all(tensor_lst, wrt=0)
+        grad_time = 0
+        recon_time = 0
+        factor_time = 0
         s = time.time()
         for level in range(L+1):
             print('At level: ',level)
+            s_grad = time.time()
             N = tensor_train_gradient(grad_tensor, inds, tensor_lst, level, L-1, regu) # N as used in paper algo 5
+            e_grad = time.time()
             
-            new_lst = tensor_lst.copy()
+            grad_time += e_grad - s_grad
+
+            new_lst = [t.copy() for t in tensor_lst] 
             new_lst[level] = N
+
+            s_recon_time = time.time()
             Z = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,new_lst,0, L-1) # paper algo 5
+            e_recon_time = time.time()
+
+            recon_time += e_recon_time - s_recon_time
+
             alpha = la.norm(N)**2 / (la.norm(Z))**2 # We may need to change alpha for each slice in the level
             #For now lets test it like this
 
@@ -368,15 +444,22 @@ def tensor_train_ADF(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters
 
             # Now we have to orthogonalize wrt the next level
             # This only requires one orthogonalization
+            s_factor = time.time()
             if level != L:
                 output, R_fac = qr_factor_tensor_train(tensor_lst[level], outer= (level==0), side=0)
                 tensor_lst[level] = output
                 tensor_lst[level+1] = absorb_factor(R_fac, tensor_lst[level+1], side=0)
-            
+            e_factor = time.time()
+
+            factor_time += e_factor - s_factor
         
         e = time.time()
-        print('Time in iteration', iters+1 ,':', e-s)
         
+
+        print('Time in gradient computation', grad_time)
+        print('Time in reconstruction computation', recon_time)
+        print('Time in QR factor computation', factor_time)
+        print('Time in iteration', iters+1 ,':', e-s)
         s= time.time()
         # Same arguments here as above
         error = compute_error_sparse(T_sparse, inds, tensor_lst, L-1)

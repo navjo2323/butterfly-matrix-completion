@@ -30,8 +30,8 @@ cp -- "$rootdir/$exe" $pyfile
 
 
 # ── 1. declare the values you want ────────────────────────────────────────────
-alg='ADF'
-regu=0
+alg='ADAM'
+regu=1e-9
 r_LR=13
 start=40 # defining QTT ranks
 nnz_qtt='3.25*start*I'
