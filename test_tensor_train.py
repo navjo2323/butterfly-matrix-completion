@@ -281,8 +281,8 @@ kernel=4 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform 4: fu
 filename='data/G_250_trans.mat'
 # filename='./data/G_250_reflect_colocate.mat'
 # filename='./data/G_250_reflect_no_colocate.mat'
-real=0 # 1: real-valued kernels, 0: complex-valued kernels
-get_true_rank=1
+real=1 # 1: real-valued kernels, 0: complex-valued kernels
+get_true_rank=0
 plot_full=0
 lowrank_only=0
 errorcheck_lr2bf=0
@@ -435,6 +435,9 @@ left_mat = tensor_lst_lr[0]
 right_mat = tensor_lst_lr[1].conj()
 e = time.time()
 print('--time for matrix completion',e-s)
+
+
+
 
 
 if(lowrank_only==0):

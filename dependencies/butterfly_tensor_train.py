@@ -306,17 +306,19 @@ def qr_factor_flat(factor, L, level, side):
     """
     QR/LQ factorization for arrays in 2D (N, R) or 3D (M, R1, R2) form.
     
-    For side=0 (left to right):
-        - Pair matrices based on bit at position `level`
-        - Concatenate along left rank (axis=1) to form (M/2, 2*R1, R2)
-        - Standard QR decomposition: A = QR
-        - Returns Q with orthonormal columns, R to absorb rightward
+    For side=0 (left to right sweep):
+        - 2D: Standard QR, R absorbs rightward
+        - 3D: Pair matrices based on bit at position `level`
+              Concatenate along left rank (axis=1) to form (M/2, 2*R1, R2)
+              Standard QR decomposition: A = QR
+              Returns Q with orthonormal columns, R to absorb rightward
         
-    For side=1 (right to left):
-        - Pair matrices based on bit at position 0 (LSB)
-        - Concatenate along right rank (axis=2) to form (M/2, R1, 2*R2)
-        - LQ decomposition (via QR of transpose): A = LQ
-        - Returns Q with orthonormal rows, L to absorb leftward
+    For side=1 (right to left sweep):
+        - 2D: Standard QR, then transpose R to L for leftward absorption
+        - 3D: Pair matrices based on bit at position 0 (LSB)
+              Concatenate along right rank (axis=2) to form (M/2, R1, 2*R2)
+              LQ decomposition (via QR of transpose): A = LQ^T
+              Returns Q with orthonormal rows, L to absorb leftward
     
     Parameters:
     -----------
@@ -330,8 +332,8 @@ def qr_factor_flat(factor, L, level, side):
         - level in [1, L]: inner factors (3D)
         - level = L+1: right outer factor (2D)
     side : int, 0 or 1
-        - side = 0: sweep left to right
-        - side = 1: sweep right to left
+        - side = 0: sweep left to right (QR, absorb R rightward)
+        - side = 1: sweep right to left (LQ, absorb L leftward)
     
     Returns:
     --------
@@ -346,6 +348,10 @@ def qr_factor_flat(factor, L, level, side):
         # ===== 2D CASE: Outer factors =====
         # Shape: (N, R) where N = c * 2^L
         # Reshape to (M, c, R) where M = 2^L blocks of size (c, R)
+        #
+        # Both outer factors are stored the same way:
+        #   - Rows index into the tensor (grouped by c)
+        #   - Columns are the rank connecting to adjacent inner factor
         
         N, R = factor.shape
         c = N // (2 ** L)
@@ -353,17 +359,28 @@ def qr_factor_flat(factor, L, level, side):
         
         reshaped = factor.reshape(M, c, R)
         
-        # Standard QR on each (c, R) block
+        # Always do standard QR on each (c, R) block
         # Q: (M, c, k), R_matrices: (M, k, R) where k = min(c, R)
-        Q, R_matrices = np.linalg.qr(reshaped, mode='reduced')
+        Q, R_matrices = la.qr(reshaped, mode='reduced')
         
         output = Q.reshape(N, -1)  # (N, k)
-        return output, R_matrices
+        
+        if side == 0:
+            # Absorb rightward: R @ next
+            # R_matrices shape: (M, k, R) contracts with next's left rank R
+            return output, R_matrices
+        else:
+            # Absorb leftward: prev @ L
+            # Need L_matrices shape: (M, R, k) to contract with prev's right rank R
+            # Simply transpose R_matrices: (M, k, R) -> (M, R, k)
+            L_matrices = R_matrices.transpose(0, 2, 1)
+            return output, L_matrices
     
     else:
         # ===== 3D CASE: Inner factors =====
         # Shape: (M, R1, R2) where M = 2^{L+1}
-        # Each index m encodes (i_{L-level}, ..., i_0, j_0, ..., j_{level-1})
+        # Each index m encodes binary tuple (i_{L-level}, ..., i_0, j_0, ..., j_{level-1})
+        # where leftmost bit is MSB
         
         M, R1, R2 = factor.shape
         
@@ -394,7 +411,7 @@ def qr_factor_flat(factor, L, level, side):
             concat = np.concatenate([mat0, mat1], axis=1)
             
             # Standard QR: A = QR where Q has orthonormal columns
-            Q, R_matrices = np.linalg.qr(concat, mode='reduced')
+            Q, R_matrices = la.qr(concat, mode='reduced')
             # Q: (M/2, 2*R1, k), R_matrices: (M/2, k, R2)
             # where k = min(2*R1, R2)
             
@@ -418,16 +435,21 @@ def qr_factor_flat(factor, L, level, side):
             # This stacks the two R2-dimensional blocks horizontally
             concat = np.concatenate([mat0, mat1], axis=2)
             
-            # LQ decomposition via QR of transpose: A = LQ
-            # A^T = Q^T L^T, so QR(A^T) gives us Q^T and L^T
+            # LQ decomposition via QR of transpose: A = LQ^T
+            # If A^T = Q'R', then A = R'^T Q'^T = L Q^T
+            # where L = R'^T has shape matching for leftward absorption
+            #
+            # concat: (M/2, R1, 2*R2)
             # concat^T: (M/2, 2*R2, R1)
-            Qt, Lt = np.linalg.qr(concat.transpose(0, 2, 1), mode='reduced')
+            Qt, Lt = la.qr(concat.transpose(0, 2, 1), mode='reduced')
             # Qt: (M/2, 2*R2, k), Lt: (M/2, k, R1)
             # where k = min(2*R2, R1)
             
             # Transpose back to get L and Q
-            Q = Qt.transpose(0, 2, 1)      # (M/2, k, 2*R2) - rows are orthonormal
-            L_matrices = Lt.transpose(0, 2, 1)  # (M/2, R1, k)
+            # Q = Qt^T has orthonormal rows: (M/2, k, 2*R2)
+            # L = Lt^T: (M/2, R1, k) - this is what we absorb leftward
+            Q = Qt.transpose(0, 2, 1)
+            L_matrices = Lt.transpose(0, 2, 1)
             
             k = Q.shape[1]
             
@@ -577,13 +599,11 @@ def absorb_R(R_matrices, next_factor, L, level, side):
             # So we always pair over bit 0
             bit_pos = 0
         else:
-            # Absorbing leftward: the bit position changes at the halfway point
-            # For levels > L//2 (upper half): new i-index appears at MSB
-            # For levels <= L//2 (lower half): bit position is level-1
-            if level > L // 2:
-                bit_pos = L
-            else:
-                bit_pos = level - 1
+            # Absorbing leftward: the bit position bit position is level-1
+            # if level > L // 2:
+            #     bit_pos = L
+            # else:
+            bit_pos = level - 1
         
         # Create index pairs in the target factor
         mask = 1 << bit_pos
@@ -647,7 +667,7 @@ def absorb_R(R_matrices, next_factor, L, level, side):
             return new_next.reshape(M_outer * c, k)
 
 
-def orthogonalize_sweep(factors, L, side):
+def orthogonalize_sweep(factors, L, wrt_side):
     """
     Orthogonalize all factors from one side, absorbing remainder into the last factor.
     
@@ -670,8 +690,8 @@ def orthogonalize_sweep(factors, L, side):
     L : int
         Number of inner levels (len(factors) = L + 2)
     side : int, 0 or 1
-        - side = 0: sweep left to right
-        - side = 1: sweep right to left
+        - side = 1: sweep left to right
+        - side = 0: sweep right to left
     
     Returns:
     --------
@@ -680,21 +700,21 @@ def orthogonalize_sweep(factors, L, side):
     """
     new_factors = [f.copy() for f in factors]
     
-    if side == 0:
+    if wrt_side == 1:
         # Left to right: QR levels 0, 1, 2, ..., L
         # Absorb final R into level L+1
         for level in range(L + 1):
-            Q, R_matrices = qr_factor_flat(new_factors[level], L, level, side)
+            Q, R_matrices = qr_factor_flat(new_factors[level], L, level, side=0)
             new_factors[level] = Q
-            new_factors[level + 1] = absorb_R(R_matrices, new_factors[level + 1], L, level, side)
+            new_factors[level + 1] = absorb_R(R_matrices, new_factors[level + 1], L, level, side=0)
     
     else:
         # Right to left: LQ levels L+1, L, L-1, ..., 1
         # Absorb final L into level 0
         for level in range(L + 1, 0, -1):
-            Q, L_matrices = qr_factor_flat(new_factors[level], L, level, side)
+            Q, L_matrices = qr_factor_flat(new_factors[level], L, level, side=1)
             new_factors[level] = Q
-            new_factors[level - 1] = absorb_R(L_matrices, new_factors[level - 1], L, level, side)
+            new_factors[level - 1] = absorb_R(L_matrices, new_factors[level - 1], L, level, side=1)
     
     return new_factors
 
@@ -841,6 +861,85 @@ def compute_slice_norms_sq(T, inds, mode):
     
     #norms = np.sqrt(sum_sq)
     return sum_sq
+
+
+def Update_fac_and_grad(N, Z, inds, level, L):
+    """
+    Compute scaled updates for factor N and sparse tensor Z.
+    
+    Scaling is done slice-wise:
+        alpha[i] = ||N[i]||^2_F / ||Z[slice i]||^2
+        
+    For 2D factor (level 0 or L+1):
+        N has shape (num_slices, R)
+        delta_N[i,:] = alpha[i] * N[i,:]
+        
+    For 3D factor (level 1 to L):
+        N has shape (K, R1, R2)
+        delta_N[i,:,:] = alpha[i] * N[i,:,:]
+    
+    Parameters:
+    -----------
+    N : ndarray
+        Dense factor matrix, shape (num_slices, R) for 2D or (K, R1, R2) for 3D
+    Z : ndarray
+        Sparse tensor values, shape (nnz,)
+    inds : ndarray
+        Index tuples for Z, shape (nnz, num_modes)
+    level : int
+        Mode along which slices are defined
+    L : int
+        Number of inner levels
+    
+    Returns:
+    --------
+    delta_N : ndarray
+        Scaled factor, same shape as N
+    delta_Z : ndarray
+        Scaled sparse tensor values, shape (nnz,)
+    """
+    num_slices = N.shape[0]
+    
+    # Compute ||N[i]||^2_F for each slice
+    if level == 0 or level == L + 1:
+        # 2D case: N has shape (num_slices, R)
+        if np.issubdtype(N.dtype, np.complexfloating):
+            N_norms_sq = np.sum(np.abs(N)**2, axis=1)
+        else:
+            N_norms_sq = np.sum(N**2, axis=1)
+    else:
+        # 3D case: N has shape (K, R1, R2)
+        if np.issubdtype(N.dtype, np.complexfloating):
+            N_norms_sq = np.sum(np.abs(N)**2, axis=(1, 2))
+        else:
+            N_norms_sq = np.sum(N**2, axis=(1, 2))
+    
+    # Compute ||Z[slice i]||^2 for each slice
+    Z_norms_sq = compute_slice_norms_sq(Z, inds, level)
+    
+    # Pad if some slices have no entries in Z
+    if len(Z_norms_sq) < num_slices:
+        Z_norms_sq = np.pad(Z_norms_sq, (0, num_slices - len(Z_norms_sq)))
+    
+    # alpha[i] = ||N[i]||^2_F / ||Z[slice i]||^2
+    alpha = np.zeros(num_slices, dtype=np.float64)
+    nonzero_mask = Z_norms_sq > 0
+    alpha[nonzero_mask] = N_norms_sq[nonzero_mask] / Z_norms_sq[nonzero_mask]
+    
+    # Scale factor slices
+    if level == 0 or level == L + 1:
+        # 2D: alpha[:, None] broadcasts (num_slices,) to (num_slices, 1)
+        delta_N = alpha[:, None] * N
+    else:
+        # 3D: alpha[:, None, None] broadcasts (K,) to (K, 1, 1)
+        delta_N = alpha[:, None, None] * N
+    
+    # Scale sparse entries
+    mode_indices = inds[:, level]
+    delta_Z = alpha[mode_indices] * Z
+    
+    return delta_N, delta_Z
+
 
 
 def get_fullmat_from_sparse(T, inds, I, J):
@@ -1194,68 +1293,94 @@ def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tenso
     return tensor_lst
 
 
-def butterfly_ADF(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu, no_batch_lr=False):
+def butterfly_ADF(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu=0, no_batch_lr=False):
     print('------------------Butterfly ADF----------------------------')
-    nnz = len(inds)
-    print("Number of observed entries:",nnz)
-    iters = 0
     errors = []
+    inds,  T_sparse = sort_inds_and_T(inds,  T_sparse, 0)
+    unqs, starts, counts = np.unique(inds[:, 0], return_index = True, return_counts = True)
+    inds_tups = [inds[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
+    nnz = len(T_sparse)
+    print("Number of observed entries:",nnz)
+    recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,0, L)
+    grad_tensor = T_sparse - recon
+
     s = time.time()
-    error = compute_error_sparse(T_sparse, inds, tensor_lst, L,no_batch_lr=no_batch_lr)
+    error = compute_error_sparse(T_sparse, inds, tensor_lst, L)
     errors.append(error)
-    #test_error = la.norm(T_test - compute_sparse_butterfly(inds_test,tensor_lst,L)) / la.norm(T_test)
-    test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L,no_batch_lr=no_batch_lr)
+    test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L)
     e = time.time()
     print('Time in error computation',e-s)
     print('Relative error in observed entries: ',error)
-    print('Relative test error after', iters + 1,' iterations: ',test_error)
-    print('-----------------')
-    #side = 0
-    side = 1
 
-    #for level in range(L + 1):
-    for level in range(L + 1, 0, -1):
-        print('At level: ',level)
-        Q, R_matrices = qr_factor_flat(tensor_lst[level],  L, level, side)
-        tensor_lst[level] = Q
-        #tensor_lst[level + 1] = absorb_R(R_matrices, tensor_lst[level + 1], L, level, side)
-        tensor_lst[level - 1] = absorb_R(R_matrices, tensor_lst[level - 1], L, level, side)
+
+    for iters in range(num_iters):
+        print("Iteration", iters+1,"/",num_iters)
+        #Since we are going to start from 0 , we will orthogonalize all factors wrt first, i.e., absorb all weight into first
+        tensor_lst = orthogonalize_sweep(tensor_lst, L, 0)
+        grad_time = 0
+        recon_time = 0
+        factor_time = 0
+        s = time.time()
+        for level in range(len(tensor_lst)):
+            s = time.time()
+            print('At level: ',level)
+            s_grad = time.time()
+            N = tensor_train_gradient(grad_tensor, inds, tensor_lst, level, L, regu) # N as used in paper algo 5
+            e_grad = time.time()
+            
+            grad_time += e_grad - s_grad
+
+            new_lst = [t.copy() for t in tensor_lst] 
+            new_lst[level] = N.copy()
+
+            s_recon_time = time.time()
+            Z = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,new_lst,0, L) # paper algo 5
+            e_recon_time = time.time()
+
+            recon_time += e_recon_time - s_recon_time
+
+            delta_fac, delta_grad = Update_fac_and_grad(N, Z, inds, level, L)
+            # alpha = la.norm(N)**2 / (la.norm(Z))**2 # We may need to change alpha for each slice in the level
+            # delta_fac = alpha*N
+            # delta_grad = alpha*Z    
+
+            tensor_lst[level] += delta_fac
+            grad_tensor -= delta_grad
+
+
+            # Now we have to orthogonalize wrt the next level
+            # This only requires one orthogonalization
+            s_factor = time.time()
+            if level != len(tensor_lst)-1:
+                output, R_fac = qr_factor_flat(tensor_lst[level], L, level, 0)
+                tensor_lst[level] = output
+                tensor_lst[level+1] = absorb_R(R_fac, tensor_lst[level+1], L, level, 0)
+            e_factor = time.time()
+
+            factor_time += e_factor - s_factor
+        
+        e = time.time()
+            
+
+        print('Time in gradient computation', grad_time)
+        print('Time in reconstruction computation', recon_time)
+        print('Time in QR factor computation', factor_time)
+        print('Time in iteration', iters+1 ,':', e-s)
         s= time.time()
-
-        error = compute_error_sparse(T_sparse, inds, tensor_lst, L,no_batch_lr=no_batch_lr)
+        # Same arguments here as above
+        error = compute_error_sparse(T_sparse, inds, tensor_lst, L)
         errors.append(error)
-        #test_error = la.norm(T_test - compute_sparse_butterfly(inds_test,tensor_lst,L)) / la.norm(T_test)
-        test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L,no_batch_lr=no_batch_lr)
+        test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L)
         e = time.time()
         print('Time in error computation',e-s)
         print('Relative error in observed entries: ',error)
         print('Relative test error after', iters + 1,' iterations: ',test_error)
         print('-----------------')
-    # for iters in range(num_iters):
-    #     s = time.time()
-    #     print("Iteration", iters+1,"/",num_iters)
-        
-
-
-    #     e = time.time()
-    #     print('Time in iteration', iters+1 ,':', e-s)
-        
-    #     s= time.time()
-    #     #error = la.norm(T_sparse - compute_sparse_butterfly(inds, tensor_lst, L)) / la.norm(T_sparse)
-    #     error = compute_error_sparse(T_sparse, inds, tensor_lst, L,no_batch_lr=no_batch_lr)
-    #     errors.append(error)
-    #     #test_error = la.norm(T_test - compute_sparse_butterfly(inds_test,tensor_lst,L)) / la.norm(T_test)
-    #     test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L,no_batch_lr=no_batch_lr)
-    #     e = time.time()
-    #     print('Time in error computation',e-s)
-    #     print('Relative error in observed entries: ',error)
-    #     print('Relative test error after', iters + 1,' iterations: ',test_error)
-    #     print('-----------------')
-    #     if iters + 1 >= 5 and error >= 3:
-    #         print('Overfitting or error not reducing, stopping iterations')
-    #         break
-    #     if error < tol:
-    #         print('converged')
-    #         break
+        if iters + 1 >= 5 and error >= 3:
+            print('Overfitting or error not reducing, stopping iterations')
+            break
+        if error < tol:
+            print('converged')
+            break
     
     return tensor_lst
