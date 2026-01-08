@@ -295,7 +295,7 @@ lc = int(L/2)
 I = c*2**L
 J = c*2**L
 
-alg='ALS'
+alg='ADAM' # 'ADF', 'ALS', 'ADAM'
 regu=1e-5
 r_LR=13
 start=20 # defining QTT ranks

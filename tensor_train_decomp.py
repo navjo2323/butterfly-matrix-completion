@@ -4,7 +4,7 @@ import tensorly as tl
 from tensorly.decomposition import tensor_train as matrix_product_state
 import numpy.linalg as la
 import time
-from dependencies.butterfly_tensor_train import reconstruct_sparse_butterfly, tensor_train_ALS_solve, compute_sparse_butterfly, tensor_train_gradient, compute_error_sparse
+from dependencies.butterfly_tensor_train import reconstruct_sparse_butterfly, tensor_train_ALS_solve, tensor_train_gradient, compute_error_sparse
 import scipy.linalg as sla
 
 import numpy as np
@@ -234,6 +234,113 @@ def tt_svd(T, tol):
     return cores, ranks
 
 
+def compute_slice_norms_sq(T, inds, mode):
+    """
+    Compute the norm of each slice of a sparse tensor along a given mode.
+    
+    Parameters:
+    -----------
+    T : ndarray
+        Sparse tensor values, shape (nnz,)
+    inds : ndarray
+        Index tuples, shape (nnz, num_modes)
+    mode : int
+        Mode along which to compute slice norms
+    
+    Returns:
+    --------
+    norms : ndarray
+        norms[i] = ||T[mode == i]||^2_2
+        Array of length max(inds[:, mode]) + 1
+    """
+    mode_indices = inds[:, mode]
+    
+    # Sum of squares for each slice using bincount
+    if np.issubdtype(T.dtype, np.complexfloating):
+        sum_sq = np.bincount(mode_indices, weights=np.abs(T)**2)
+    else:
+        sum_sq = np.bincount(mode_indices, weights=T**2)
+    
+    #norms = np.sqrt(sum_sq)
+    return sum_sq
+
+
+def Update_fac_and_grad(N, Z, inds, level, L):
+    """
+    Compute scaled updates for factor N and sparse tensor Z.
+    
+    Scaling is done slice-wise:
+        alpha[i] = ||N[i]||^2_F / ||Z[slice i]||^2
+        
+    For 2D factor (level 0 or L+1):
+        N has shape (num_slices, R)
+        delta_N[i,:] = alpha[i] * N[i,:]
+        
+    For 3D factor (level 1 to L):
+        N has shape (K, R1, R2)
+        delta_N[i,:,:] = alpha[i] * N[i,:,:]
+    
+    Parameters:
+    -----------
+    N : ndarray
+        Dense factor matrix, shape (num_slices, R) for 2D or (K, R1, R2) for 3D
+    Z : ndarray
+        Sparse tensor values, shape (nnz,)
+    inds : ndarray
+        Index tuples for Z, shape (nnz, num_modes)
+    level : int
+        Mode along which slices are defined
+    L : int
+        Number of inner levels
+    
+    Returns:
+    --------
+    delta_N : ndarray
+        Scaled factor, same shape as N
+    delta_Z : ndarray
+        Scaled sparse tensor values, shape (nnz,)
+    """
+    num_slices = N.shape[0]
+    
+    # Compute ||N[i]||^2_F for each slice
+    if level == 0 or level == L + 1:
+        # 2D case: N has shape (num_slices, R)
+        if np.issubdtype(N.dtype, np.complexfloating):
+            N_norms_sq = np.sum(np.abs(N)**2, axis=1)
+        else:
+            N_norms_sq = np.sum(N**2, axis=1)
+    else:
+        # 3D case: N has shape (K, R1, R2)
+        if np.issubdtype(N.dtype, np.complexfloating):
+            N_norms_sq = np.sum(np.abs(N)**2, axis=(1, 2))
+        else:
+            N_norms_sq = np.sum(N**2, axis=(1, 2))
+    
+    # Compute ||Z[slice i]||^2 for each slice
+    Z_norms_sq = compute_slice_norms_sq(Z, inds, level)
+    
+    # Pad if some slices have no entries in Z
+    if len(Z_norms_sq) < num_slices:
+        Z_norms_sq = np.pad(Z_norms_sq, (0, num_slices - len(Z_norms_sq)))
+    
+    # alpha[i] = ||N[i]||^2_F / ||Z[slice i]||^2
+    alpha = np.zeros(num_slices, dtype=np.float64)
+    nonzero_mask = Z_norms_sq > 0
+    alpha[nonzero_mask] = N_norms_sq[nonzero_mask] / Z_norms_sq[nonzero_mask]
+    
+    # Scale factor slices
+    if level == 0 or level == L + 1:
+        # 2D: alpha[:, None] broadcasts (num_slices,) to (num_slices, 1)
+        delta_N = alpha[:, None] * N
+    else:
+        # 3D: alpha[:, None, None] broadcasts (K,) to (K, 1, 1)
+        delta_N = alpha[:, None, None] * N
+    
+    # Scale sparse entries
+    mode_indices = inds[:, level]
+    delta_Z = alpha[mode_indices] * Z
+    
+    return delta_N, delta_Z
 
 def qr_factor_tensor_train(factor, outer, side):
     shape = list(factor.shape)
@@ -292,65 +399,81 @@ def orthogonalize_all(tensor_lst, wrt):
 def ADAM_tensor_train(T_sparse, inds, T_test, inds_test, L, tensor_lst, 
     regu=1e-9, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=100, tol=1e-6):
     """
-    ADAM optimizer for unconstrained optimization.
-    
+    Memory-optimized ADAM optimizer.
     """
-    m = [np.zeros_like(x) for x in tensor_lst]          # First moment vector (mean of gradients)
-    v = [np.zeros_like(x) for x in tensor_lst]          # Second moment vector (uncentered variance of gradients)
+    m = [np.zeros_like(x) for x in tensor_lst]
+    v = [np.zeros_like(x) for x in tensor_lst]
     errors = []
 
     inds, T_sparse = sort_inds_and_T(inds, T_sparse, 0)
-    unqs, starts, counts = np.unique(inds[:, 0], return_index = True, return_counts = True)
+    unqs, starts, counts = np.unique(inds[:, 0], return_index=True, return_counts=True)
     inds_tups = [inds[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
     nnz = len(T_sparse)
+    
+    # Precompute bias correction denominators
+    bias1 = 1.0
+    bias2 = 1.0
 
     for t in range(1, max_iter + 1):
-        recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,0, L-1)
-        tensor = T_sparse - recon
+        recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups, tensor_lst, 0, L-1)
+        residual = T_sparse - recon
+        del recon  # Free immediately
 
         s = time.time()
-        grads = []
         
+        # Update bias correction terms
+        bias1 *= beta1
+        bias2 *= beta2
+        lr_t = lr * np.sqrt(1 - bias2) / (1 - bias1)  # Bias-corrected learning rate
+        
+        max_grad_norm = 0.0
+        
+        # Process ONE level at a time to reduce peak memory
         for level in range(len(tensor_lst)):
-            grads.append(tensor_train_gradient(tensor, inds, tensor_lst, level, L-1, regu))
-        # Update biased first moment estimate
-        m = [beta1*x + (1 - beta1)*g for x, g in zip(m, grads)]
+            # Compute gradient for this level only
+            g = tensor_train_gradient(residual, inds, tensor_lst, level, L-1, regu)
+            
+            # Track gradient norm for convergence
+            g_norm = np.linalg.norm(g)
+            max_grad_norm = max(max_grad_norm, g_norm)
+            
+            # Update moments IN-PLACE
+            m[level] *= beta1
+            m[level] += (1 - beta1) * g
+            
+            v[level] *= beta2
+            np.add(v[level], (1 - beta2) * (g * np.conj(g)).real, out=v[level])  # For complex
+            # Or for real: v[level] += (1 - beta2) * (g ** 2)
+            
+            # Update parameters IN-PLACE (no m_hat, v_hat arrays)
+            tensor_lst[level] += lr_t * m[level] / (np.sqrt(v[level]) + epsilon)
+            
+            del g  # Free gradient immediately
         
-        # Update biased second raw moment estimate
-        v = [beta2*x + (1 - beta2)* (g**2) for x, g in zip(v,grads)]
-
+        del residual  # Free residual
         
-        # Correct bias in first and second moments
-        m_hat = [x / (1 - beta1 ** t) for x in m]
-        v_hat = [x / (1 - beta2 ** t) for x in v]
-        
-        # Update parameters
-        tensor_lst = [x + lr * x1 / (np.sqrt(x2) + epsilon) for x, x1, x2 in zip(tensor_lst, m_hat, v_hat)]
-
         e = time.time()
-        grad_time = e-s
+        grad_time = e - s
         print('Time in gradient computation', grad_time)
 
-        
-
-        s = time.time()
-        # Check convergence based on gradient norm
-        if max([la.norm(g) for g in grads]) < tol:
+        # Check convergence
+        if max_grad_norm < tol:
             print(f"Converged in {t} iterations.")
-            return tensor_lst
-        e= time.time()
+            return tensor_lst, errors
 
-        s1= time.time()
+        s1 = time.time()
         error = compute_error_sparse(T_sparse, inds, tensor_lst, L-1)
         errors.append(error)
         test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L-1)
         e1 = time.time()
-        print('Time in error computation',e1-s1)
-        print('Total time in iteration without error computation', t, e-s + grad_time)
-        print('Relative error in observed entries: ',error)
-        print('Relative test error after', t,' iterations: ',test_error)
+        
+        print('Time in error computation', e1 - s1)
+        print('Total time in iteration', t, ':', e - s + grad_time)
+        print('Relative error in observed entries:', error)
+        print('Relative test error after', t, 'iterations:', test_error)
+    
     print("Maximum iterations reached without convergence.")
-    return tensor_lst
+    return tensor_lst, errors
 
 
 def tensor_train_completion(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu):
@@ -380,9 +503,9 @@ def tensor_train_completion(T_sparse, inds, T_test, inds_test, L, tensor_lst, nu
         
         s= time.time()
         # Same arguments here as above
-        error = la.norm(T_sparse - compute_sparse_butterfly(inds, tensor_lst, L -1)) / la.norm(T_sparse)
+        error = compute_error_sparse(T_sparse, inds, tensor_lst, L-1)
         errors.append(error)
-        test_error = la.norm(T_test - compute_sparse_butterfly(inds_test,tensor_lst,L - 1)) / la.norm(T_sparse)
+        test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L-1)
         e = time.time()
         print('Time in error computation',e-s)
         print('Relative error in observed entries: ',error)
@@ -436,11 +559,13 @@ def tensor_train_ADF(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters
 
             recon_time += e_recon_time - s_recon_time
 
-            alpha = la.norm(N)**2 / (la.norm(Z))**2 # We may need to change alpha for each slice in the level
-            #For now lets test it like this
+            delta_fac, delta_grad = Update_fac_and_grad(N, Z, inds, level, L-1)
+            # alpha = la.norm(N)**2 / (la.norm(Z))**2 # We may need to change alpha for each slice in the level
+            # delta_fac = alpha*N
+            # delta_grad = alpha*Z    
 
-            tensor_lst[level] += alpha*N
-            grad_tensor -= alpha*Z
+            tensor_lst[level] += delta_fac
+            grad_tensor -= delta_grad
 
             # Now we have to orthogonalize wrt the next level
             # This only requires one orthogonalization

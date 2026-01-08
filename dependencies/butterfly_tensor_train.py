@@ -4,7 +4,8 @@ import numpy.linalg as la
 import time
 import scipy.linalg as sla
 import logging
-
+import psutil
+# do pip install psutil if not already installed
 
 def gen_tensor_train_list(L, c, ranks, rng, real=1):
     if(real==1):
@@ -719,117 +720,264 @@ def orthogonalize_sweep(factors, L, wrt_side):
     return new_factors
 
 
-def reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L):
-
-    num_tuples = len(inds_tups)
-    if np.issubdtype(tensor_lst[0][0].dtype, np.floating):
-        Xs = np.zeros(nnz, dtype= np.float64)
-    else:
-        Xs = np.zeros(nnz, dtype= np.complex128)
-
-
-    # A conjugate needs to be done based on level    
+def reconstruct_sparse_single(inds, tensor_lst, level, L):
+    """Reconstruct values for entries sharing a single unique index at 'level'."""
+    
     if level == 0:
-        # Pre-compute indices for the last tensor
-        H = [tensor_lst[L+1][inds[:, L+1]] for inds in inds_tups]
-
-        # Iterate in reverse order and apply einsum
+        H = tensor_lst[L+1][inds[:, L+1]].copy()
         for i in range(L, 0, -1):
-            H = [np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H[j],optimize=True) for j, inds in enumerate(inds_tups)]
-
-        for i in range(len(counts)):
-            Xs[starts[i]: starts[i] + counts[i]] = np.einsum('iz,z->i',H[i],tensor_lst[level][unqs[i]],optimize=True)
-
+            H = np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H, optimize=True)
+        # Final contraction with level-0 core (which is 1D: shape (r,))
+        # But we need the unique index value - this is handled in batched version
+        return H  # Return H, contraction done outside
+    
     elif level == L + 1:
-        # Pre-compute indices for the first tensor
-        H = [tensor_lst[0][inds[:, 0]] for inds in inds_tups]
-
-        # Iterate forwards and apply einsum
+        H = tensor_lst[0][inds[:, 0]].copy()
         for i in range(1, L + 1):
-            H = [np.einsum('ir,irz->iz', H[j], tensor_lst[i][inds[:, i]],optimize=True) for j, inds in enumerate(inds_tups)]
-
-        for i in range(len(counts)):
-            Xs[starts[i]: starts[i] + counts[i]] = np.einsum('iz,z->i',H[i],tensor_lst[level][unqs[i]],optimize=True)
-
+            H = np.einsum('ir,irz->iz', H, tensor_lst[i][inds[:, i]], optimize=True)
+        return H
+    
     else:
-        # Handle the case where level is between 0 and L+1
-        H1 = [tensor_lst[0][inds[:, 0]] for inds in inds_tups]
-        H2 = [tensor_lst[L+1][inds[:, L+1]] for inds in inds_tups]
-
-        # Compute H1 by iterating forward up to 'level'
+        H1 = tensor_lst[0][inds[:, 0]].copy()
         for i in range(1, level):
-            H1 = [np.einsum('ir,irz->iz', H1[j], tensor_lst[i][inds[:, i]],optimize=True) for j, inds in enumerate(inds_tups)]
-        # Compute H2 by iterating backward from L down to 'level'
-        for i in range(L, level, -1):
-            H2 = [np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H2[j],optimize=True) for j, inds in enumerate(inds_tups)]
-
-        # Combine H1 and H2
-        for i in range(len(counts)):
-            Xs[starts[i]: starts[i] + counts[i]] = np.einsum('ir,iz,rz->i',H1[i],H2[i],tensor_lst[level][unqs[i],:,:],optimize=True)
+            H1 = np.einsum('ir,irz->iz', H1, tensor_lst[i][inds[:, i]], optimize=True)
         
+        H2 = tensor_lst[L+1][inds[:, L+1]].copy()
+        for i in range(L, level, -1):
+            H2 = np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H2, optimize=True)
+        
+        return H1, H2
+
+
+def estimate_reconstruct_memory(counts, tensor_lst, level, L):
+    """Estimate memory needed for H matrices in reconstruction."""
+    total_entries = np.sum(counts)
+    itemsize = np.dtype(tensor_lst[0].dtype).itemsize
+    
+    if level == 0:
+        # H shape: (n_entries, r) where r is rank at level 1
+        r = tensor_lst[1].shape[0] if len(tensor_lst[1].shape) > 1 else tensor_lst[1].shape[-1]
+        return total_entries * r * itemsize
+    elif level == L + 1:
+        r = tensor_lst[L].shape[-1] if len(tensor_lst[L].shape) > 2 else tensor_lst[L].shape[-1]
+        return total_entries * r * itemsize
+    else:
+        # Need H1 and H2 simultaneously
+        r1 = tensor_lst[level].shape[1] if len(tensor_lst[level].shape) > 2 else tensor_lst[level].shape[0]
+        r2 = tensor_lst[level].shape[-1] if len(tensor_lst[level].shape) > 2 else tensor_lst[level].shape[-1]
+        return total_entries * (r1 + r2) * itemsize
+
+
+def reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups, tensor_lst, level, L, memory_fraction=0.5):
+    """Memory-aware sparse reconstruction with automatic batching."""
+    
+    num_tuples = len(inds_tups)
+    
+    if np.issubdtype(tensor_lst[0].dtype, np.floating):
+        Xs = np.zeros(nnz, dtype=np.float64)
+    else:
+        Xs = np.zeros(nnz, dtype=np.complex128)
+    
+    # Estimate memory
+    estimated_mem = estimate_reconstruct_memory(counts, tensor_lst, level, L)
+    available_mem = get_available_memory(memory_fraction)
+    
+    if estimated_mem < available_mem:
+        # Original fast path
+        Xs = _reconstruct_sparse_butterfly_full(unqs, starts, counts, nnz, inds_tups, tensor_lst, level, L)
+    else:
+        # Batched path
+        batch_size = _compute_reconstruct_batch_size(counts, tensor_lst, level, L, memory_fraction)
+        print(f"  [Reconstruct] Memory limit: batching {num_tuples} unique indices in batches of {batch_size}")
+        
+        for batch_start in range(0, num_tuples, batch_size):
+            batch_end = min(batch_start + batch_size, num_tuples)
+            
+            if level == 0:
+                # Compute H for this batch
+                for idx in range(batch_start, batch_end):
+                    inds = inds_tups[idx]
+                    H = tensor_lst[L+1][inds[:, L+1]].copy()
+                    for i in range(L, 0, -1):
+                        H = np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H, optimize=True)
+                    Xs[starts[idx]: starts[idx] + counts[idx]] = np.einsum('iz,z->i', H, tensor_lst[level][unqs[idx]], optimize=True)
+                    del H
+            
+            elif level == L + 1:
+                for idx in range(batch_start, batch_end):
+                    inds = inds_tups[idx]
+                    H = tensor_lst[0][inds[:, 0]].copy()
+                    for i in range(1, L + 1):
+                        H = np.einsum('ir,irz->iz', H, tensor_lst[i][inds[:, i]], optimize=True)
+                    Xs[starts[idx]: starts[idx] + counts[idx]] = np.einsum('iz,z->i', H, tensor_lst[level][unqs[idx]], optimize=True)
+                    del H
+            
+            else:
+                for idx in range(batch_start, batch_end):
+                    inds = inds_tups[idx]
+                    
+                    H1 = tensor_lst[0][inds[:, 0]].copy()
+                    for i in range(1, level):
+                        H1 = np.einsum('ir,irz->iz', H1, tensor_lst[i][inds[:, i]], optimize=True)
+                    
+                    H2 = tensor_lst[L+1][inds[:, L+1]].copy()
+                    for i in range(L, level, -1):
+                        H2 = np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H2, optimize=True)
+                    
+                    Xs[starts[idx]: starts[idx] + counts[idx]] = np.einsum(
+                        'ir,iz,rz->i', H1, H2, tensor_lst[level][unqs[idx], :, :], optimize=True
+                    )
+                    del H1, H2
+    
     return Xs
 
 
-def compute_error_sparse(T, inds, tensor_lst, L, no_batch_lr=False, returnmore=None):
+def _reconstruct_sparse_butterfly_full(unqs, starts, counts, nnz, inds_tups, tensor_lst, level, L):
+    """Original non-batched reconstruction (when memory is sufficient)."""
+    
+    if np.issubdtype(tensor_lst[0].dtype, np.floating):
+        Xs = np.zeros(nnz, dtype=np.float64)
+    else:
+        Xs = np.zeros(nnz, dtype=np.complex128)
+    
+    if level == 0:
+        H = [tensor_lst[L+1][inds[:, L+1]] for inds in inds_tups]
+        for i in range(L, 0, -1):
+            H = [np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H[j], optimize=True) 
+                 for j, inds in enumerate(inds_tups)]
+        for i in range(len(counts)):
+            Xs[starts[i]: starts[i] + counts[i]] = np.einsum('iz,z->i', H[i], tensor_lst[level][unqs[i]], optimize=True)
+    
+    elif level == L + 1:
+        H = [tensor_lst[0][inds[:, 0]] for inds in inds_tups]
+        for i in range(1, L + 1):
+            H = [np.einsum('ir,irz->iz', H[j], tensor_lst[i][inds[:, i]], optimize=True) 
+                 for j, inds in enumerate(inds_tups)]
+        for i in range(len(counts)):
+            Xs[starts[i]: starts[i] + counts[i]] = np.einsum('iz,z->i', H[i], tensor_lst[level][unqs[i]], optimize=True)
+    
+    else:
+        H1 = [tensor_lst[0][inds[:, 0]] for inds in inds_tups]
+        H2 = [tensor_lst[L+1][inds[:, L+1]] for inds in inds_tups]
+        
+        for i in range(1, level):
+            H1 = [np.einsum('ir,irz->iz', H1[j], tensor_lst[i][inds[:, i]], optimize=True) 
+                  for j, inds in enumerate(inds_tups)]
+        for i in range(L, level, -1):
+            H2 = [np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H2[j], optimize=True) 
+                  for j, inds in enumerate(inds_tups)]
+        
+        for i in range(len(counts)):
+            Xs[starts[i]: starts[i] + counts[i]] = np.einsum(
+                'ir,iz,rz->i', H1[i], H2[i], tensor_lst[level][unqs[i], :, :], optimize=True
+            )
+    
+    return Xs
 
+
+def _compute_reconstruct_batch_size(counts, tensor_lst, level, L, memory_fraction=0.5):
+    """Compute batch size for reconstruction based on available memory."""
+    available = get_available_memory(memory_fraction)
+    itemsize = np.dtype(tensor_lst[0].dtype).itemsize
+    
+    avg_count = np.mean(counts)
+    
+    if level == 0:
+        r = tensor_lst[1].shape[-1] if len(tensor_lst[1].shape) > 1 else tensor_lst[0].shape[-1]
+        mem_per_unique = avg_count * r * itemsize
+    elif level == L + 1:
+        r = tensor_lst[L].shape[-1]
+        mem_per_unique = avg_count * r * itemsize
+    else:
+        r1 = tensor_lst[level].shape[1] if len(tensor_lst[level].shape) > 2 else tensor_lst[level].shape[0]
+        r2 = tensor_lst[level].shape[-1]
+        mem_per_unique = avg_count * (r1 + r2) * itemsize
+    
+    # Safety factor for intermediates
+    mem_per_unique *= 3
+    
+    batch_size = max(1, int(available / mem_per_unique))
+    return min(batch_size, len(counts))
+
+
+def compute_error_sparse(T, inds, tensor_lst, L, no_batch_lr=False, memory_fraction=0.5, returnmore=None):
+    """Memory-aware error computation with automatic batching."""
+    
     level = 0
-    s = time.time()
-
     sorted_tuples, T_new = sort_inds_and_T(inds, T, level)
-
-    e = time.time()
-
-
-    #print('Time in sorting',e-s)
-
     nnz = len(sorted_tuples)
-
-    s = time.time()
-
-
-    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index = True, return_counts = True)
-
-
+    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index=True, return_counts=True)
+    
     if no_batch_lr:
-        # This is only for matrix completion when rank is very large
-        # and we have a lot of nonzeros
+        # Original no_batch_lr path - for matrix completion when rank is very large
         recon = np.zeros_like(T_new)
 
         for i in range(len(unqs)):
-
             inds_for_row = sorted_tuples[starts[i]: starts[i] + counts[i]]
-            H1 = tensor_lst[-1][inds_for_row[:,L+1]]      # N x R 
-            
-            H2 = tensor_lst[0][inds_for_row[:,0]]         # N x R
+            H1 = tensor_lst[-1][inds_for_row[:, L+1]]      # N x R 
+            H2 = tensor_lst[0][inds_for_row[:, 0]]         # N x R
 
-            recon[starts[i]: starts[i] + counts[i] ] = np.einsum('ir,ir->i',H1,H2,optimize=True)
-
-
-    else:
-
-        inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
-
-
-        recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L)
+            recon[starts[i]: starts[i] + counts[i]] = np.einsum('ir,ir->i', H1, H2, optimize=True)
         
-    if(returnmore is not None):
-        return la.norm(T_new - recon)/la.norm(T_new), sorted_tuples, recon
-    else: 
-        return la.norm(T_new - recon)/la.norm(T_new)
+        if returnmore is not None:
+            return la.norm(T_new - recon) / la.norm(T_new), sorted_tuples, recon
+        else:
+            return la.norm(T_new - recon) / la.norm(T_new)
+    
+    # Memory-aware path
+    estimated_mem = estimate_reconstruct_memory(counts, tensor_lst, level, L)
+    available_mem = get_available_memory(memory_fraction)
+    
+    if estimated_mem < available_mem:
+        # Original fast path
+        inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
+        recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups, tensor_lst, level, L, memory_fraction)
+    else:
+        # Batched path - compute reconstruction incrementally
+        print(f"  [Error] Memory limit: using batched reconstruction")
+        recon = np.zeros_like(T_new)
+        
+        batch_size = _compute_reconstruct_batch_size(counts, tensor_lst, level, L, memory_fraction)
+        num_unqs = len(unqs)
+        
+        for batch_start in range(0, num_unqs, batch_size):
+            batch_end = min(batch_start + batch_size, num_unqs)
+            
+            for idx in range(batch_start, batch_end):
+                inds_for_row = sorted_tuples[starts[idx]: starts[idx] + counts[idx]]
+                
+                # Compute reconstruction for this unique index
+                H = tensor_lst[L+1][inds_for_row[:, L+1]].copy()
+                for i in range(L, 0, -1):
+                    H = np.einsum('irz,iz->ir', tensor_lst[i][inds_for_row[:, i]], H, optimize=True)
+                
+                recon[starts[idx]: starts[idx] + counts[idx]] = np.einsum(
+                    'iz,z->i', H, tensor_lst[level][unqs[idx]], optimize=True
+                )
+                del H
+    
+    if returnmore is not None:
+        return la.norm(T_new - recon) / la.norm(T_new), sorted_tuples, recon
+    else:
+        return la.norm(T_new - recon) / la.norm(T_new)
 
 
-
-def reconstruct_sparse_from_tensorlist(inds, tensor_lst, L):
-
+def reconstruct_sparse_from_tensorlist(inds, tensor_lst, L, memory_fraction=0.5):
+    """Memory-aware reconstruction from tensor list."""
+    
     level = 0
     sorted_indices = np.argsort(inds[:, level])
     sorted_tuples = inds[sorted_indices]
     nnz = len(sorted_tuples)
-    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index = True, return_counts = True)
+    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index=True, return_counts=True)
     inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
-    recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L)
-
+    
+    recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups, tensor_lst, level, L, memory_fraction)
+    
     return sorted_tuples, recon
+
+
+
 
 
 def compute_slice_norms_sq(T, inds, mode):
@@ -971,12 +1119,12 @@ def get_masked_fullmat_from_sparse(T, inds, I, J):
 
 
 
-def compute_sparse_butterfly(inds, tensor_lst, L):
-    vecs = tensor_lst[0][inds[:, 0]]
-    for i in range(1,L+1):
-        vecs = np.einsum('ir,irz->iz',vecs,tensor_lst[i][inds[:,i]],optimize=True)
+# def compute_sparse_butterfly(inds, tensor_lst, L):
+#     vecs = tensor_lst[0][inds[:, 0]]
+#     for i in range(1,L+1):
+#         vecs = np.einsum('ir,irz->iz',vecs,tensor_lst[i][inds[:,i]],optimize=True)
 
-    return np.einsum('iz,iz->i',vecs,tensor_lst[L+1][inds[:,L+1]],optimize=True)
+#     return np.einsum('iz,iz->i',vecs,tensor_lst[L+1][inds[:,L+1]],optimize=True)
 
 
 
@@ -1035,177 +1183,303 @@ the remaining part will proceed as first list proceeded.
 if it was vice versa then the remaining part will proceed as second list proceeded.
 '''
 
-def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu, no_batch_lr=False):
 
-    if level ==0 or level == L + 1:
+
+def estimate_H_memory(nnz, row_shape, dtype):
+    """Estimate memory needed for H matrices in bytes."""
+    itemsize = np.dtype(dtype).itemsize
+    return nnz * row_shape * itemsize
+
+def get_available_memory(fraction=0.7):
+    """Get available memory in bytes, using only a fraction to be safe."""
+    return int(psutil.virtual_memory().available * fraction)
+
+def compute_batch_size(counts, row_shape, dtype, memory_fraction=0.5):
+    """
+    Compute how many unique indices we can process at once.
+    Returns number of unique indices per batch.
+    """
+    available = get_available_memory(memory_fraction)
+    itemsize = np.dtype(dtype).itemsize
+    
+    # Estimate memory per unique index (average entries per unique × row_shape)
+    avg_count = np.mean(counts)
+    mem_per_unique = avg_count * row_shape * itemsize
+    
+    # Account for multiple arrays (H, LHS, RHS, intermediates) - use 4x safety factor
+    mem_per_unique *= 4
+    
+    batch_size = max(1, int(available / mem_per_unique))
+    return min(batch_size, len(counts))  # Don't exceed total unique indices
+
+
+def multiply_mats_single(inds, tensor_lst, level, L, row_shape):
+    """Compute H matrix for a single group of indices sharing the same level index."""
+    
+    if level == 0:
+        H = tensor_lst[L+1][inds[:, L+1]].copy()
+        for i in range(L, 0, -1):
+            H = np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H, optimize=True)
+    
+    elif level == L + 1:
+        H = tensor_lst[0][inds[:, 0]].copy()
+        for i in range(1, L + 1):
+            H = np.einsum('ir,irz->iz', H, tensor_lst[i][inds[:, i]], optimize=True)
+    
+    else:
+        H1 = tensor_lst[0][inds[:, 0]].copy()
+        for i in range(1, level):
+            H1 = np.einsum('ir,irz->iz', H1, tensor_lst[i][inds[:, i]], optimize=True)
+        
+        H2 = tensor_lst[L+1][inds[:, L+1]].copy()
+        for i in range(L, level, -1):
+            H2 = np.einsum('irz,iz->ir', tensor_lst[i][inds[:, i]], H2, optimize=True)
+        
+        H = np.einsum('ir,iz->irz', H1, H2, optimize=True).reshape(len(inds), row_shape)
+        del H1, H2
+    
+    return H
+
+
+def multiply_mats_batched(inds_tups, tensor_lst, level, L, row_shape, batch_indices):
+    """Compute H matrices for a batch of unique indices."""
+    Hs = []
+    for i in batch_indices:
+        H = multiply_mats_single(inds_tups[i], tensor_lst, level, L, row_shape)
+        Hs.append(H)
+    return Hs
+
+
+def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu, no_batch_lr=False, memory_fraction=0.5):
+    """Memory-aware ALS solve with automatic batching."""
+    
+    if level == 0 or level == L + 1:
         row_shape = tensor_lst[level].shape[-1]
     else:
         row_shape = np.prod(tensor_lst[level].shape[1:])
 
-
-    I = regu*np.eye(row_shape)
-
-    s = time.time()
+    I = regu * np.eye(row_shape, dtype=tensor_lst[level].dtype)
 
     sorted_tuples, T_new = sort_inds_and_T(inds, T, level)
-
-    e = time.time()
-
-
-    #print('Time in sorting',e-s)
-
-
-    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index = True, return_counts = True)
-
-    inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
-
+    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index=True, return_counts=True)
+    
+    num_unqs = len(unqs)
+    total_nnz = len(sorted_tuples)
 
     if no_batch_lr:
+        # Original no_batch_lr path - process one row at a time
         # This is only for matrix completion when rank is very large
         # and we have a lot of nonzeros
         for i in range(len(unqs)):
-            LHS = np.zeros((row_shape,row_shape),dtype = T_new.dtype)
-            RHS = np.zeros((row_shape),dtype = T_new.dtype)
+            LHS = np.zeros((row_shape, row_shape), dtype=T_new.dtype)
+            RHS = np.zeros((row_shape), dtype=T_new.dtype)
 
             inds_for_row = sorted_tuples[starts[i]: starts[i] + counts[i]]
             if level == 0:
-                H = tensor_lst[-1][inds_for_row[:,L+1]]        # N x R
+                H = tensor_lst[-1][inds_for_row[:, L+1]]        # N x R
             else:
-                H = tensor_lst[0][inds_for_row[:,0]]         # N x R
+                H = tensor_lst[0][inds_for_row[:, 0]]           # N x R
 
-            LHS = np.dot(H.conj().T,H) + I                                           # R x R
-            RHS = np.dot(T_new[starts[i]: starts[i] + counts[i] ], H.conj())        # R
+            LHS = np.dot(H.conj().T, H) + I                     # R x R
+            RHS = np.dot(T_new[starts[i]: starts[i] + counts[i]], H.conj())  # R
 
-            tensor_lst[level][unqs[i]] = la.solve(LHS,RHS)
-
-
-    else:
-
-        # Further can be optimized based on sorted indices
-        # For now lets keep it this way
-        Hs = multiply_mats(inds_tups, tensor_lst, level, L, row_shape) 
-
-
-
-        RHS = np.array([np.dot(T_new[starts[i]: starts[i] + counts[i] ], Hs[i].conj()) for i in range(len(unqs))])
-
-
-        LHS = np.array([np.dot(H.conj().T ,H) + I for H in Hs])
-
-        result = la.solve(LHS , RHS)
-
-        if level ==0 or level == L + 1:
-            tensor_lst[level][unqs] = result 
-        else:
-            tensor_lst[level][unqs] = result.reshape( (len(unqs),) + tensor_lst[level].shape[1:])
+            tensor_lst[level][unqs[i]] = la.solve(LHS, RHS)
         
+        return tensor_lst
+
+    # Memory-aware path
+    inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
+    
+    # Estimate memory and decide on batching
+    estimated_mem = estimate_H_memory(total_nnz, row_shape, tensor_lst[level].dtype)
+    available_mem = get_available_memory(memory_fraction)
+    
+    if estimated_mem < available_mem:
+        # Original approach - process all at once
+        Hs = multiply_mats(inds_tups, tensor_lst, level, L, row_shape)
+        
+        RHS = np.array([np.dot(T_new[starts[i]: starts[i] + counts[i]], Hs[i].conj()) 
+                        for i in range(num_unqs)])
+        LHS = np.array([np.dot(H.conj().T, H) + I for H in Hs])
+        
+        result = la.solve(LHS, RHS)
+        
+        if level == 0 or level == L + 1:
+            tensor_lst[level][unqs] = result
+        else:
+            tensor_lst[level][unqs] = result.reshape((num_unqs,) + tensor_lst[level].shape[1:])
+    
+    else:
+        # Batched approach
+        batch_size = compute_batch_size(counts, row_shape, tensor_lst[level].dtype, memory_fraction)
+        print(f"  [ALS] Memory limit: batching {num_unqs} unique indices in batches of {batch_size}")
+        
+        for batch_start in range(0, num_unqs, batch_size):
+            batch_end = min(batch_start + batch_size, num_unqs)
+            batch_indices = list(range(batch_start, batch_end))
+            batch_unqs = unqs[batch_start:batch_end]
+            
+            # Compute H for this batch
+            Hs = multiply_mats_batched(inds_tups, tensor_lst, level, L, row_shape, batch_indices)
+            
+            # Solve for this batch
+            RHS = np.array([np.dot(T_new[starts[i]: starts[i] + counts[i]], Hs[j].conj()) 
+                            for j, i in enumerate(batch_indices)])
+            LHS = np.array([np.dot(H.conj().T, H) + I for H in Hs])
+            
+            result = la.solve(LHS, RHS)
+            
+            if level == 0 or level == L + 1:
+                tensor_lst[level][batch_unqs] = result
+            else:
+                tensor_lst[level][batch_unqs] = result.reshape((len(batch_indices),) + tensor_lst[level].shape[1:])
+            
+            # Free memory
+            del Hs, RHS, LHS, result
+    
     return tensor_lst
 
 
-def tensor_train_gradient(tensor, inds, tensor_lst, level, L, regu):
-    if level ==0 or level == L + 1:
+def tensor_train_gradient(tensor, inds, tensor_lst, level, L, regu, memory_fraction=0.5):
+    """Memory-aware gradient computation with automatic batching."""
+    
+    if level == 0 or level == L + 1:
         row_shape = tensor_lst[level].shape[-1]
     else:
         row_shape = np.prod(tensor_lst[level].shape[1:])
 
-    s = time.time()
-
     sorted_tuples, tensor_new = sort_inds_and_T(inds, tensor, level)
-
-    e = time.time()
-
-
-    #print('Time in sorting',e-s)
-
-    nnz = len(sorted_tuples)
-
-    s = time.time()
-
-
-    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index = True, return_counts = True)
-
+    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index=True, return_counts=True)
     inds_tups = [sorted_tuples[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
-
-
-    #recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,level, L)
-
-
-    #tensor = T_new - recon
-
-    Hs = multiply_mats(inds_tups, tensor_lst, level, L, row_shape) 
-
-    neg_grad = np.array([np.dot(tensor_new[starts[i]: starts[i] + counts[i] ], Hs[i].conj()) for i in range(len(unqs))])
-
-    neg_grad = neg_grad.reshape( (len(unqs),) + tensor_lst[level].shape[1:])
-
-    neg_grad -= regu*tensor_lst[level]
-
+    
+    num_unqs = len(unqs)
+    total_nnz = len(sorted_tuples)
+    
+    # Pre-allocate gradient array
+    grad_shape = (num_unqs,) + tensor_lst[level].shape[1:]
+    neg_grad = np.zeros(grad_shape, dtype=tensor_lst[level].dtype)
+    
+    # Estimate memory and decide on batching
+    estimated_mem = estimate_H_memory(total_nnz, row_shape, tensor_lst[level].dtype)
+    available_mem = get_available_memory(memory_fraction)
+    
+    if estimated_mem < available_mem:
+        # Original approach - process all at once
+        Hs = multiply_mats(inds_tups, tensor_lst, level, L, row_shape)
+        
+        neg_grad_flat = np.array([np.dot(tensor_new[starts[i]: starts[i] + counts[i]], Hs[i].conj()) 
+                                   for i in range(num_unqs)])
+        neg_grad = neg_grad_flat.reshape(grad_shape)
+    
+    else:
+        # Batched approach
+        batch_size = compute_batch_size(counts, row_shape, tensor_lst[level].dtype, memory_fraction)
+        print(f"  [Gradient] Memory limit: batching {num_unqs} unique indices in batches of {batch_size}")
+        
+        for batch_start in range(0, num_unqs, batch_size):
+            batch_end = min(batch_start + batch_size, num_unqs)
+            batch_indices = list(range(batch_start, batch_end))
+            
+            # Compute H for this batch
+            Hs = multiply_mats_batched(inds_tups, tensor_lst, level, L, row_shape, batch_indices)
+            
+            # Compute gradient contributions for this batch
+            for j, i in enumerate(batch_indices):
+                grad_contrib = np.dot(tensor_new[starts[i]: starts[i] + counts[i]], Hs[j].conj())
+                if level == 0 or level == L + 1:
+                    neg_grad[i] = grad_contrib
+                else:
+                    neg_grad[i] = grad_contrib.reshape(tensor_lst[level].shape[1:])
+            
+            # Free memory
+            del Hs
+    
+    neg_grad -= regu * tensor_lst[level]
     return neg_grad
 
 
 
-def ADAM_tensor_train(T_sparse, inds, T_test, inds_test, L, tensor_lst, 
+def ADAM_butterfly(T_sparse, inds, T_test, inds_test, L, tensor_lst, 
     regu=1e-9, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=100, tol=1e-6):
     """
-    ADAM optimizer for unconstrained optimization.
-    
+    Memory-optimized ADAM optimizer for butterfly factorization.
     """
-    m = [np.zeros_like(x) for x in tensor_lst]          # First moment vector (mean of gradients)
-    v = [np.zeros_like(x) for x in tensor_lst]          # Second moment vector (uncentered variance of gradients)
+    m = [np.zeros_like(x) for x in tensor_lst]
+    v = [np.zeros_like(x) for x in tensor_lst]
     errors = []
 
     inds, T_sparse = sort_inds_and_T(inds, T_sparse, 0)
-    unqs, starts, counts = np.unique(inds[:, 0], return_index = True, return_counts = True)
+    unqs, starts, counts = np.unique(inds[:, 0], return_index=True, return_counts=True)
     inds_tups = [inds[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
     nnz = len(T_sparse)
+    
+    # Precompute bias correction terms (updated iteratively)
+    bias1 = 1.0
+    bias2 = 1.0
 
     for t in range(1, max_iter + 1):
-        recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,0, L)
-        tensor = T_sparse - recon
+        recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups, tensor_lst, 0, L)
+        residual = T_sparse - recon
+        del recon  # Free immediately
 
         s = time.time()
-        grads = []
         
+        # Update bias correction terms
+        bias1 *= beta1
+        bias2 *= beta2
+        lr_t = lr * np.sqrt(1 - bias2) / (1 - bias1)  # Bias-corrected learning rate
+        
+        max_grad_norm = 0.0
+        
+        # Process ONE level at a time to reduce peak memory
         for level in range(len(tensor_lst)):
-            grads.append(tensor_train_gradient(tensor, inds, tensor_lst, level, L, regu))
-        # Update biased first moment estimate
-        m = [beta1*x + (1 - beta1)*g for x, g in zip(m, grads)]
+            # Compute gradient for this level only
+            g = tensor_train_gradient(residual, inds, tensor_lst, level, L, regu)
+            
+            # Track gradient norm for convergence
+            g_norm = np.linalg.norm(g)
+            max_grad_norm = max(max_grad_norm, g_norm)
+            
+            # Update moments IN-PLACE
+            m[level] *= beta1
+            m[level] += (1 - beta1) * g
+            
+            v[level] *= beta2
+            # Handle complex case properly
+            if np.iscomplexobj(g):
+                v[level] += (1 - beta2) * (g * np.conj(g)).real
+            else:
+                v[level] += (1 - beta2) * (g ** 2)
+            
+            # Update parameters IN-PLACE (bias correction folded into lr_t)
+            tensor_lst[level] += lr_t * m[level] / (np.sqrt(v[level]) + epsilon)
+            
+            del g  # Free gradient immediately
         
-        # Update biased second raw moment estimate
-        v = [beta2*x + (1 - beta2)* (g**2) for x, g in zip(v,grads)]
-
+        del residual  # Free residual
         
-        # Correct bias in first and second moments
-        m_hat = [x / (1 - beta1 ** t) for x in m]
-        v_hat = [x / (1 - beta2 ** t) for x in v]
-        
-        # Update parameters
-        tensor_lst = [x + lr * x1 / (np.sqrt(x2) + epsilon) for x, x1, x2 in zip(tensor_lst, m_hat, v_hat)]
-
         e = time.time()
-        print('Time in gradient computation', e-s)
         grad_time = e - s
+        print('Time in gradient computation', grad_time)
 
-        
-        s = time.time()
-        # Check convergence based on gradient norm
-        if max([la.norm(g) for g in grads]) < tol:
+        # Check convergence
+        if max_grad_norm < tol:
             print(f"Converged in {t} iterations.")
-            return tensor_lst
-        e = time.time()
+            return tensor_lst, errors
 
-
-        s1= time.time()
+        s1 = time.time()
         error = compute_error_sparse(T_sparse, inds, tensor_lst, L)
         errors.append(error)
         test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L)
         e1 = time.time()
-        print('Time in error computation',e1-s1)
-        print('Total time in iteration', t, e-s + grad_time)
-        print('Relative error in observed entries: ',error)
-        print('Relative test error after', t,' iterations: ',test_error)
+        
+        print('Time in error computation', e1 - s1)
+        print('Total time in iteration', t, ':', grad_time)
+        print('Relative error in observed entries:', error)
+        print('Relative test error after', t, 'iterations:', test_error)
+    
     print("Maximum iterations reached without convergence.")
-    return tensor_lst
+    return tensor_lst, errors
 
 
 
