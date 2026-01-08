@@ -30,12 +30,12 @@ cp -- "$rootdir/$exe" $pyfile
 
 
 # ── 1. declare the values you want ────────────────────────────────────────────
-alg=0
+alg='ADF'
 regu=1e-10
-
+get_true_rank=0
 lowrank_only=0
-r_BF=7 # defining BF ranks
-r_LR=10*r_BF # defining rank for the initial low-rank completion
+r_BF=11 # defining BF ranks
+r_LR=11 # defining rank for the initial low-rank completion
 nnz_bf='6*r_BF*I*np.log2(I)'
 
 # lowrank_only=1
@@ -43,10 +43,10 @@ nnz_bf='6*r_BF*I*np.log2(I)'
 # nnz_bf='10*r_LR*I'
 
 tol=1e-3
-L=8
+L=10
 c=4
 kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
-real=0 # 1: real-valued kernels, 0: complex-valued kernels
+real=1 # 1: real-valued kernels, 0: complex-valued kernels
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -80,6 +80,7 @@ fi
 update_py_var nnz_bf   "$nnz_bf"
 update_py_var r_LR   "$r_LR"
 update_py_var lowrank_only   "$lowrank_only"
+update_py_var get_true_rank   "$get_true_rank"
 update_py_var tol "$tol"
 update_py_var L      "$L"
 update_py_var c "$c"

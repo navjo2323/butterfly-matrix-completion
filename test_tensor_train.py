@@ -469,8 +469,12 @@ if(lowrank_only==0):
     elif alg=='ALS':
         tensor_lst = butterfly_tensor_train_completer(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu=regu)
     elif alg=='ADAM':   
-        tensor_lst = ADAM_tensor_train_completion(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, 
-            regu=regu, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=num_iters, tol=tol)
+        # tensor_lst = ADAM_tensor_train_completion(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, regu=regu, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=num_iters, tol=tol)
+        tensor_lst = ADAM_tensor_train(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, regu =regu, max_iter=num_iters, tol=tol)
+
+
+
+
     e= time.time()
     print('--time for butterfly completion',e-s)
 

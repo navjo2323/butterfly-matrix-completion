@@ -33,13 +33,13 @@ cp -- "$rootdir/$exe" $pyfile
 alg='ADAM'
 regu=1e-9
 r_LR=13
-start=40 # defining QTT ranks
+start=380 # defining QTT ranks
 nnz_qtt='3.25*start*I'
 tol=1e-3
-L=10
+L=8
 c=4
-kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
-real=1 # 1: real-valued kernels, 0: complex-valued kernels
+kernel=3 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
+real=0 # 1: real-valued kernels, 0: complex-valued kernels
 
 # ─────────────────────────────────────────────────────────────────────────────
 
