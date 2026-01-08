@@ -293,7 +293,7 @@ L = 8
 
 #Should be even, becomes too slow after 10 for this version of code
 
-alg='ALS'
+alg='ALS' # 'ADF', 'ALS', 'ADAM'
 tol=1e-3
 regu=1e-10
 ppw=10
@@ -465,7 +465,7 @@ if(lowrank_only==0):
 
     s= time.time()
     if alg=='ADF':
-        print("TODO: add ADF")
+        tensor_lst = butterfly_ADF(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu=0)
     elif alg=='ALS':
         tensor_lst = butterfly_tensor_train_completer(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu=regu)
     elif alg=='ADAM':   

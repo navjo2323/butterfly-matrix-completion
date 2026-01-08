@@ -1322,7 +1322,6 @@ def butterfly_ADF(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, t
         factor_time = 0
         s = time.time()
         for level in range(len(tensor_lst)):
-            s = time.time()
             print('At level: ',level)
             s_grad = time.time()
             N = tensor_train_gradient(grad_tensor, inds, tensor_lst, level, L, regu) # N as used in paper algo 5
