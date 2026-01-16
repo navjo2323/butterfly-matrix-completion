@@ -1260,6 +1260,7 @@ def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu, no_batch_lr=Fals
 
     I = regu * np.eye(row_shape, dtype=tensor_lst[level].dtype)
 
+
     sorted_tuples, T_new = sort_inds_and_T(inds, T, level)
     unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index=True, return_counts=True)
     
@@ -1281,6 +1282,8 @@ def tensor_train_ALS_solve(T, inds, tensor_lst, level, L, regu, no_batch_lr=Fals
                 H = tensor_lst[0][inds_for_row[:, 0]]           # N x R
 
             LHS = np.dot(H.conj().T, H) + I                     # R x R
+
+            
             RHS = np.dot(T_new[starts[i]: starts[i] + counts[i]], H.conj())  # R
 
             tensor_lst[level][unqs[i]] = la.solve(LHS, RHS)

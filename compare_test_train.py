@@ -276,8 +276,8 @@ kernel_funcs = [None,  # index 0 not used
 
 rng = np.random.RandomState(np.random.randint(1000))
 
-kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
-real=1 # 1: real-valued kernels, 0: complex-valued kernels
+kernel=3 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
+real=0 # 1: real-valued kernels, 0: complex-valued kernels
 get_true_rank=1
 # lowrank_only= 1
 errorcheck_lr2bf=1
@@ -298,9 +298,9 @@ J = c*2**L
 alg='ADAM' # 'ADF', 'ALS', 'ADAM'
 regu=1e-5
 r_LR=13
-start=20 # defining QTT ranks
+start=380 # defining QTT ranks
 ranks_lr = [r_LR] # 
-nnz_qtt=3*start*I #3rN
+nnz_qtt=start*I #3rN
 if isinstance(nnz_qtt, str):
     nnz_qtt = eval(nnz_qtt)
 else:
@@ -393,7 +393,7 @@ print('--time to generate inputs for matrix completion',e-s)
 
 
 s = time.time()
-tensor_lst_lr = butterfly_tensor_train_completer(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4)
+tensor_lst_lr = butterfly_tensor_train_completer(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4, no_batch_lr=True)
 left_mat = tensor_lst_lr[0]
 right_mat = tensor_lst_lr[1].conj()
 e = time.time()
