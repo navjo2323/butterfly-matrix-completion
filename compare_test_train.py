@@ -444,22 +444,6 @@ print('--time for conversion of indices for tensor train completion',e-s)
 
 
 
-
-# num_iters = 20
-# s = time.time()
-# tensor_lst = tensor_train_completion(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = 1e-10)
-# e = time.time()
-
-# print('--time for tensor train completion',e-s)
-
-
-
-# num_iters = 20
-# s = time.time()
-# tensor_lst = tensor_train_ADF(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = 0)
-# e = time.time()
-
-
 num_iters = 20
 s = time.time()
 if alg=='ADF':
