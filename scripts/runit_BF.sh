@@ -18,7 +18,7 @@ cd $rootdir
 mkdir -p $outputdir
 cd $outputdir
 
-exe="test_tensor_train.py"                               # ← your original file
+exe="run_butterfly_completion.py"                               # ← your original file
 ts=$(date '+%Y%m%d_%H%M%S')                  # e.g. 20250518_2147 23
 
 # split name and extension so the stamp goes before the dot
