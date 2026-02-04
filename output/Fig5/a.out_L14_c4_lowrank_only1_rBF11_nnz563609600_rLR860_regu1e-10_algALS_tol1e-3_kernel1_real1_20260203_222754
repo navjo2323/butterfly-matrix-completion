@@ -1,0 +1,20 @@
+ranks for butterfly completion are  [4, 8, 9, 9, 9, 9, 9, 9]
+Testing real-valued Green function
+matrix shape is 65536
+nnz is 563609600
+ratio of nonzeros is 0.1312255859375
+--time in creating indices: 686.0126903057098
+Generating Greens kernel with ppw 10
+Number per dim is 256
+Generating Greens kernel with ppw 10
+Number per dim is 256
+--time in entry generation: 1535.8664243221283
+--matrix completion rank: [860]
+--time in index conversion: 2800.5552167892456
+--time to generate inputs for matrix completion 0.6814072132110596
+------------------matrix completion----------------------------
+Number of observed entries: 563609600
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 27890.88800096512

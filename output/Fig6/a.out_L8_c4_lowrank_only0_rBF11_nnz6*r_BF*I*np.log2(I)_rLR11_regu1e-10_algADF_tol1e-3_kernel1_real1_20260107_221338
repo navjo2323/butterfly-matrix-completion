@@ -1,0 +1,187 @@
+ranks for butterfly completion are  [4, 8, 11, 11, 11]
+Testing real-valued Green function
+matrix shape is 1024
+nnz is 675840
+ratio of nonzeros is 0.64453125
+--time in creating indices: 0.6861326694488525
+Generating Greens kernel with ppw 10
+Number per dim is 32
+Generating Greens kernel with ppw 10
+Number per dim is 32
+--time in entry generation: 0.8101813793182373
+--matrix completion rank: [11]
+--time in index conversion: 1.9757065773010254
+--time to generate inputs for matrix completion 0.0001881122589111328
+------------------matrix completion----------------------------
+Number of observed entries: 675840
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 0.7566843032836914
+Time in error computation 0.23728108406066895
+Relative error in observed entries:  0.7581684052185088
+Relative test error after 1  iterations:  0.765796096355453
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 0.3576071262359619
+Time in error computation 0.22200727462768555
+Relative error in observed entries:  0.4497380407307333
+Relative test error after 2  iterations:  0.4541898256046567
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 0.2201404571533203
+Time in error computation 0.22799396514892578
+Relative error in observed entries:  0.42263977590841156
+Relative test error after 3  iterations:  0.4270741767208813
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 0.22946882247924805
+Time in error computation 0.22848153114318848
+Relative error in observed entries:  0.4135244198172362
+Relative test error after 4  iterations:  0.41790854107519093
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 0.22010350227355957
+Time in error computation 0.22862696647644043
+Relative error in observed entries:  0.411059639587378
+Relative test error after 5  iterations:  0.41541990197456774
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 0.22662663459777832
+Time in error computation 0.22821688652038574
+Relative error in observed entries:  0.41038097919806926
+Relative test error after 6  iterations:  0.41473783364295097
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 0.22370648384094238
+Time in error computation 0.22797393798828125
+Relative error in observed entries:  0.41017291916074694
+Relative test error after 7  iterations:  0.4145319628501709
+-----------------
+Iteration 8 / 10
+At level:  0
+At level:  1
+Time in iteration 8 : 0.22263598442077637
+Time in error computation 0.22760796546936035
+Relative error in observed entries:  0.41010100145900213
+Relative test error after 8  iterations:  0.4144626766857372
+-----------------
+Iteration 9 / 10
+At level:  0
+At level:  1
+Time in iteration 9 : 0.2226123809814453
+Time in error computation 0.22814154624938965
+Relative error in observed entries:  0.4100729238985884
+Relative test error after 9  iterations:  0.4144364682864726
+-----------------
+Iteration 10 / 10
+At level:  0
+At level:  1
+Time in iteration 10 : 0.2166273593902588
+Time in error computation 0.2287001609802246
+Relative error in observed entries:  0.41006056049018336
+Relative test error after 10  iterations:  0.41442515485738357
+-----------------
+--time for matrix completion 5.181980133056641
+at level 8
+at level 7
+at level 6
+at level 5
+at level 4
+--time for low-rank to butterfly conversion 0.1530590057373047
+--time for converting lists 0.003973960876464844
+--time in index conversion 2 : 3.418642520904541
+------------------Butterfly ADF----------------------------
+Number of observed entries: 675840
+Time in error computation 1.676792860031128
+Relative error in observed entries:  0.41006056049018325
+Iteration 1 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in gradient computation 8.817752122879028
+Time in reconstruction computation 7.532393217086792
+Time in QR factor computation 0.012971639633178711
+Time in iteration 1 : 16.43402862548828
+Time in error computation 1.6809813976287842
+Relative error in observed entries:  0.021591253783730134
+Relative test error after 1  iterations:  0.02545426962669645
+-----------------
+Iteration 2 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in gradient computation 8.611918687820435
+Time in reconstruction computation 7.4757044315338135
+Time in QR factor computation 0.011553049087524414
+Time in iteration 2 : 16.163491010665894
+Time in error computation 1.6894044876098633
+Relative error in observed entries:  0.0036197604625668876
+Relative test error after 2  iterations:  0.005965088016183495
+-----------------
+Iteration 3 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in gradient computation 8.644699335098267
+Time in reconstruction computation 7.444445848464966
+Time in QR factor computation 0.011385679244995117
+Time in iteration 3 : 16.167189359664917
+Time in error computation 1.6520192623138428
+Relative error in observed entries:  0.0013942317736440018
+Relative test error after 3  iterations:  0.0034552079779567968
+-----------------
+Iteration 4 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in gradient computation 8.646733045578003
+Time in reconstruction computation 7.439779043197632
+Time in QR factor computation 0.011377334594726562
+Time in iteration 4 : 16.16468906402588
+Time in error computation 1.6478240489959717
+Relative error in observed entries:  0.0007753726040831507
+Relative test error after 4  iterations:  0.0028045798927275674
+-----------------
+converged
+--time for butterfly completion 74.21017932891846

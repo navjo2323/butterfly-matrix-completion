@@ -1,0 +1,121 @@
+Testing complex-valued 1D Radon transform
+Generating 1D Radon kernel
+Number per dim is 1024
+full mat generated of shape 1024
+--time in full mat generation: 0.03609800338745117
+time array loop 1.617438793182373
+total time converting indices 1.8397295475006104
+data type of M complex128
+--time in computing the TT rank of mat: 3.7850265502929688  rank: [1, 16, 64, 177, 385, 255, 64, 16, 4, 1]  with tolerence 0.001
+matrix shape is 1024
+nnz is 144400
+ratio of nonzeros is 0.1377105712890625
+--time in creating indices: 0.10437250137329102
+Generating 1D Radon kernel
+Number per dim is 1024
+Generating 1D Radon kernel
+Number per dim is 1024
+--time in entry generation: 0.1728503704071045
+--matrix completion rank: [13]
+--time in index conversion: 0.37145543098449707
+--time to generate inputs for matrix completion 0.0004749298095703125
+------------------matrix completion----------------------------
+Number of observed entries: 144400
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 0.2298135757446289
+Time in error computation 0.13160276412963867
+Relative error in observed entries:  0.9081887749069683
+Relative test error after 1  iterations:  1.0717752039666053
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 0.23142409324645996
+Time in error computation 0.1284782886505127
+Relative error in observed entries:  0.8722250910388477
+Relative test error after 2  iterations:  1.1043174709692716
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 0.23727130889892578
+Time in error computation 0.1286470890045166
+Relative error in observed entries:  0.856847700784893
+Relative test error after 3  iterations:  1.1193080732559488
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 0.24123382568359375
+Time in error computation 0.12735986709594727
+Relative error in observed entries:  0.8481591692032945
+Relative test error after 4  iterations:  1.1284072781556074
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 0.24034810066223145
+Time in error computation 0.12854361534118652
+Relative error in observed entries:  0.8425285191970798
+Relative test error after 5  iterations:  1.1347544104550809
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 0.23686575889587402
+Time in error computation 0.12745380401611328
+Relative error in observed entries:  0.8385764049829836
+Relative test error after 6  iterations:  1.1394324977221648
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 0.22512030601501465
+Time in error computation 0.0958719253540039
+Relative error in observed entries:  0.8356429157509887
+Relative test error after 7  iterations:  1.1430004494978114
+-----------------
+Iteration 8 / 10
+At level:  0
+At level:  1
+Time in iteration 8 : 0.18850946426391602
+Time in error computation 0.09535598754882812
+Relative error in observed entries:  0.8333625402716202
+Relative test error after 8  iterations:  1.145844930054149
+-----------------
+Iteration 9 / 10
+At level:  0
+At level:  1
+Time in iteration 9 : 0.1892702579498291
+Time in error computation 0.09649062156677246
+Relative error in observed entries:  0.8315280989096543
+Relative test error after 9  iterations:  1.148210208534275
+-----------------
+Iteration 10 / 10
+At level:  0
+At level:  1
+Time in iteration 10 : 0.1882648468017578
+Time in error computation 0.09723734855651855
+Relative error in observed entries:  0.8300185655349807
+Relative test error after 10  iterations:  1.150229017645802
+-----------------
+--time for matrix completion 3.3661680221557617
+tensor train ranks for completion are [1, 16, 64, 256, 386, 256, 64, 16, 4, 1]
+time array loop 1.6187527179718018
+total time converting indices 1.8716320991516113
+data type of M complex128
+Reconstruction Error: 0.42731461187309255
+--time for tensor train decomposition 8.560462713241577
+time array loop 0.2444007396697998
+time array loop 0.22151970863342285
+--time for conversion of indices for tensor train completion 0.6293635368347168
+------------------tensor train ADF completion----------------------------
+Number of observed entries: 144400
+Iteration 1 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4

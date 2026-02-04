@@ -1,0 +1,50 @@
+ranks for butterfly completion are  [4, 8, 10, 10, 10]
+Testing complex-valued 1D Radon transform
+matrix shape is 1024
+nnz is 716800
+ratio of nonzeros is 0.68359375
+--time in creating indices: 0.7597014904022217
+Generating 1D Radon kernel
+Number per dim is 1024
+Generating 1D Radon kernel
+Number per dim is 1024
+--time in entry generation: 0.8867533206939697
+--matrix completion rank: [10]
+--time in index conversion: 2.0884366035461426
+--time to generate inputs for matrix completion 0.00041794776916503906
+------------------matrix completion----------------------------
+Number of observed entries: 716800
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 1.1886329650878906
+Time in error computation 0.35564661026000977
+Relative error in observed entries:  0.9870600688612583
+Relative test error after 1  iterations:  0.9962725564303729
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 0.7752070426940918
+Time in error computation 0.34135961532592773
+Relative error in observed entries:  0.9800276096142176
+Relative test error after 2  iterations:  0.9928650120897079
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 0.7135541439056396
+Time in error computation 0.2606024742126465
+Relative error in observed entries:  0.9763643970982953
+Relative test error after 3  iterations:  0.9899720907010617
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 0.6408376693725586
+Time in error computation 0.35912036895751953
+Relative error in observed entries:  0.9744755585736422
+Relative test error after 4  iterations:  0.9882135586159208
+-----------------
+Iteration 5 / 10
+At level:  0

@@ -1,0 +1,26 @@
+ranks for butterfly completion are  [4, 8, 10, 10]
+Testing complex-valued 1D Radon transform
+matrix shape is 256
+nnz is 65536
+ratio of nonzeros is 1.0
+--time in creating indices: 1.9127328395843506
+Generating 1D Radon kernel
+Number per dim is 256
+Generating 1D Radon kernel
+Number per dim is 256
+--time in entry generation: 0.04291963577270508
+--matrix completion rank: [256]
+--time in index conversion: 0.1509866714477539
+--time to generate inputs for matrix completion 0.0017306804656982422
+------------------matrix completion----------------------------
+Number of observed entries: 65536
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 2.780517101287842
+Time in error computation 0.16205692291259766
+Relative error in observed entries:  0.00010754473463226416
+Relative test error after 1  iterations:  0.00010754473463226416
+-----------------
+converged
+--time for matrix completion 2.9427425861358643

@@ -1,0 +1,189 @@
+Testing complex-valued 1D Radon transform
+Generating 1D Radon kernel
+Number per dim is 1024
+full mat generated of shape 1024
+--time in full mat generation: 0.03649640083312988
+time array loop 1.620805263519287
+total time converting indices 1.8428082466125488
+data type of M complex128
+--time in computing the TT rank of mat: 4.180480241775513  rank: [1, 16, 64, 177, 385, 255, 64, 16, 4, 1]  with tolerence 0.001
+matrix shape is 1024
+nnz is 144400
+ratio of nonzeros is 0.1377105712890625
+--time in creating indices: 0.11433792114257812
+Generating 1D Radon kernel
+Number per dim is 1024
+Generating 1D Radon kernel
+Number per dim is 1024
+--time in entry generation: 0.1985950469970703
+--matrix completion rank: [13]
+--time in index conversion: 0.37348484992980957
+--time to generate inputs for matrix completion 0.0004456043243408203
+------------------matrix completion----------------------------
+Number of observed entries: 144400
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 0.24678659439086914
+Time in error computation 0.12394189834594727
+Relative error in observed entries:  0.9078933535179866
+Relative test error after 1  iterations:  1.0709743582696911
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 0.2524380683898926
+Time in error computation 0.10876727104187012
+Relative error in observed entries:  0.8718004972669513
+Relative test error after 2  iterations:  1.1042169818514893
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 0.20656585693359375
+Time in error computation 0.09103536605834961
+Relative error in observed entries:  0.8564463016492965
+Relative test error after 3  iterations:  1.1204221361880793
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 0.20506000518798828
+Time in error computation 0.09195280075073242
+Relative error in observed entries:  0.8477412010183852
+Relative test error after 4  iterations:  1.1301754003670572
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 0.20556187629699707
+Time in error computation 0.10075998306274414
+Relative error in observed entries:  0.8421057196060423
+Relative test error after 5  iterations:  1.1366296820706947
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 0.2530808448791504
+Time in error computation 0.12374186515808105
+Relative error in observed entries:  0.8381393231625249
+Relative test error after 6  iterations:  1.1412705774667349
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 0.2585172653198242
+Time in error computation 0.1109473705291748
+Relative error in observed entries:  0.8351804333144015
+Relative test error after 7  iterations:  1.1448514428610084
+-----------------
+Iteration 8 / 10
+At level:  0
+At level:  1
+Time in iteration 8 : 0.212310791015625
+Time in error computation 0.11972665786743164
+Relative error in observed entries:  0.8328926894257596
+Relative test error after 8  iterations:  1.1477499394278798
+-----------------
+Iteration 9 / 10
+At level:  0
+At level:  1
+Time in iteration 9 : 0.27426886558532715
+Time in error computation 0.11940693855285645
+Relative error in observed entries:  0.8310872765170613
+Relative test error after 9  iterations:  1.1501542200360209
+-----------------
+Iteration 10 / 10
+At level:  0
+At level:  1
+Time in iteration 10 : 0.2873494625091553
+Time in error computation 0.0909268856048584
+Relative error in observed entries:  0.8296402318491186
+Relative test error after 10  iterations:  1.1521711173958455
+-----------------
+--time for matrix completion 3.483818531036377
+tensor train ranks for completion are [1, 16, 64, 256, 386, 256, 64, 16, 4, 1]
+time array loop 1.6268880367279053
+total time converting indices 1.9134893417358398
+data type of M complex128
+Reconstruction Error: 0.4290649929677446
+--time for tensor train decomposition 11.567942380905151
+time array loop 0.26529383659362793
+time array loop 0.2328038215637207
+--time for conversion of indices for tensor train completion 0.6823697090148926
+------------------tensor train ADF completion----------------------------
+Number of observed entries: 144400
+Iteration 1 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 1657.7457072734833
+Time in reconstruction computation 828.7896337509155
+Time in QR factor computation 0.12478876113891602
+Time in iteration 1 : 2486.718760728836
+Time in error computation 184.52250385284424
+Relative error in observed entries:  0.1396985419784732
+Relative test error after 1  iterations:  1.08283490217384
+-----------------
+Iteration 2 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 1600.1888999938965
+Time in reconstruction computation 828.396742105484
+Time in QR factor computation 0.1300952434539795
+Time in iteration 2 : 2428.7719144821167
+Time in error computation 183.99090027809143
+Relative error in observed entries:  0.023007552113602853
+Relative test error after 2  iterations:  1.0881915892071492
+-----------------
+Iteration 3 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 1600.3950634002686
+Time in reconstruction computation 826.6109411716461
+Time in QR factor computation 0.1278233528137207
+Time in iteration 3 : 2427.188789367676
+Time in error computation 183.7473030090332
+Relative error in observed entries:  0.004306657448867194
+Relative test error after 3  iterations:  1.0890132973108808
+-----------------
+Iteration 4 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 1599.6918625831604
+Time in reconstruction computation 826.8128657341003
+Time in QR factor computation 0.11991524696350098
+Time in iteration 4 : 2426.67880320549
+Time in error computation 183.83963084220886
+Relative error in observed entries:  0.0008606269348063235
+Relative test error after 4  iterations:  1.0891529331679346
+-----------------
+converged
+--time for tensor train completion 10652.143624305725

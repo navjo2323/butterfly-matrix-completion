@@ -1,0 +1,215 @@
+Testing real-valued Green function
+Generating Greens kernel with ppw 10
+Number per dim is 32
+full mat generated of shape 1024
+--time in full mat generation: 0.057264089584350586
+time array loop 1.6073462963104248
+total time converting indices 1.8248114585876465
+data type of M float64
+--time in computing the TT rank of mat: 3.2407307624816895  rank: [1, 6, 17, 32, 29, 19, 13, 8, 3, 1]  with tolerence 0.001
+matrix shape is 1024
+nnz is 66560
+ratio of nonzeros is 0.0634765625
+--time in creating indices: 0.058931827545166016
+Generating Greens kernel with ppw 10
+Number per dim is 32
+Generating Greens kernel with ppw 10
+Number per dim is 32
+--time in entry generation: 0.08463215827941895
+--matrix completion rank: [13]
+--time in index conversion: 0.19629287719726562
+--time to generate inputs for matrix completion 0.0002231597900390625
+------------------matrix completion----------------------------
+Number of observed entries: 66560
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 0.0546875
+Time in error computation 0.12163257598876953
+Relative error in observed entries:  0.7899763622787958
+Relative test error after 1  iterations:  1.1654235206480397
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 0.056832313537597656
+Time in error computation 0.11975741386413574
+Relative error in observed entries:  0.668296729851884
+Relative test error after 2  iterations:  1.1418599037477062
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 0.05704450607299805
+Time in error computation 0.10663294792175293
+Relative error in observed entries:  0.5744562596841647
+Relative test error after 3  iterations:  1.0240079643165247
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 0.0448145866394043
+Time in error computation 0.0915837287902832
+Relative error in observed entries:  0.4886163444282619
+Relative test error after 4  iterations:  0.8806042873986862
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 0.04155564308166504
+Time in error computation 0.09075140953063965
+Relative error in observed entries:  0.4184958423911502
+Relative test error after 5  iterations:  0.7553537047021738
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 0.0416409969329834
+Time in error computation 0.09104800224304199
+Relative error in observed entries:  0.3666619662615379
+Relative test error after 6  iterations:  0.659788400290909
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 0.04155755043029785
+Time in error computation 0.09025740623474121
+Relative error in observed entries:  0.3305527975915699
+Relative test error after 7  iterations:  0.5926770766801859
+-----------------
+Iteration 8 / 10
+At level:  0
+At level:  1
+Time in iteration 8 : 0.041573524475097656
+Time in error computation 0.09041690826416016
+Relative error in observed entries:  0.3079602250708085
+Relative test error after 8  iterations:  0.5499354781065076
+-----------------
+Iteration 9 / 10
+At level:  0
+At level:  1
+Time in iteration 9 : 0.04154539108276367
+Time in error computation 0.09059023857116699
+Relative error in observed entries:  0.29451483592799244
+Relative test error after 9  iterations:  0.5241103696948983
+-----------------
+Iteration 10 / 10
+At level:  0
+At level:  1
+Time in iteration 10 : 0.04097414016723633
+Time in error computation 0.09115242958068848
+Relative error in observed entries:  0.286600724209437
+Relative test error after 10  iterations:  0.5090066687724152
+-----------------
+--time for matrix completion 1.4465818405151367
+tensor train ranks for completion are [1, 16, 22, 24, 26, 28, 30, 16, 4, 1]
+time array loop 1.6404566764831543
+total time converting indices 1.9004669189453125
+data type of M float64
+Reconstruction Error: 0.3527413136884817
+--time for tensor train decomposition 2.057957649230957
+time array loop 0.11209797859191895
+time array loop 0.11175107955932617
+--time for conversion of indices for tensor train completion 0.29441022872924805
+Time in gradient computation 2.9305784702301025
+Time in error computation 0.3670766353607178
+Total time in iteration without error computation 1 2.9306857585906982
+Relative error in observed entries:  0.9111797232647995
+Relative test error after 1  iterations:  0.9242785680734076
+Time in gradient computation 2.6286282539367676
+Time in error computation 0.36676764488220215
+Total time in iteration without error computation 2 2.628683567047119
+Relative error in observed entries:  0.8492407279682296
+Relative test error after 2  iterations:  0.8590723092094401
+Time in gradient computation 2.6573050022125244
+Time in error computation 0.35624027252197266
+Total time in iteration without error computation 3 2.6573450565338135
+Relative error in observed entries:  0.8216957634985294
+Relative test error after 3  iterations:  0.8296315098526738
+Time in gradient computation 2.6393558979034424
+Time in error computation 0.3620107173919678
+Total time in iteration without error computation 4 2.639413595199585
+Relative error in observed entries:  0.8011113576687652
+Relative test error after 4  iterations:  0.8092712145346597
+Time in gradient computation 2.6504769325256348
+Time in error computation 0.35435986518859863
+Total time in iteration without error computation 5 2.650533676147461
+Relative error in observed entries:  0.7783688161639086
+Relative test error after 5  iterations:  0.7877486527132102
+Time in gradient computation 2.6383681297302246
+Time in error computation 0.35573840141296387
+Total time in iteration without error computation 6 2.6384201049804688
+Relative error in observed entries:  0.7518276372912456
+Relative test error after 6  iterations:  0.7622090830349468
+Time in gradient computation 2.676103353500366
+Time in error computation 0.35521984100341797
+Total time in iteration without error computation 7 2.676149368286133
+Relative error in observed entries:  0.7255859653958274
+Relative test error after 7  iterations:  0.7361353349152094
+Time in gradient computation 2.635416269302368
+Time in error computation 0.3510293960571289
+Total time in iteration without error computation 8 2.6354503631591797
+Relative error in observed entries:  0.7052560571514823
+Relative test error after 8  iterations:  0.7150474975007319
+Time in gradient computation 2.616915464401245
+Time in error computation 0.3539760112762451
+Total time in iteration without error computation 9 2.6169488430023193
+Relative error in observed entries:  0.6899125843512453
+Relative test error after 9  iterations:  0.6986516262911686
+Time in gradient computation 2.645564079284668
+Time in error computation 0.3670341968536377
+Total time in iteration without error computation 10 2.64560604095459
+Relative error in observed entries:  0.670321057817027
+Relative test error after 10  iterations:  0.678490113751829
+Time in gradient computation 2.663327932357788
+Time in error computation 0.3551638126373291
+Total time in iteration without error computation 11 2.6633613109588623
+Relative error in observed entries:  0.6450085430023011
+Relative test error after 11  iterations:  0.6529401755838934
+Time in gradient computation 2.639810085296631
+Time in error computation 0.3512759208679199
+Total time in iteration without error computation 12 2.639843702316284
+Relative error in observed entries:  0.6216396107040988
+Relative test error after 12  iterations:  0.6292022609555116
+Time in gradient computation 2.6220686435699463
+Time in error computation 0.3603684902191162
+Total time in iteration without error computation 13 2.6221020221710205
+Relative error in observed entries:  0.6012659698363846
+Relative test error after 13  iterations:  0.6084179779148571
+Time in gradient computation 2.6519346237182617
+Time in error computation 0.35820484161376953
+Total time in iteration without error computation 14 2.6519687175750732
+Relative error in observed entries:  0.5799619619114676
+Relative test error after 14  iterations:  0.5869154916186999
+Time in gradient computation 2.6514196395874023
+Time in error computation 0.3585677146911621
+Total time in iteration without error computation 15 2.6514532566070557
+Relative error in observed entries:  0.5543987513293517
+Relative test error after 15  iterations:  0.561349378220952
+Time in gradient computation 2.653395652770996
+Time in error computation 0.3541228771209717
+Total time in iteration without error computation 16 2.653430223464966
+Relative error in observed entries:  0.5274641420243636
+Relative test error after 16  iterations:  0.5344324134546167
+Time in gradient computation 2.6573691368103027
+Time in error computation 0.35318732261657715
+Total time in iteration without error computation 17 2.6574037075042725
+Relative error in observed entries:  0.5013993207384491
+Relative test error after 17  iterations:  0.5083552053664344
+Time in gradient computation 2.6309142112731934
+Time in error computation 0.35289692878723145
+Total time in iteration without error computation 18 2.630948543548584
+Relative error in observed entries:  0.48067951507574047
+Relative test error after 18  iterations:  0.48693325961100065
+Time in gradient computation 2.631864070892334
+Time in error computation 0.35861778259277344
+Total time in iteration without error computation 19 2.631898880004883
+Relative error in observed entries:  0.4681806634624207
+Relative test error after 19  iterations:  0.4735334877487622
+Time in gradient computation 2.6586008071899414
+Time in error computation 0.36396241188049316
+Total time in iteration without error computation 20 2.658634901046753
+Relative error in observed entries:  0.4696666787493399
+Relative test error after 20  iterations:  0.4750360121103288
+Maximum iterations reached without convergence.
+--time for tensor train completion 64.17747926712036

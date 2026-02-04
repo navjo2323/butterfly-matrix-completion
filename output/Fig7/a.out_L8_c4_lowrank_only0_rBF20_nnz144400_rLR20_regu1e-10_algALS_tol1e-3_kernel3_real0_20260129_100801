@@ -1,0 +1,125 @@
+ranks for butterfly completion are  [4, 8, 16, 20, 20]
+Testing complex-valued 1D Radon transform
+matrix shape is 1024
+nnz is 144400
+ratio of nonzeros is 0.1377105712890625
+--time in creating indices: 0.07672572135925293
+Generating 1D Radon kernel
+Number per dim is 1024
+Generating 1D Radon kernel
+Number per dim is 1024
+--time in entry generation: 0.12386393547058105
+--matrix completion rank: [20]
+--time in index conversion: 0.36310529708862305
+--time to generate inputs for matrix completion 0.0006525516510009766
+------------------matrix completion----------------------------
+Number of observed entries: 144400
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 1.1292860507965088
+Time in error computation 0.13895726203918457
+Relative error in observed entries:  0.858501629942082
+Relative test error after 1  iterations:  1.1090345149595122
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 0.27467989921569824
+Time in error computation 0.13261651992797852
+Relative error in observed entries:  0.8035812834948246
+Relative test error after 2  iterations:  1.1624101533395195
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 0.27581334114074707
+Time in error computation 0.1328129768371582
+Relative error in observed entries:  0.7803130627464779
+Relative test error after 3  iterations:  1.189835763399425
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 0.27632880210876465
+Time in error computation 0.13364791870117188
+Relative error in observed entries:  0.7669705192119666
+Relative test error after 4  iterations:  1.2072627555037034
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 0.27764272689819336
+Time in error computation 0.1332097053527832
+Relative error in observed entries:  0.7581407515655122
+Relative test error after 5  iterations:  1.2196594989138398
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 0.23521995544433594
+Time in error computation 0.09880447387695312
+Relative error in observed entries:  0.7518507813041052
+Relative test error after 6  iterations:  1.2289640533864707
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 0.24199914932250977
+Time in error computation 0.09846615791320801
+Relative error in observed entries:  0.7471391858599848
+Relative test error after 7  iterations:  1.236209914592357
+-----------------
+Iteration 8 / 10
+At level:  0
+At level:  1
+Time in iteration 8 : 0.25333333015441895
+Time in error computation 0.09926295280456543
+Relative error in observed entries:  0.7434610360880419
+Relative test error after 8  iterations:  1.2420700449216406
+-----------------
+Iteration 9 / 10
+At level:  0
+At level:  1
+Time in iteration 9 : 0.25772714614868164
+Time in error computation 0.1005406379699707
+Relative error in observed entries:  0.7404992228646706
+Relative test error after 9  iterations:  1.246953690007417
+-----------------
+Iteration 10 / 10
+At level:  0
+At level:  1
+Time in iteration 10 : 0.2548515796661377
+Time in error computation 0.10025310516357422
+Relative error in observed entries:  0.7380627089770981
+Relative test error after 10  iterations:  1.251089239930325
+-----------------
+--time for matrix completion 4.646443843841553
+at level 8
+at level 7
+at level 6
+at level 5
+at level 4
+--time for low-rank to butterfly conversion 0.5221655368804932
+--time for converting lists 0.008366823196411133
+--time in index conversion 2 : 0.7199196815490723
+------------------butterfly/ tensor train completion----------------------------
+Number of observed entries: 144400
+Iteration 1 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in iteration 1 : 29.686360120773315
+Time in error computation 2.192697048187256
+Relative error in observed entries:  1.6775429021697622e-09
+Relative test error after 1  iterations:  384.4027914605901
+-----------------
+converged
+--time for butterfly completion 31.87932276725769

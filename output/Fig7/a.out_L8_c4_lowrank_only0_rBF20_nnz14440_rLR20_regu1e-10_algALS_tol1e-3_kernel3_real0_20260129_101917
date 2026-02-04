@@ -1,0 +1,62 @@
+ranks for butterfly completion are  [4, 8, 16, 20, 20]
+Testing complex-valued 1D Radon transform
+matrix shape is 1024
+nnz is 14440
+ratio of nonzeros is 0.01377105712890625
+--time in creating indices: 0.0069081783294677734
+Generating 1D Radon kernel
+Number per dim is 1024
+Generating 1D Radon kernel
+Number per dim is 1024
+--time in entry generation: 0.012284040451049805
+--matrix completion rank: [20]
+--time in index conversion: 0.0411226749420166
+--time to generate inputs for matrix completion 0.0007917881011962891
+------------------matrix completion----------------------------
+Number of observed entries: 14440
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 1.228485345840454
+Time in error computation 0.07604050636291504
+Relative error in observed entries:  0.006832510028172187
+Relative test error after 1  iterations:  2.031007974653825
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 0.13874101638793945
+Time in error computation 0.07532095909118652
+Relative error in observed entries:  0.0001806536767748274
+Relative test error after 2  iterations:  1.794194964319149
+-----------------
+converged
+--time for matrix completion 1.5188555717468262
+at level 8
+at level 7
+at level 6
+at level 5
+at level 4
+--time for low-rank to butterfly conversion 0.6113882064819336
+--time for converting lists 0.0064237117767333984
+--time in index conversion 2 : 0.07195401191711426
+------------------butterfly/ tensor train completion----------------------------
+Number of observed entries: 14440
+Iteration 1 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in iteration 1 : 13.873265266418457
+Time in error computation 0.6420996189117432
+Relative error in observed entries:  1.5991811983906615e-10
+Relative test error after 1  iterations:  1.1249817681986736
+-----------------
+converged
+--time for butterfly completion 14.515508890151978

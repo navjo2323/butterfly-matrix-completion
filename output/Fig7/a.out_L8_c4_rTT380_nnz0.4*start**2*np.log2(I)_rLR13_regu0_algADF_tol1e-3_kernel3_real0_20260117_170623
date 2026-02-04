@@ -1,0 +1,439 @@
+Testing complex-valued 1D Radon transform
+Generating 1D Radon kernel
+Number per dim is 1024
+full mat generated of shape 1024
+--time in full mat generation: 0.03582406044006348
+time array loop 1.617687463760376
+total time converting indices 1.8413200378417969
+data type of M complex128
+--time in computing the TT rank of mat: 4.720673322677612  rank: [1, 16, 64, 177, 385, 255, 64, 16, 4, 1]  with tolerence 0.001
+matrix shape is 1024
+nnz is 577600
+ratio of nonzeros is 0.55084228515625
+--time in creating indices: 0.5650801658630371
+Generating 1D Radon kernel
+Number per dim is 1024
+Generating 1D Radon kernel
+Number per dim is 1024
+--time in entry generation: 0.7389004230499268
+--matrix completion rank: [13]
+--time in index conversion: 1.6521060466766357
+--time to generate inputs for matrix completion 0.00047516822814941406
+------------------matrix completion----------------------------
+Number of observed entries: 577600
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 0.6413142681121826
+Time in error computation 0.30606555938720703
+Relative error in observed entries:  0.9782171019596497
+Relative test error after 1  iterations:  0.9990145558158464
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 0.6439175605773926
+Time in error computation 0.3070509433746338
+Relative error in observed entries:  0.96837282737229
+Relative test error after 2  iterations:  0.9979657580619412
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 0.6581976413726807
+Time in error computation 0.31482839584350586
+Relative error in observed entries:  0.963551019180206
+Relative test error after 3  iterations:  0.9963995197881068
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 0.6618762016296387
+Time in error computation 0.31412172317504883
+Relative error in observed entries:  0.9608342648587553
+Relative test error after 4  iterations:  0.9951464871160045
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 0.6996183395385742
+Time in error computation 0.31609272956848145
+Relative error in observed entries:  0.9591865997849222
+Relative test error after 5  iterations:  0.994266267158734
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 0.6889171600341797
+Time in error computation 0.31652140617370605
+Relative error in observed entries:  0.9581192780102401
+Relative test error after 6  iterations:  0.993673661043855
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 0.6788358688354492
+Time in error computation 0.31374454498291016
+Relative error in observed entries:  0.9573880329210084
+Relative test error after 7  iterations:  0.9932773248832794
+-----------------
+Iteration 8 / 10
+At level:  0
+At level:  1
+Time in iteration 8 : 0.6370561122894287
+Time in error computation 0.3144187927246094
+Relative error in observed entries:  0.956864247794639
+Relative test error after 8  iterations:  0.9930098074943434
+-----------------
+Iteration 9 / 10
+At level:  0
+At level:  1
+Time in iteration 9 : 0.6282813549041748
+Time in error computation 0.3182826042175293
+Relative error in observed entries:  0.956475535481132
+Relative test error after 9  iterations:  0.992826498691666
+-----------------
+Iteration 10 / 10
+At level:  0
+At level:  1
+Time in iteration 10 : 0.636894941329956
+Time in error computation 0.31333088874816895
+Relative error in observed entries:  0.95617867717895
+Relative test error after 10  iterations:  0.9926989154634699
+-----------------
+--time for matrix completion 9.710556983947754
+tensor train ranks for completion are [1, 16, 64, 256, 386, 256, 64, 16, 4, 1]
+time array loop 1.6095020771026611
+total time converting indices 1.8878583908081055
+data type of M complex128
+Reconstruction Error: 0.206060400390826
+--time for tensor train decomposition 8.58826732635498
+time array loop 0.8777625560760498
+time array loop 0.875004768371582
+--time for conversion of indices for tensor train completion 2.6489450931549072
+------------------tensor train ADF completion----------------------------
+Number of observed entries: 577600
+Iteration 1 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6512.392362117767
+Time in reconstruction computation 3367.4836552143097
+Time in QR factor computation 0.13589191436767578
+Time in iteration 1 : 9880.124135017395
+Time in error computation 745.5026822090149
+Relative error in observed entries:  0.343200353049606
+Relative test error after 1  iterations:  0.7024859521370374
+-----------------
+Iteration 2 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6472.591498851776
+Time in reconstruction computation 3308.86278629303
+Time in QR factor computation 0.1324615478515625
+Time in iteration 2 : 9781.691204071045
+Time in error computation 736.0012557506561
+Relative error in observed entries:  0.14641497618140675
+Relative test error after 2  iterations:  0.5322139445701809
+-----------------
+Iteration 3 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6505.279047727585
+Time in reconstruction computation 3578.4331879615784
+Time in QR factor computation 0.14131593704223633
+Time in iteration 3 : 10083.956214904785
+Time in error computation 746.1555597782135
+Relative error in observed entries:  0.08971136570471788
+Relative test error after 3  iterations:  0.47996013142946314
+-----------------
+Iteration 4 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6531.472225427628
+Time in reconstruction computation 3362.5556099414825
+Time in QR factor computation 0.14052557945251465
+Time in iteration 4 : 9894.27904343605
+Time in error computation 739.1095671653748
+Relative error in observed entries:  0.06418479395589273
+Relative test error after 4  iterations:  0.45753280308747435
+-----------------
+Iteration 5 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6491.98720741272
+Time in reconstruction computation 3330.1898097991943
+Time in QR factor computation 0.13335442543029785
+Time in iteration 5 : 9822.413427352905
+Time in error computation 735.8397786617279
+Relative error in observed entries:  0.05015423296746184
+Relative test error after 5  iterations:  0.4457372552821812
+-----------------
+Iteration 6 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6469.939510822296
+Time in reconstruction computation 3316.02090883255
+Time in QR factor computation 0.12462258338928223
+Time in iteration 6 : 9786.197018384933
+Time in error computation 740.3494431972504
+Relative error in observed entries:  0.04136903167305805
+Relative test error after 6  iterations:  0.43881530886099235
+-----------------
+Iteration 7 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6464.88959646225
+Time in reconstruction computation 3328.868253469467
+Time in QR factor computation 0.12996387481689453
+Time in iteration 7 : 9793.99477481842
+Time in error computation 739.9841947555542
+Relative error in observed entries:  0.035330361588457135
+Relative test error after 7  iterations:  0.4343424359619211
+-----------------
+Iteration 8 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6458.7926325798035
+Time in reconstruction computation 3334.767431974411
+Time in QR factor computation 0.1285407543182373
+Time in iteration 8 : 9793.789412021637
+Time in error computation 740.3546161651611
+Relative error in observed entries:  0.030905785839970758
+Relative test error after 8  iterations:  0.4313305275478105
+-----------------
+Iteration 9 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6466.638881921768
+Time in reconstruction computation 3331.037634372711
+Time in QR factor computation 0.13210129737854004
+Time in iteration 9 : 9797.913101911545
+Time in error computation 740.4610788822174
+Relative error in observed entries:  0.027512256454159813
+Relative test error after 9  iterations:  0.4291996029900017
+-----------------
+Iteration 10 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6521.220219612122
+Time in reconstruction computation 3401.86248922348
+Time in QR factor computation 0.13199901580810547
+Time in iteration 10 : 9923.32143163681
+Time in error computation 768.5162405967712
+Relative error in observed entries:  0.024818298959278118
+Relative test error after 10  iterations:  0.42767177899176584
+-----------------
+Iteration 11 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6528.86864066124
+Time in reconstruction computation 3390.29607462883
+Time in QR factor computation 0.1263434886932373
+Time in iteration 11 : 9919.39204788208
+Time in error computation 740.3784320354462
+Relative error in observed entries:  0.02262286968071649
+Relative test error after 11  iterations:  0.426545117794243
+-----------------
+Iteration 12 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6461.283305883408
+Time in reconstruction computation 3599.4880702495575
+Time in QR factor computation 0.12973475456237793
+Time in iteration 12 : 10061.007328510284
+Time in error computation 740.658608675003
+Relative error in observed entries:  0.020794967759289205
+Relative test error after 12  iterations:  0.4257154982358432
+-----------------
+Iteration 13 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6459.395715475082
+Time in reconstruction computation 3327.0071308612823
+Time in QR factor computation 0.14956140518188477
+Time in iteration 13 : 9786.657723426819
+Time in error computation 740.9488356113434
+Relative error in observed entries:  0.0192473793566448
+Relative test error after 13  iterations:  0.42509525261867126
+-----------------
+Iteration 14 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6550.5141406059265
+Time in reconstruction computation 3408.0474243164062
+Time in QR factor computation 0.12632107734680176
+Time in iteration 14 : 9958.790920734406
+Time in error computation 762.8488118648529
+Relative error in observed entries:  0.01791782758410784
+Relative test error after 14  iterations:  0.4246376336327262
+-----------------
+Iteration 15 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6478.31153678894
+Time in reconstruction computation 3307.1307640075684
+Time in QR factor computation 0.1339125633239746
+Time in iteration 15 : 9785.678512573242
+Time in error computation 734.7577595710754
+Relative error in observed entries:  0.01676239819784706
+Relative test error after 15  iterations:  0.4242988024238294
+-----------------
+Iteration 16 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  4
+  [Gradient] Memory limit: batching 4 unique indices in batches of 1
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+Time in gradient computation 6518.177400112152
+Time in reconstruction computation 3403.9399194717407
+Time in QR factor computation 0.13108134269714355
+Time in iteration 16 : 9922.352423667908
+Time in error computation 766.2327766418457
+Relative error in observed entries:  0.015747547185770826
+Relative test error after 16  iterations:  0.42405512563776687
+-----------------
+Iteration 17 / 20
+At level:  0
+At level:  1
+At level:  2

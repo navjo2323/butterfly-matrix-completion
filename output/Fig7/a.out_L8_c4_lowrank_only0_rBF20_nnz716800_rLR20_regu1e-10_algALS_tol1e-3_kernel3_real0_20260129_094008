@@ -1,0 +1,221 @@
+ranks for butterfly completion are  [4, 8, 16, 20, 20]
+Testing complex-valued 1D Radon transform
+matrix shape is 1024
+nnz is 716800
+ratio of nonzeros is 0.68359375
+--time in creating indices: 0.750924825668335
+Generating 1D Radon kernel
+Number per dim is 1024
+Generating 1D Radon kernel
+Number per dim is 1024
+--time in entry generation: 0.8824594020843506
+--matrix completion rank: [20]
+--time in index conversion: 2.07491135597229
+--time to generate inputs for matrix completion 0.0006868839263916016
+------------------matrix completion----------------------------
+Number of observed entries: 716800
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 2.971731662750244
+Time in error computation 0.3931765556335449
+Relative error in observed entries:  0.9738298226033052
+Relative test error after 1  iterations:  0.9926057030778741
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 1.6269574165344238
+Time in error computation 0.3913764953613281
+Relative error in observed entries:  0.9599279103727583
+Relative test error after 2  iterations:  0.98679208104148
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 1.133547306060791
+Time in error computation 0.3897387981414795
+Relative error in observed entries:  0.953211287328422
+Relative test error after 3  iterations:  0.9821147258625182
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 0.917217493057251
+Time in error computation 0.32942724227905273
+Relative error in observed entries:  0.9497535842624761
+Relative test error after 4  iterations:  0.9791767126876267
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 1.0647883415222168
+Time in error computation 0.405076265335083
+Relative error in observed entries:  0.9478135781569832
+Relative test error after 5  iterations:  0.9773840708323818
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 1.0278522968292236
+Time in error computation 0.3087625503540039
+Relative error in observed entries:  0.9466228624940056
+Relative test error after 6  iterations:  0.976247268055701
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 0.8435788154602051
+Time in error computation 0.29070091247558594
+Relative error in observed entries:  0.9458351260363458
+Relative test error after 7  iterations:  0.9754919968579139
+-----------------
+Iteration 8 / 10
+At level:  0
+At level:  1
+Time in iteration 8 : 0.843299388885498
+Time in error computation 0.2896878719329834
+Relative error in observed entries:  0.945284174092024
+Relative test error after 8  iterations:  0.974970465131388
+-----------------
+Iteration 9 / 10
+At level:  0
+At level:  1
+Time in iteration 9 : 1.060713768005371
+Time in error computation 0.28887939453125
+Relative error in observed entries:  0.9448820781277162
+Relative test error after 9  iterations:  0.9745992750977981
+-----------------
+Iteration 10 / 10
+At level:  0
+At level:  1
+Time in iteration 10 : 1.0438001155853271
+Time in error computation 0.29053354263305664
+Relative error in observed entries:  0.9445783421811901
+Relative test error after 10  iterations:  0.974328768012572
+-----------------
+--time for matrix completion 15.912530899047852
+at level 8
+at level 7
+at level 6
+at level 5
+at level 4
+--time for low-rank to butterfly conversion 0.5466923713684082
+--time for converting lists 0.0064051151275634766
+--time in index conversion 2 : 3.7895634174346924
+------------------butterfly/ tensor train completion----------------------------
+Number of observed entries: 716800
+Iteration 1 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in iteration 1 : 78.55395722389221
+Time in error computation 8.540560722351074
+Relative error in observed entries:  0.3560483748465394
+Relative test error after 1  iterations:  0.49468917794663914
+-----------------
+Iteration 2 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in iteration 2 : 76.59392499923706
+Time in error computation 8.543880462646484
+Relative error in observed entries:  0.06530718117563138
+Relative test error after 2  iterations:  0.12774208342593285
+-----------------
+Iteration 3 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in iteration 3 : 78.49533581733704
+Time in error computation 8.502820253372192
+Relative error in observed entries:  0.016777632285627904
+Relative test error after 3  iterations:  0.054248141897339175
+-----------------
+Iteration 4 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in iteration 4 : 78.89020872116089
+Time in error computation 8.542848110198975
+Relative error in observed entries:  0.006146322663762164
+Relative test error after 4  iterations:  0.03578004835704957
+-----------------
+Iteration 5 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in iteration 5 : 78.20031118392944
+Time in error computation 8.525413274765015
+Relative error in observed entries:  0.002804973542412676
+Relative test error after 5  iterations:  0.029283014335713106
+-----------------
+Iteration 6 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in iteration 6 : 78.98460507392883
+Time in error computation 8.561264276504517
+Relative error in observed entries:  0.0015023230061019187
+Relative test error after 6  iterations:  0.026313054694676156
+-----------------
+Iteration 7 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in iteration 7 : 78.41954851150513
+Time in error computation 8.51704716682434
+Relative error in observed entries:  0.0009126276452027087
+Relative test error after 7  iterations:  0.0246850086503498
+-----------------
+converged
+--time for butterfly completion 607.8725121021271

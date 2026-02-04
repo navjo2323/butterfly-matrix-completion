@@ -1,0 +1,177 @@
+ranks for butterfly completion are  [4, 8, 11, 11, 11, 11, 11, 11]
+Testing complex-valued Green function
+matrix shape is 65536
+nnz is 69206016
+ratio of nonzeros is 0.01611328125
+--time in creating indices: 74.5644884109497
+Generating Greens kernel with ppw 10
+Number per dim is 256
+Generating Greens kernel with ppw 10
+Number per dim is 256
+--time in entry generation: 151.8817844390869
+--matrix completion rank: [400]
+--time in index conversion: 290.5762720108032
+--time to generate inputs for matrix completion 1.7005505561828613
+------------------matrix completion----------------------------
+Number of observed entries: 69206016
+Iteration 1 / 20
+At level:  0
+At level:  1
+Time in iteration 1 : 4644.375799655914
+Time in error computation 334.3676686286926
+Relative error in observed entries:  0.6189368261971678
+Relative test error after 1  iterations:  1.3963656715848487
+-----------------
+Iteration 2 / 20
+At level:  0
+At level:  1
+Time in iteration 2 : 5307.185608863831
+Time in error computation 264.4327907562256
+Relative error in observed entries:  0.47703264544025764
+Relative test error after 2  iterations:  1.5724406336244068
+-----------------
+Iteration 3 / 20
+At level:  0
+At level:  1
+Time in iteration 3 : 4375.878141641617
+Time in error computation 275.1943166255951
+Relative error in observed entries:  0.4167107247057149
+Relative test error after 3  iterations:  1.6703411826509293
+-----------------
+Iteration 4 / 20
+At level:  0
+At level:  1
+Time in iteration 4 : 4367.044303655624
+Time in error computation 288.1975426673889
+Relative error in observed entries:  0.3813160226732429
+Relative test error after 4  iterations:  1.7370098492763562
+-----------------
+Iteration 5 / 20
+At level:  0
+At level:  1
+Time in iteration 5 : 4372.522905349731
+Time in error computation 279.8190348148346
+Relative error in observed entries:  0.3573879709334399
+Relative test error after 5  iterations:  1.787037299390159
+-----------------
+Iteration 6 / 20
+At level:  0
+At level:  1
+Time in iteration 6 : 4416.403853654861
+Time in error computation 269.37023067474365
+Relative error in observed entries:  0.33985253621112455
+Relative test error after 6  iterations:  1.8267672438072329
+-----------------
+Iteration 7 / 20
+At level:  0
+At level:  1
+Time in iteration 7 : 4460.961652040482
+Time in error computation 268.68773770332336
+Relative error in observed entries:  0.32630752106108896
+Relative test error after 7  iterations:  1.8595258730662243
+-----------------
+Iteration 8 / 20
+At level:  0
+At level:  1
+Time in iteration 8 : 4442.964187383652
+Time in error computation 267.30823945999146
+Relative error in observed entries:  0.3154474473453261
+Relative test error after 8  iterations:  1.887272059225428
+-----------------
+Iteration 9 / 20
+At level:  0
+At level:  1
+Time in iteration 9 : 4387.9012722969055
+Time in error computation 262.24761414527893
+Relative error in observed entries:  0.3064941416887994
+Relative test error after 9  iterations:  1.911252312056016
+-----------------
+Iteration 10 / 20
+At level:  0
+At level:  1
+Time in iteration 10 : 4396.4475173950195
+Time in error computation 259.5223298072815
+Relative error in observed entries:  0.2989518258706781
+Relative test error after 10  iterations:  1.9323051039219035
+-----------------
+Iteration 11 / 20
+At level:  0
+At level:  1
+Time in iteration 11 : 4322.288814544678
+Time in error computation 251.60910654067993
+Relative error in observed entries:  0.29248794933874606
+Relative test error after 11  iterations:  1.9510201448716997
+-----------------
+Iteration 12 / 20
+At level:  0
+At level:  1
+Time in iteration 12 : 4302.910581827164
+Time in error computation 272.79567980766296
+Relative error in observed entries:  0.28687009988668
+Relative test error after 12  iterations:  1.9678277789403906
+-----------------
+Iteration 13 / 20
+At level:  0
+At level:  1
+Time in iteration 13 : 4225.631006479263
+Time in error computation 265.31806325912476
+Relative error in observed entries:  0.28193034054134786
+Relative test error after 13  iterations:  1.983051699721523
+-----------------
+Iteration 14 / 20
+At level:  0
+At level:  1
+Time in iteration 14 : 4080.9553937911987
+Time in error computation 250.3656394481659
+Relative error in observed entries:  0.2775439184155186
+Relative test error after 14  iterations:  1.996941445664382
+-----------------
+Iteration 15 / 20
+At level:  0
+At level:  1
+Time in iteration 15 : 4085.153478860855
+Time in error computation 278.71357464790344
+Relative error in observed entries:  0.2736159906898337
+Relative test error after 15  iterations:  2.009693233827744
+-----------------
+Iteration 16 / 20
+At level:  0
+At level:  1
+Time in iteration 16 : 4118.333624124527
+Time in error computation 251.30205011367798
+Relative error in observed entries:  0.27007302837028396
+Relative test error after 16  iterations:  2.0214638502835287
+-----------------
+Iteration 17 / 20
+At level:  0
+At level:  1
+Time in iteration 17 : 4169.359794855118
+Time in error computation 275.7509038448334
+Relative error in observed entries:  0.26685704583684744
+Relative test error after 17  iterations:  2.032380310094567
+-----------------
+Iteration 18 / 20
+At level:  0
+At level:  1
+Time in iteration 18 : 3973.7517046928406
+Time in error computation 260.5904493331909
+Relative error in observed entries:  0.26392161013851684
+Relative test error after 18  iterations:  2.04254682402632
+-----------------
+Iteration 19 / 20
+At level:  0
+At level:  1
+Time in iteration 19 : 4175.693182706833
+Time in error computation 293.8695206642151
+Relative error in observed entries:  0.26122902160444805
+Relative test error after 19  iterations:  2.052049931309785
+-----------------
+Iteration 20 / 20
+At level:  0
+At level:  1
+Time in iteration 20 : 4178.182977199554
+Time in error computation 294.05059242248535
+Relative error in observed entries:  0.25874828902388775
+Relative test error after 20  iterations:  2.060962315069658
+-----------------
+--time for matrix completion 92267.67044687271

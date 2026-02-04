@@ -1,0 +1,399 @@
+ranks for butterfly completion are  [4, 8, 12, 12, 12, 12]
+Testing complex-valued 1D Radon transform
+matrix shape is 4096
+nnz is 4128768
+ratio of nonzeros is 0.24609375
+--time in creating indices: 3.090820074081421
+Generating 1D Radon kernel
+Number per dim is 4096
+Generating 1D Radon kernel
+Number per dim is 4096
+--time in entry generation: 5.5950963497161865
+--matrix completion rank: [12]
+--time in index conversion: 12.385810852050781
+--time to generate inputs for matrix completion 0.0019185543060302734
+------------------matrix completion----------------------------
+Number of observed entries: 4128768
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 6.4787867069244385
+Time in error computation 0.7533209323883057
+Relative error in observed entries:  0.988225345169599
+Relative test error after 1  iterations:  1.0061615899551466
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 3.621037483215332
+Time in error computation 0.7492477893829346
+Relative error in observed entries:  0.9835276044584147
+Relative test error after 2  iterations:  1.008815594948834
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 3.665698528289795
+Time in error computation 0.7438814640045166
+Relative error in observed entries:  0.9814920331004499
+Relative test error after 3  iterations:  1.0099180868683406
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 3.752735137939453
+Time in error computation 0.7426350116729736
+Relative error in observed entries:  0.9803469259852737
+Relative test error after 4  iterations:  1.0105119835283711
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 3.73321270942688
+Time in error computation 0.7412137985229492
+Relative error in observed entries:  0.9796099804802298
+Relative test error after 5  iterations:  1.0108841324183726
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 3.713021755218506
+Time in error computation 0.7431321144104004
+Relative error in observed entries:  0.9790966749513451
+Relative test error after 6  iterations:  1.011138769011908
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 3.7251875400543213
+Time in error computation 0.740994930267334
+Relative error in observed entries:  0.9787202034862458
+Relative test error after 7  iterations:  1.0113225225539137
+-----------------
+Iteration 8 / 10
+At level:  0
+At level:  1
+Time in iteration 8 : 3.7158892154693604
+Time in error computation 0.7402186393737793
+Relative error in observed entries:  0.9784334272138
+Relative test error after 8  iterations:  1.0114601338407956
+-----------------
+Iteration 9 / 10
+At level:  0
+At level:  1
+Time in iteration 9 : 3.763796091079712
+Time in error computation 0.7399997711181641
+Relative error in observed entries:  0.9782082783175087
+Relative test error after 9  iterations:  1.0115664874207602
+-----------------
+Iteration 10 / 10
+At level:  0
+At level:  1
+Time in iteration 10 : 3.8154845237731934
+Time in error computation 0.7397091388702393
+Relative error in observed entries:  0.9780270367401755
+Relative test error after 10  iterations:  1.0116511998763222
+-----------------
+--time for matrix completion 47.42011070251465
+at level 10
+at level 9
+at level 8
+at level 7
+at level 6
+at level 5
+error is 2.665302563257067e-15
+--time for low-rank to butterfly conversion 6.809211730957031
+--time for converting lists 0.01900625228881836
+--time in index conversion 2 : 23.701043128967285
+------------------butterfly completion----------------------------
+Number of observed entries: 4128768
+Iteration 1 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 1 : 321.55760169029236
+Time in error computation 43.62481713294983
+Relative error in observed entries:  0.7177327975329244
+Relative test error after 1  iterations:  0.8922691025522597
+-----------------
+Iteration 2 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 2 : 319.9784655570984
+Time in error computation 43.67357301712036
+Relative error in observed entries:  0.44263644467411983
+Relative test error after 2  iterations:  0.5963907073783156
+-----------------
+Iteration 3 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 3 : 320.5752730369568
+Time in error computation 43.67428135871887
+Relative error in observed entries:  0.23577634719811794
+Relative test error after 3  iterations:  0.32756718620758607
+-----------------
+Iteration 4 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 4 : 320.28910422325134
+Time in error computation 43.687347650527954
+Relative error in observed entries:  0.09089456073163704
+Relative test error after 4  iterations:  0.13608328209807388
+-----------------
+Iteration 5 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 5 : 319.73960185050964
+Time in error computation 43.66721796989441
+Relative error in observed entries:  0.03355899401438509
+Relative test error after 5  iterations:  0.05881121712359782
+-----------------
+Iteration 6 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 6 : 320.35814094543457
+Time in error computation 43.695449113845825
+Relative error in observed entries:  0.014473863247012103
+Relative test error after 6  iterations:  0.03170825552906255
+-----------------
+Iteration 7 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 7 : 320.0662999153137
+Time in error computation 43.66189384460449
+Relative error in observed entries:  0.007411468783247128
+Relative test error after 7  iterations:  0.021114191919952265
+-----------------
+Iteration 8 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 8 : 320.1689119338989
+Time in error computation 43.68182396888733
+Relative error in observed entries:  0.004428200454770764
+Relative test error after 8  iterations:  0.01630007371775876
+-----------------
+Iteration 9 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 9 : 321.03814244270325
+Time in error computation 43.69222640991211
+Relative error in observed entries:  0.0030288736824361125
+Relative test error after 9  iterations:  0.013832429325102426
+-----------------
+Iteration 10 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 10 : 321.13433957099915
+Time in error computation 43.680257081985474
+Relative error in observed entries:  0.0022947808062127686
+Relative test error after 10  iterations:  0.012401029948881644
+-----------------
+Iteration 11 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 11 : 321.36155009269714
+Time in error computation 43.71070122718811
+Relative error in observed entries:  0.0018532467910516756
+Relative test error after 11  iterations:  0.011473337145984594
+-----------------
+Iteration 12 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 12 : 321.31781339645386
+Time in error computation 43.673640966415405
+Relative error in observed entries:  0.0015605064480635241
+Relative test error after 12  iterations:  0.010810258014895427
+-----------------
+Iteration 13 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 13 : 321.7486135959625
+Time in error computation 43.674933195114136
+Relative error in observed entries:  0.0013549524139438885
+Relative test error after 13  iterations:  0.010306122634669072
+-----------------
+Iteration 14 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 14 : 321.8772416114807
+Time in error computation 43.66946578025818
+Relative error in observed entries:  0.0012013888815382517
+Relative test error after 14  iterations:  0.009906371620831647
+-----------------
+Iteration 15 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 15 : 321.7040002346039
+Time in error computation 43.67013502120972
+Relative error in observed entries:  0.0010819540419504847
+Relative test error after 15  iterations:  0.009584264969456512
+-----------------
+Iteration 16 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+Time in iteration 16 : 321.3761293888092
+Time in error computation 43.68382430076599
+Relative error in observed entries:  0.0009866426168800616
+Relative test error after 16  iterations:  0.009323130477017874
+-----------------
+converged
+--time for butterfly completion 5833.114140033722

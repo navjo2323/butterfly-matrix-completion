@@ -1,0 +1,7 @@
+ranks for butterfly completion are  [4, 8, 9, 9, 9]
+Testing complex-valued matrix from file
+Reading the full matrix from file
+Number per dim is 1024
+full mat generated of shape 1024
+--time in full mat generation: 0.10596156120300293
+--time in computing the LR rank of mat: 2.469637632369995  rank: 114  with tolerence 0.001

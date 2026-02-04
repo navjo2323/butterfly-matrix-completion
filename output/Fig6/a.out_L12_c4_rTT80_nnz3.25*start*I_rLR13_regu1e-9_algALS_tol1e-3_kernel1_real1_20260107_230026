@@ -1,0 +1,237 @@
+Testing real-valued Green function
+Generating Greens kernel with ppw 10
+Number per dim is 128
+full mat generated of shape 16384
+--time in full mat generation: 13.348084449768066
+time array loop 720.6477046012878
+total time converting indices 814.9377853870392
+data type of M float64
+--time in computing the TT rank of mat: 881.4850459098816  rank: [1, 6, 18, 46, 84, 107, 79, 48, 31, 19, 12, 8, 3, 1]  with tolerence 0.001
+matrix shape is 16384
+nnz is 4259840
+ratio of nonzeros is 0.015869140625
+--time in creating indices: 2.852097511291504
+Generating Greens kernel with ppw 10
+Number per dim is 128
+Generating Greens kernel with ppw 10
+Number per dim is 128
+--time in entry generation: 5.853867530822754
+--matrix completion rank: [13]
+--time in index conversion: 12.730318307876587
+--time to generate inputs for matrix completion 0.0023910999298095703
+------------------matrix completion----------------------------
+Number of observed entries: 4259840
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 2.2553696632385254
+Time in error computation 2.5536739826202393
+Relative error in observed entries:  0.9494174746687095
+Relative test error after 1  iterations:  1.048104932361485
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 2.1000189781188965
+Time in error computation 2.527989387512207
+Relative error in observed entries:  0.9271684644000262
+Relative test error after 2  iterations:  1.0660598547499436
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 2.2718513011932373
+Time in error computation 2.5910727977752686
+Relative error in observed entries:  0.9156404498100673
+Relative test error after 3  iterations:  1.069943506449431
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 2.1382415294647217
+Time in error computation 2.569077968597412
+Relative error in observed entries:  0.9072122579739524
+Relative test error after 4  iterations:  1.0671781211722386
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 2.1319124698638916
+Time in error computation 2.5674939155578613
+Relative error in observed entries:  0.9000929603634911
+Relative test error after 5  iterations:  1.0605641189855561
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 2.131972551345825
+Time in error computation 2.5917298793792725
+Relative error in observed entries:  0.8937899340808187
+Relative test error after 6  iterations:  1.0519929152379923
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 2.138819932937622
+Time in error computation 2.5652971267700195
+Relative error in observed entries:  0.8882009193655245
+Relative test error after 7  iterations:  1.0428670739758912
+-----------------
+Iteration 8 / 10
+At level:  0
+At level:  1
+Time in iteration 8 : 2.1674644947052
+Time in error computation 2.5962769985198975
+Relative error in observed entries:  0.8833780699607355
+Relative test error after 8  iterations:  1.034198020888596
+-----------------
+Iteration 9 / 10
+At level:  0
+At level:  1
+Time in iteration 9 : 2.1286590099334717
+Time in error computation 2.5464553833007812
+Relative error in observed entries:  0.8793816545200693
+Relative test error after 9  iterations:  1.0265941904074816
+-----------------
+Iteration 10 / 10
+At level:  0
+At level:  1
+Time in iteration 10 : 2.1380157470703125
+Time in error computation 2.5478620529174805
+Relative error in observed entries:  0.8761824148920391
+Relative test error after 10  iterations:  1.0202775722399906
+-----------------
+--time for matrix completion 47.26018238067627
+tensor train ranks for completion are [1, 16, 64, 84, 86, 88, 90, 92, 94, 96, 64, 16, 4, 1]
+time array loop 527.2493228912354
+total time converting indices 617.7690141201019
+data type of M float64
+Reconstruction Error: 0.8212229086333211
+--time for tensor train decomposition 707.6080746650696
+time array loop 8.409217596054077
+time array loop 8.314322710037231
+--time for conversion of indices for tensor train completion 24.83636736869812
+------------------tensor train completion----------------------------
+Number of observed entries: 4259840
+Iteration 1 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+At level:  12
+Time in iteration 1 : 25750.16187095642
+Time in error computation 730.9040069580078
+Relative error in observed entries:  0.6530940956584751
+Relative test error after 1  iterations:  0.6730557619703591
+-----------------
+Iteration 2 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+At level:  12
+Time in iteration 2 : 25317.890987873077
+Time in error computation 734.7008993625641
+Relative error in observed entries:  0.15500904328595452
+Relative test error after 2  iterations:  0.16522840730764127
+-----------------
+Iteration 3 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+At level:  12
+Time in iteration 3 : 25529.353858470917
+Time in error computation 729.5184144973755
+Relative error in observed entries:  0.033661265979044445
+Relative test error after 3  iterations:  0.03875056876392191
+-----------------
+Iteration 4 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+At level:  12
+Time in iteration 4 : 25512.118484020233
+Time in error computation 755.2297570705414
+Relative error in observed entries:  0.014442738722905324
+Relative test error after 4  iterations:  0.01804077101164837
+-----------------
+Iteration 5 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+At level:  12
+Time in iteration 5 : 25396.792135477066
+Time in error computation 1148.2892425060272
+Relative error in observed entries:  0.011936065871893584
+Relative test error after 5  iterations:  0.015316630436123432
+-----------------
+Iteration 6 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+At level:  11
+At level:  12
+Time in iteration 6 : 25028.25616836548
+Time in error computation 729.8353073596954
+Relative error in observed entries:  0.026446746081173988
+Relative test error after 6  iterations:  0.028979896125789367
+-----------------
+Iteration 7 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6

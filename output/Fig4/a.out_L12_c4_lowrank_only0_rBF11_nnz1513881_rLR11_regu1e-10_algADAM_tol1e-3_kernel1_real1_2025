@@ -1,0 +1,610 @@
+ranks for butterfly completion are  [4, 8, 11, 11, 11, 11, 11]
+Testing real-valued Green function
+matrix shape is 16384
+nnz is 15138816
+ratio of nonzeros is 0.056396484375
+--time in creating indices: 10.43531322479248
+Generating Greens kernel with ppw 10
+Number per dim is 128
+Generating Greens kernel with ppw 10
+Number per dim is 128
+--time in entry generation: 20.309234857559204
+--matrix completion rank: [11]
+--time in index conversion: 45.270451068878174
+--time to generate inputs for matrix completion 0.0020825862884521484
+------------------matrix completion----------------------------
+Number of observed entries: 15138816
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 9.709446907043457
+Time in error computation 6.6718151569366455
+Relative error in observed entries:  0.9861162119957122
+Relative test error after 1  iterations:  1.0085298470288349
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 6.68084716796875
+Time in error computation 6.614756107330322
+Relative error in observed entries:  0.9603009751372821
+Relative test error after 2  iterations:  0.9875297401135108
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 6.649641990661621
+Time in error computation 6.630958795547485
+Relative error in observed entries:  0.9360330599057545
+Relative test error after 3  iterations:  0.960555744742448
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 6.551653861999512
+Time in error computation 6.546467542648315
+Relative error in observed entries:  0.9279625663915212
+Relative test error after 4  iterations:  0.9515243941014087
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 6.586540222167969
+Time in error computation 6.567537784576416
+Relative error in observed entries:  0.9243699748759319
+Relative test error after 5  iterations:  0.9476341018347104
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 6.570405006408691
+Time in error computation 6.5445475578308105
+Relative error in observed entries:  0.9222119999407281
+Relative test error after 6  iterations:  0.9453281447124339
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 6.5704450607299805
+Time in error computation 6.575851678848267
+Relative error in observed entries:  0.9207929926653738
+Relative test error after 7  iterations:  0.9438201996579579
+-----------------
+Iteration 8 / 10
+At level:  0
+At level:  1
+Time in iteration 8 : 6.583229303359985
+Time in error computation 6.581677436828613
+Relative error in observed entries:  0.9198229102763705
+Relative test error after 8  iterations:  0.9427931503416812
+-----------------
+Iteration 9 / 10
+At level:  0
+At level:  1
+Time in iteration 9 : 6.9543137550354
+Time in error computation 6.571900367736816
+Relative error in observed entries:  0.9191447288994234
+Relative test error after 9  iterations:  0.942075574057781
+-----------------
+Iteration 10 / 10
+At level:  0
+At level:  1
+Time in iteration 10 : 6.685490131378174
+Time in error computation 6.581148624420166
+Relative error in observed entries:  0.9186634336753795
+Relative test error after 10  iterations:  0.9415640013406915
+-----------------
+--time for matrix completion 135.42943286895752
+at level 12
+at level 11
+at level 10
+at level 9
+at level 8
+at level 7
+at level 6
+error is 2.387617498815405e-15
+--time for low-rank to butterfly conversion 83.42348909378052
+--time for converting lists 0.06355047225952148
+--time in index conversion 2 : 96.02640414237976
+Time in gradient computation 704.7693138122559
+Time in error computation 54.50663900375366
+Total Time in iteration 1 759.2759528160095
+Relative error in observed entries:  0.8867971085642516
+Relative test error after 1  iterations:  0.9168057086023008
+Time in gradient computation 699.9377024173737
+Time in error computation 55.25924754142761
+Total Time in iteration 2 755.1969499588013
+Relative error in observed entries:  0.8574295470274559
+Relative test error after 2  iterations:  0.894450869182486
+Time in gradient computation 698.9102725982666
+Time in error computation 55.31713557243347
+Total Time in iteration 3 754.2274081707001
+Relative error in observed entries:  0.8283884185649327
+Relative test error after 3  iterations:  0.8728738117264536
+Time in gradient computation 702.2694110870361
+Time in error computation 55.257394313812256
+Total Time in iteration 4 757.5268054008484
+Relative error in observed entries:  0.7980339941376215
+Relative test error after 4  iterations:  0.8503236661111458
+Time in gradient computation 699.5478165149689
+Time in error computation 54.95549535751343
+Total Time in iteration 5 754.5033118724823
+Relative error in observed entries:  0.7656390323538987
+Relative test error after 5  iterations:  0.8253586203391728
+Time in gradient computation 703.0152730941772
+Time in error computation 55.246572732925415
+Total Time in iteration 6 758.2618458271027
+Relative error in observed entries:  0.730829452813636
+Relative test error after 6  iterations:  0.7964831540589087
+Time in gradient computation 700.3802416324615
+Time in error computation 54.7849497795105
+Total Time in iteration 7 755.165191411972
+Relative error in observed entries:  0.6930831553298523
+Relative test error after 7  iterations:  0.7621534936932031
+Time in gradient computation 698.8769884109497
+Time in error computation 54.581664085388184
+Total Time in iteration 8 753.4586524963379
+Relative error in observed entries:  0.6517323256607911
+Relative test error after 8  iterations:  0.7212818019536092
+Time in gradient computation 696.8323502540588
+Time in error computation 54.70857238769531
+Total Time in iteration 9 751.5409226417542
+Relative error in observed entries:  0.6067950013953759
+Relative test error after 9  iterations:  0.6741530486834064
+Time in gradient computation 699.0069906711578
+Time in error computation 54.77400279045105
+Total Time in iteration 10 753.7809934616089
+Relative error in observed entries:  0.5593526638521182
+Relative test error after 10  iterations:  0.6224497068600989
+Time in gradient computation 699.6663107872009
+Time in error computation 54.57505559921265
+Total Time in iteration 11 754.2413663864136
+Relative error in observed entries:  0.5110456774498777
+Relative test error after 11  iterations:  0.5684214669440998
+Time in gradient computation 696.3010227680206
+Time in error computation 54.47765040397644
+Total Time in iteration 12 750.7786731719971
+Relative error in observed entries:  0.4635977322130167
+Relative test error after 12  iterations:  0.5143618277515155
+Time in gradient computation 692.704740524292
+Time in error computation 54.50881361961365
+Total Time in iteration 13 747.2135541439056
+Relative error in observed entries:  0.41854865709029254
+Relative test error after 13  iterations:  0.4624387397410783
+Time in gradient computation 693.9982330799103
+Time in error computation 54.43257975578308
+Total Time in iteration 14 748.4308128356934
+Relative error in observed entries:  0.37731494705541446
+Relative test error after 14  iterations:  0.4146965787581505
+Time in gradient computation 692.988612651825
+Time in error computation 54.39133310317993
+Total Time in iteration 15 747.3799457550049
+Relative error in observed entries:  0.3412253913355084
+Relative test error after 15  iterations:  0.37288914190964356
+Time in gradient computation 695.8731029033661
+Time in error computation 54.346009254455566
+Total Time in iteration 16 750.2191121578217
+Relative error in observed entries:  0.31098922146721203
+Relative test error after 16  iterations:  0.3378846962669254
+Time in gradient computation 692.8338713645935
+Time in error computation 54.67599177360535
+Total Time in iteration 17 747.5098631381989
+Relative error in observed entries:  0.2862017364549449
+Relative test error after 17  iterations:  0.3092855879282778
+Time in gradient computation 697.3082454204559
+Time in error computation 54.657214879989624
+Total Time in iteration 18 751.9654603004456
+Relative error in observed entries:  0.2657125463995636
+Relative test error after 18  iterations:  0.28588578399100034
+Time in gradient computation 695.5424377918243
+Time in error computation 54.53212237358093
+Total Time in iteration 19 750.0745601654053
+Relative error in observed entries:  0.24837531020513792
+Relative test error after 19  iterations:  0.26641497759106114
+Time in gradient computation 693.1663954257965
+Time in error computation 54.36850166320801
+Total Time in iteration 20 747.5348970890045
+Relative error in observed entries:  0.23343997094066216
+Relative test error after 20  iterations:  0.249921855800191
+Time in gradient computation 693.4346067905426
+Time in error computation 54.760358572006226
+Total Time in iteration 21 748.1949653625488
+Relative error in observed entries:  0.22037719510645765
+Relative test error after 21  iterations:  0.23569004547639918
+Time in gradient computation 699.7867364883423
+Time in error computation 54.55229139328003
+Total Time in iteration 22 754.3390278816223
+Relative error in observed entries:  0.2087347099262841
+Relative test error after 22  iterations:  0.22314427064886344
+Time in gradient computation 695.3248460292816
+Time in error computation 54.55070614814758
+Total Time in iteration 23 749.8755521774292
+Relative error in observed entries:  0.1982314471554884
+Relative test error after 23  iterations:  0.21192079415691922
+Time in gradient computation 695.074188709259
+Time in error computation 54.406533002853394
+Total Time in iteration 24 749.4807217121124
+Relative error in observed entries:  0.18868778877608436
+Relative test error after 24  iterations:  0.20177810457703024
+Time in gradient computation 696.9663314819336
+Time in error computation 55.89018774032593
+Total Time in iteration 25 752.8565192222595
+Relative error in observed entries:  0.1799269787357814
+Relative test error after 25  iterations:  0.19250270900250432
+Time in gradient computation 698.3166465759277
+Time in error computation 54.45100116729736
+Total Time in iteration 26 752.7676477432251
+Relative error in observed entries:  0.17184482105842822
+Relative test error after 26  iterations:  0.18396952734408856
+Time in gradient computation 698.4272089004517
+Time in error computation 55.52613067626953
+Total Time in iteration 27 753.9533395767212
+Relative error in observed entries:  0.1643803606608872
+Relative test error after 27  iterations:  0.17610731895128962
+Time in gradient computation 695.4724123477936
+Time in error computation 54.09277844429016
+Total Time in iteration 28 749.5651907920837
+Relative error in observed entries:  0.15744229084361056
+Relative test error after 28  iterations:  0.16882882614625894
+Time in gradient computation 694.8195476531982
+Time in error computation 54.77239680290222
+Total Time in iteration 29 749.5919444561005
+Relative error in observed entries:  0.15092903154195325
+Relative test error after 29  iterations:  0.16203684229117288
+Time in gradient computation 695.1859378814697
+Time in error computation 54.1448757648468
+Total Time in iteration 30 749.3308136463165
+Relative error in observed entries:  0.14477393447801795
+Relative test error after 30  iterations:  0.15565661535890224
+Time in gradient computation 694.291405916214
+Time in error computation 54.322404861450195
+Total Time in iteration 31 748.6138107776642
+Relative error in observed entries:  0.13899245181840242
+Relative test error after 31  iterations:  0.1496814508951659
+Time in gradient computation 695.1253681182861
+Time in error computation 54.22487807273865
+Total Time in iteration 32 749.3502461910248
+Relative error in observed entries:  0.133600810027669
+Relative test error after 32  iterations:  0.14410597885524934
+Time in gradient computation 693.0780794620514
+Time in error computation 54.353126525878906
+Total Time in iteration 33 747.4312059879303
+Relative error in observed entries:  0.12853734367898292
+Relative test error after 33  iterations:  0.13886561938367667
+Time in gradient computation 694.0200834274292
+Time in error computation 54.456528425216675
+Total Time in iteration 34 748.4766118526459
+Relative error in observed entries:  0.12376949008689068
+Relative test error after 34  iterations:  0.1339326592117478
+Time in gradient computation 694.9317979812622
+Time in error computation 54.12616014480591
+Total Time in iteration 35 749.0579581260681
+Relative error in observed entries:  0.11932136568976016
+Relative test error after 35  iterations:  0.12933252389277725
+Time in gradient computation 693.6748163700104
+Time in error computation 54.441107988357544
+Total Time in iteration 36 748.1159243583679
+Relative error in observed entries:  0.11517370448376935
+Relative test error after 36  iterations:  0.1250487483253875
+Time in gradient computation 694.2568159103394
+Time in error computation 54.33804941177368
+Total Time in iteration 37 748.594865322113
+Relative error in observed entries:  0.11126740589390748
+Relative test error after 37  iterations:  0.12102483912083124
+Time in gradient computation 694.7280960083008
+Time in error computation 54.57201361656189
+Total Time in iteration 38 749.3001096248627
+Relative error in observed entries:  0.10756699646999543
+Relative test error after 38  iterations:  0.11722472935816075
+Time in gradient computation 694.1863465309143
+Time in error computation 54.18072438240051
+Total Time in iteration 39 748.3670709133148
+Relative error in observed entries:  0.10407009085021855
+Relative test error after 39  iterations:  0.11364194842648415
+Time in gradient computation 694.2036571502686
+Time in error computation 54.15279412269592
+Total Time in iteration 40 748.3564512729645
+Relative error in observed entries:  0.10078519821586003
+Relative test error after 40  iterations:  0.11027465114436485
+Time in gradient computation 692.0275163650513
+Time in error computation 54.312828063964844
+Total Time in iteration 41 746.3403444290161
+Relative error in observed entries:  0.09768875258392792
+Relative test error after 41  iterations:  0.10709012550386868
+Time in gradient computation 693.1529688835144
+Time in error computation 54.605984926223755
+Total Time in iteration 42 747.7589538097382
+Relative error in observed entries:  0.09474639209463545
+Relative test error after 42  iterations:  0.10405576589398499
+Time in gradient computation 696.5412809848785
+Time in error computation 54.486127614974976
+Total Time in iteration 43 751.0274085998535
+Relative error in observed entries:  0.09195723962791656
+Relative test error after 43  iterations:  0.10117866723313072
+Time in gradient computation 695.6096954345703
+Time in error computation 54.49308776855469
+Total Time in iteration 44 750.102783203125
+Relative error in observed entries:  0.08932426263263776
+Relative test error after 44  iterations:  0.09846570932508654
+Time in gradient computation 693.475937128067
+Time in error computation 54.052895069122314
+Total Time in iteration 45 747.5288321971893
+Relative error in observed entries:  0.08681953217603137
+Relative test error after 45  iterations:  0.09588909008218223
+Time in gradient computation 691.8188555240631
+Time in error computation 54.23468470573425
+Total Time in iteration 46 746.0535402297974
+Relative error in observed entries:  0.08443408246164708
+Relative test error after 46  iterations:  0.09343925162758444
+Time in gradient computation 692.7262349128723
+Time in error computation 53.83317708969116
+Total Time in iteration 47 746.5594120025635
+Relative error in observed entries:  0.08217724625281173
+Relative test error after 47  iterations:  0.09112570577983885
+Time in gradient computation 692.8710494041443
+Time in error computation 54.28119111061096
+Total Time in iteration 48 747.1522405147552
+Relative error in observed entries:  0.08004076157537231
+Relative test error after 48  iterations:  0.08893973320744088
+Time in gradient computation 693.5705108642578
+Time in error computation 54.320133686065674
+Total Time in iteration 49 747.8906445503235
+Relative error in observed entries:  0.07801798461177568
+Relative test error after 49  iterations:  0.08687154331967926
+Time in gradient computation 693.2912259101868
+Time in error computation 54.17259645462036
+Total Time in iteration 50 747.4638223648071
+Relative error in observed entries:  0.07609525624604994
+Relative test error after 50  iterations:  0.0849061932468734
+Time in gradient computation 693.9983541965485
+Time in error computation 53.8708758354187
+Total Time in iteration 51 747.8692300319672
+Relative error in observed entries:  0.0742653906863021
+Relative test error after 51  iterations:  0.083034233762343
+Time in gradient computation 691.3970124721527
+Time in error computation 54.14222478866577
+Total Time in iteration 52 745.5392372608185
+Relative error in observed entries:  0.07252544029919195
+Relative test error after 52  iterations:  0.08125034363237199
+Time in gradient computation 698.7325482368469
+Time in error computation 54.443296909332275
+Total Time in iteration 53 753.1758451461792
+Relative error in observed entries:  0.07086569349455137
+Relative test error after 53  iterations:  0.07954602737126656
+Time in gradient computation 698.5241253376007
+Time in error computation 54.77946066856384
+Total Time in iteration 54 753.3035860061646
+Relative error in observed entries:  0.06928703453602778
+Relative test error after 54  iterations:  0.0779237473432864
+Time in gradient computation 698.9809727668762
+Time in error computation 54.94444751739502
+Total Time in iteration 55 753.9254202842712
+Relative error in observed entries:  0.06779092283127072
+Relative test error after 55  iterations:  0.07638628234048432
+Time in gradient computation 699.7065055370331
+Time in error computation 54.61963176727295
+Total Time in iteration 56 754.326137304306
+Relative error in observed entries:  0.06636598138739978
+Relative test error after 56  iterations:  0.07492263923017908
+Time in gradient computation 697.6523151397705
+Time in error computation 54.343419551849365
+Total Time in iteration 57 751.9957346916199
+Relative error in observed entries:  0.06500339192662294
+Relative test error after 57  iterations:  0.07352143136799898
+Time in gradient computation 698.7487370967865
+Time in error computation 54.614455461502075
+Total Time in iteration 58 753.3631925582886
+Relative error in observed entries:  0.06370441351681985
+Relative test error after 58  iterations:  0.07218216460471352
+Time in gradient computation 698.4127607345581
+Time in error computation 54.66320085525513
+Total Time in iteration 59 753.0759615898132
+Relative error in observed entries:  0.062464462095591505
+Relative test error after 59  iterations:  0.0709023799307231
+Time in gradient computation 699.5399708747864
+Time in error computation 54.897345781326294
+Total Time in iteration 60 754.4373166561127
+Relative error in observed entries:  0.061277465832247136
+Relative test error after 60  iterations:  0.06967768186634013
+Time in gradient computation 699.2796971797943
+Time in error computation 54.81275773048401
+Total Time in iteration 61 754.0924549102783
+Relative error in observed entries:  0.060145265592505104
+Relative test error after 61  iterations:  0.06850957607850963
+Time in gradient computation 700.1628227233887
+Time in error computation 54.54647135734558
+Total Time in iteration 62 754.7092940807343
+Relative error in observed entries:  0.05906727602239048
+Relative test error after 62  iterations:  0.06739694059002291
+Time in gradient computation 698.6013650894165
+Time in error computation 54.53070092201233
+Total Time in iteration 63 753.1320660114288
+Relative error in observed entries:  0.05803740309380277
+Relative test error after 63  iterations:  0.06633289190304074
+Time in gradient computation 696.188143491745
+Time in error computation 54.450599908828735
+Total Time in iteration 64 750.6387434005737
+Relative error in observed entries:  0.05705085227694813
+Relative test error after 64  iterations:  0.06531292786936926
+Time in gradient computation 698.9636273384094
+Time in error computation 54.91672158241272
+Total Time in iteration 65 753.8803489208221
+Relative error in observed entries:  0.056106931098408745
+Relative test error after 65  iterations:  0.0643355231810731
+Time in gradient computation 699.792690038681
+Time in error computation 54.985780477523804
+Total Time in iteration 66 754.7784705162048
+Relative error in observed entries:  0.05520350107402252
+Relative test error after 66  iterations:  0.06339707407408146
+Time in gradient computation 701.1236953735352
+Time in error computation 55.1330885887146
+Total Time in iteration 67 756.2567839622498
+Relative error in observed entries:  0.05433668412545523
+Relative test error after 67  iterations:  0.062495755141239104
+Time in gradient computation 700.5001888275146
+Time in error computation 54.836387395858765
+Total Time in iteration 68 755.3365762233734
+Relative error in observed entries:  0.05350518248461668
+Relative test error after 68  iterations:  0.06163165223836366
+Time in gradient computation 700.6731731891632
+Time in error computation 54.402425050735474
+Total Time in iteration 69 755.0755982398987
+Relative error in observed entries:  0.05270619273104541
+Relative test error after 69  iterations:  0.06080032807243296
+Time in gradient computation 698.764885187149
+Time in error computation 54.787683963775635
+Total Time in iteration 70 753.5525691509247
+Relative error in observed entries:  0.05193819378710136
+Relative test error after 70  iterations:  0.05999992957332659
+Time in gradient computation 698.9533219337463
+Time in error computation 54.799952268600464
+Total Time in iteration 71 753.7532742023468
+Relative error in observed entries:  0.051201227252096276
+Relative test error after 71  iterations:  0.05923148632687184
+Time in gradient computation 699.0703530311584
+Time in error computation 54.904738664627075
+Total Time in iteration 72 753.9750916957855
+Relative error in observed entries:  0.05049188788201427
+Relative test error after 72  iterations:  0.05849213833006252
+Time in gradient computation 699.0949099063873
+Time in error computation 54.82423686981201
+Total Time in iteration 73 753.9191467761993
+Relative error in observed entries:  0.04980902771217882
+Relative test error after 73  iterations:  0.057779719577211806
+Time in gradient computation 699.2703857421875
+Time in error computation 54.74296164512634
+Total Time in iteration 74 754.0133473873138
+Relative error in observed entries:  0.049151926348681714
+Relative test error after 74  iterations:  0.05709276640152719
+Time in gradient computation 702.3691163063049
+Time in error computation 54.51826357841492
+Total Time in iteration 75 756.8873798847198
+Relative error in observed entries:  0.048519201953008365
+Relative test error after 75  iterations:  0.0564315798537308
+Time in gradient computation 698.1756086349487
+Time in error computation 54.44793701171875
+Total Time in iteration 76 752.6235456466675
+Relative error in observed entries:  0.04790837120209694
+Relative test error after 76  iterations:  0.055794294187254005
+Time in gradient computation 697.3142971992493
+Time in error computation 54.55982565879822
+Total Time in iteration 77 751.8741228580475
+Relative error in observed entries:  0.04731815043394486
+Relative test error after 77  iterations:  0.055177844212367426
+Time in gradient computation 695.5422356128693
+Time in error computation 54.498077154159546
+Total Time in iteration 78 750.0403127670288
+Relative error in observed entries:  0.04674827397178987
+Relative test error after 78  iterations:  0.05458139790734208
+Time in gradient computation 698.3985366821289
+Time in error computation 54.84725093841553
+Total Time in iteration 79 753.2457876205444
+Relative error in observed entries:  0.04619713697658204
+Relative test error after 79  iterations:  0.05400265340046671
+Time in gradient computation 698.2038149833679
+Time in error computation 54.25083827972412
+Total Time in iteration 80 752.454653263092
+Relative error in observed entries:  0.04566390179594966
+Relative test error after 80  iterations:  0.053440523603098714
+Time in gradient computation 695.8275153636932
+Time in error computation 54.52858519554138
+Total Time in iteration 81 750.3561005592346
+Relative error in observed entries:  0.045147843019046584
+Relative test error after 81  iterations:  0.0528959428289974
+Time in gradient computation 697.5400264263153
+Time in error computation 54.69612646102905
+Total Time in iteration 82 752.2361528873444
+Relative error in observed entries:  0.04464848876225818
+Relative test error after 82  iterations:  0.05236838232590814
+Time in gradient computation 695.9034073352814
+Time in error computation 54.79901051521301
+Total Time in iteration 83 750.7024178504944
+Relative error in observed entries:  0.04416467508111417
+Relative test error after 83  iterations:  0.051856639001473095
+Time in gradient computation 697.2034649848938
+Time in error computation 54.27613091468811
+Total Time in iteration 84 751.4795958995819
+Relative error in observed entries:  0.04369512446090069
+Relative test error after 84  iterations:  0.05136017511909069
+Time in gradient computation 695.8218631744385
+Time in error computation 54.88356018066406
+Total Time in iteration 85 750.7054233551025
+Relative error in observed entries:  0.0432390050568159
+Relative test error after 85  iterations:  0.05087804065409205
+Time in gradient computation 699.6854510307312
+Time in error computation 54.30974221229553
+Total Time in iteration 86 753.9951932430267
+Relative error in observed entries:  0.042795950410093014
+Relative test error after 86  iterations:  0.05040942367082824
+Time in gradient computation 689.6351583003998
+Time in error computation 54.250826835632324
+Total Time in iteration 87 743.8859851360321
+Relative error in observed entries:  0.042365905950015284
+Relative test error after 87  iterations:  0.049952980279044844
+Time in gradient computation 693.7709722518921
+Time in error computation 53.912620067596436
+Total Time in iteration 88 747.6835923194885
+Relative error in observed entries:  0.04194788519400759
+Relative test error after 88  iterations:  0.049507891175413786
+Time in gradient computation 692.2559332847595
+Time in error computation 53.826239347457886
+Total Time in iteration 89 746.0821726322174
+Relative error in observed entries:  0.041541063538469924
+Relative test error after 89  iterations:  0.04907427986312784
+Time in gradient computation 692.596296787262
+Time in error computation 54.02954292297363
+Total Time in iteration 90 746.6258397102356
+Relative error in observed entries:  0.041144786027842856
+Relative test error after 90  iterations:  0.04865179799116088
+Time in gradient computation 690.3039212226868
+Time in error computation 53.91772818565369
+Total Time in iteration 91 744.2216494083405
+Relative error in observed entries:  0.04075851381685273
+Relative test error after 91  iterations:  0.048239294072202274
+Time in gradient computation 692.358639717102
+Time in error computation 53.84687113761902
+Total Time in iteration 92 746.2055108547211
+Relative error in observed entries:  0.040382069930635235
+Relative test error after 92  iterations:  0.047836796747296045
+Time in gradient computation 692.7496688365936
+Time in error computation 54.448951959609985
+Total Time in iteration 93 747.1986207962036
+Relative error in observed entries:  0.040014856065086944
+Relative test error after 93  iterations:  0.047443534234216475
+Time in gradient computation 694.8966138362885
+Time in error computation 54.59361696243286
+Total Time in iteration 94 749.4902307987213
+Relative error in observed entries:  0.0396567295916409
+Relative test error after 94  iterations:  0.04705948960547074
+Time in gradient computation 694.922299861908
+Time in error computation 55.127299547195435
+Total Time in iteration 95 750.0495994091034
+Relative error in observed entries:  0.03930731995980988
+Relative test error after 95  iterations:  0.046683936769414104
+Time in gradient computation 695.1891264915466
+Time in error computation 54.415162801742554
+Total Time in iteration 96 749.6042892932892
+Relative error in observed entries:  0.038966007072859236
+Relative test error after 96  iterations:  0.04631769677292765
+Time in gradient computation 694.2983274459839
+Time in error computation 54.18562865257263
+Total Time in iteration 97 748.4839560985565
+Relative error in observed entries:  0.03863239257793212
+Relative test error after 97  iterations:  0.045958413836733436
+Time in gradient computation 693.6997637748718
+Time in error computation 54.23052430152893
+Total Time in iteration 98 747.9302880764008
+Relative error in observed entries:  0.03830646008703904
+Relative test error after 98  iterations:  0.045608650658612526
+Time in gradient computation 691.3949975967407
+Time in error computation 53.863221406936646
+Total Time in iteration 99 745.2582190036774
+Relative error in observed entries:  0.03798853375916059
+Relative test error after 99  iterations:  0.04526371895106558
+Time in gradient computation 690.8291909694672
+Time in error computation 54.21575593948364
+Total Time in iteration 100 745.0449469089508
+Relative error in observed entries:  0.037679613807683886
+Relative test error after 100  iterations:  0.04493281325348244
+Maximum iterations reached without convergence.
+--time for butterfly completion 75084.63903927803

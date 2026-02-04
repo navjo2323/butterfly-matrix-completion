@@ -1,0 +1,125 @@
+ranks for butterfly completion are  [4, 8, 10, 10, 10]
+Testing complex-valued 1D Radon transform
+matrix shape is 1024
+nnz is 14440
+ratio of nonzeros is 0.01377105712890625
+--time in creating indices: 0.006199836730957031
+Generating 1D Radon kernel
+Number per dim is 1024
+Generating 1D Radon kernel
+Number per dim is 1024
+--time in entry generation: 0.011507272720336914
+--matrix completion rank: [10]
+--time in index conversion: 0.03737378120422363
+--time to generate inputs for matrix completion 0.0003314018249511719
+------------------matrix completion----------------------------
+Number of observed entries: 14440
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 0.4884481430053711
+Time in error computation 0.20648574829101562
+Relative error in observed entries:  0.33521709894756796
+Relative test error after 1  iterations:  3.980420440323768
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 0.25592637062072754
+Time in error computation 0.07979249954223633
+Relative error in observed entries:  0.1915251678713791
+Relative test error after 2  iterations:  3.8646588000338244
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 0.12658071517944336
+Time in error computation 0.0729224681854248
+Relative error in observed entries:  0.13380976019945945
+Relative test error after 3  iterations:  3.661896823944195
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 0.06882572174072266
+Time in error computation 0.07292056083679199
+Relative error in observed entries:  0.1011376488138133
+Relative test error after 4  iterations:  3.6346949661190404
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 0.06860685348510742
+Time in error computation 0.07244253158569336
+Relative error in observed entries:  0.07969858729279661
+Relative test error after 5  iterations:  3.6070213041509476
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 0.06875133514404297
+Time in error computation 0.07263660430908203
+Relative error in observed entries:  0.06454069097100414
+Relative test error after 6  iterations:  3.577233251791303
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 0.06850266456604004
+Time in error computation 0.07337641716003418
+Relative error in observed entries:  0.053322421353729804
+Relative test error after 7  iterations:  3.547652401056768
+-----------------
+Iteration 8 / 10
+At level:  0
+At level:  1
+Time in iteration 8 : 0.06842660903930664
+Time in error computation 0.07356095314025879
+Relative error in observed entries:  0.04475236159243257
+Relative test error after 8  iterations:  3.5205958233721977
+-----------------
+Iteration 9 / 10
+At level:  0
+At level:  1
+Time in iteration 9 : 0.06810498237609863
+Time in error computation 0.0736541748046875
+Relative error in observed entries:  0.038039456569180306
+Relative test error after 9  iterations:  3.4955262372002482
+-----------------
+Iteration 10 / 10
+At level:  0
+At level:  1
+Time in iteration 10 : 0.068359375
+Time in error computation 0.07323575019836426
+Relative error in observed entries:  0.03267011477066382
+Relative test error after 10  iterations:  3.4712126047701886
+-----------------
+--time for matrix completion 2.222632884979248
+at level 8
+at level 7
+at level 6
+at level 5
+at level 4
+--time for low-rank to butterfly conversion 0.2694523334503174
+--time for converting lists 0.006474018096923828
+--time in index conversion 2 : 0.10444021224975586
+------------------butterfly/ tensor train completion----------------------------
+Number of observed entries: 14440
+Iteration 1 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+Time in iteration 1 : 3.432647943496704
+Time in error computation 0.582094669342041
+Relative error in observed entries:  3.59252639306041e-10
+Relative test error after 1  iterations:  1.19945294132974
+-----------------
+converged
+--time for butterfly completion 4.014895915985107

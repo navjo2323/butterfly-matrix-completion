@@ -1,0 +1,508 @@
+Testing real-valued Green function
+matrix shape is 4096
+nnz is 133120
+ratio of nonzeros is 0.0079345703125
+--time in creating indices: 0.06675291061401367
+Generating Greens kernel with ppw 10
+Number per dim is 64
+Generating Greens kernel with ppw 10
+Number per dim is 64
+--time in entry generation: 0.1246795654296875
+--matrix completion rank: [13]
+--time in index conversion: 0.3251454830169678
+--time to generate inputs for matrix completion 0.0006771087646484375
+------------------matrix completion----------------------------
+Number of observed entries: 133120
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 1.326786994934082
+Time in error computation 0.23543190956115723
+Relative error in observed entries:  0.6085710559884329
+Relative test error after 1  iterations:  1.5230648808570932
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 0.20040678977966309
+Time in error computation 0.23438262939453125
+Relative error in observed entries:  0.46919944342793074
+Relative test error after 2  iterations:  1.7370009708075123
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 0.21956133842468262
+Time in error computation 0.23329997062683105
+Relative error in observed entries:  0.4101254111070184
+Relative test error after 3  iterations:  1.8678185058295171
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 0.2019486427307129
+Time in error computation 0.23621582984924316
+Relative error in observed entries:  0.3751926600849296
+Relative test error after 4  iterations:  1.9697070335933038
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 0.20283246040344238
+Time in error computation 0.23599839210510254
+Relative error in observed entries:  0.3516221781874681
+Relative test error after 5  iterations:  2.0556512585243976
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 0.2019343376159668
+Time in error computation 0.23897886276245117
+Relative error in observed entries:  0.3344207261522284
+Relative test error after 6  iterations:  2.129775849835059
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 0.20104551315307617
+Time in error computation 0.2406156063079834
+Relative error in observed entries:  0.3210818802732597
+Relative test error after 7  iterations:  2.1956349762535963
+-----------------
+Iteration 8 / 10
+At level:  0
+At level:  1
+Time in iteration 8 : 0.2025282382965088
+Time in error computation 0.23974061012268066
+Relative error in observed entries:  0.3103190702213439
+Relative test error after 8  iterations:  2.255729829417852
+-----------------
+Iteration 9 / 10
+At level:  0
+At level:  1
+Time in iteration 9 : 0.20048832893371582
+Time in error computation 0.23664236068725586
+Relative error in observed entries:  0.30139990977897585
+Relative test error after 9  iterations:  2.3114511440221737
+-----------------
+Iteration 10 / 10
+At level:  0
+At level:  1
+Time in iteration 10 : 0.20577478408813477
+Time in error computation 0.23650217056274414
+Relative error in observed entries:  0.2938419771544992
+Relative test error after 10  iterations:  2.3638392670013504
+-----------------
+--time for matrix completion 5.531632661819458
+tensor train ranks for completion are [1, 16, 42, 44, 46, 48, 50, 52, 54, 16, 4, 1]
+time array loop 28.729357719421387
+total time converting indices 33.22515249252319
+data type of M float64
+Reconstruction Error: 0.9968450253135265
+--time for tensor train decomposition 36.14286994934082
+time array loop 0.25017857551574707
+time array loop 0.22569561004638672
+--time for conversion of indices for tensor train completion 0.634545087814331
+------------------tensor train ADF completion----------------------------
+Number of observed entries: 133120
+Iteration 1 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.191185474395752
+Time in reconstruction computation 25.826858520507812
+Time in QR factor computation 0.0156402587890625
+Time in iteration 1 : 53.05429983139038
+Time in error computation 4.685173511505127
+Relative error in observed entries:  0.8445490366077543
+Relative test error after 1  iterations:  1.1299702422961442
+-----------------
+Iteration 2 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.125105619430542
+Time in reconstruction computation 25.933531522750854
+Time in QR factor computation 0.013852596282958984
+Time in iteration 2 : 53.092228412628174
+Time in error computation 4.701336860656738
+Relative error in observed entries:  0.7531992169668943
+Relative test error after 2  iterations:  1.2072861480515094
+-----------------
+Iteration 3 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.279919147491455
+Time in reconstruction computation 26.015413522720337
+Time in QR factor computation 0.013334989547729492
+Time in iteration 3 : 53.32852220535278
+Time in error computation 4.775692462921143
+Relative error in observed entries:  0.7033044330647722
+Relative test error after 3  iterations:  1.2420954283974885
+-----------------
+Iteration 4 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.139678478240967
+Time in reconstruction computation 26.048131704330444
+Time in QR factor computation 0.011605978012084961
+Time in iteration 4 : 53.218838691711426
+Time in error computation 4.80407190322876
+Relative error in observed entries:  0.6641475827364656
+Relative test error after 4  iterations:  1.2318232436006362
+-----------------
+Iteration 5 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.05526351928711
+Time in reconstruction computation 26.063666105270386
+Time in QR factor computation 0.013242483139038086
+Time in iteration 5 : 53.151697397232056
+Time in error computation 4.702121019363403
+Relative error in observed entries:  0.6204549839112797
+Relative test error after 5  iterations:  1.162675750686821
+-----------------
+Iteration 6 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 26.864479780197144
+Time in reconstruction computation 26.12503695487976
+Time in QR factor computation 0.012029886245727539
+Time in iteration 6 : 53.020861864089966
+Time in error computation 4.689388036727905
+Relative error in observed entries:  0.5600052224089216
+Relative test error after 6  iterations:  1.0262245950474322
+-----------------
+Iteration 7 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 26.873257398605347
+Time in reconstruction computation 26.17594337463379
+Time in QR factor computation 0.013634443283081055
+Time in iteration 7 : 53.0832097530365
+Time in error computation 4.7594687938690186
+Relative error in observed entries:  0.47590437912001543
+Relative test error after 7  iterations:  0.84195099375771
+-----------------
+Iteration 8 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.145671606063843
+Time in reconstruction computation 26.05334973335266
+Time in QR factor computation 0.012104272842407227
+Time in iteration 8 : 53.23074698448181
+Time in error computation 4.742324113845825
+Relative error in observed entries:  0.3720622779992114
+Relative test error after 8  iterations:  0.6452066439032181
+-----------------
+Iteration 9 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.14476728439331
+Time in reconstruction computation 26.014907360076904
+Time in QR factor computation 0.013277769088745117
+Time in iteration 9 : 53.19250774383545
+Time in error computation 4.722728252410889
+Relative error in observed entries:  0.26923808139887534
+Relative test error after 9  iterations:  0.4771034882257386
+-----------------
+Iteration 10 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.0940945148468
+Time in reconstruction computation 26.140531063079834
+Time in QR factor computation 0.012463808059692383
+Time in iteration 10 : 53.26662540435791
+Time in error computation 4.723311901092529
+Relative error in observed entries:  0.18816873526986705
+Relative test error after 10  iterations:  0.3563952572991392
+-----------------
+Iteration 11 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.02927827835083
+Time in reconstruction computation 26.03156852722168
+Time in QR factor computation 0.012933015823364258
+Time in iteration 11 : 53.09357166290283
+Time in error computation 4.709386587142944
+Relative error in observed entries:  0.13468086154522946
+Relative test error after 11  iterations:  0.27748152825495925
+-----------------
+Iteration 12 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.202242851257324
+Time in reconstruction computation 25.942251920700073
+Time in QR factor computation 0.011055946350097656
+Time in iteration 12 : 53.174962282180786
+Time in error computation 4.821217060089111
+Relative error in observed entries:  0.10256618805183702
+Relative test error after 12  iterations:  0.22964209631488458
+-----------------
+Iteration 13 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.53806710243225
+Time in reconstruction computation 26.17779779434204
+Time in QR factor computation 0.011553764343261719
+Time in iteration 13 : 53.746896505355835
+Time in error computation 4.743704319000244
+Relative error in observed entries:  0.08145705119660467
+Relative test error after 13  iterations:  0.1980662189291711
+-----------------
+Iteration 14 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.40836811065674
+Time in reconstruction computation 26.152727127075195
+Time in QR factor computation 0.012646675109863281
+Time in iteration 14 : 53.59308052062988
+Time in error computation 4.712878942489624
+Relative error in observed entries:  0.06713423767303098
+Relative test error after 14  iterations:  0.17587993486591785
+-----------------
+Iteration 15 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.532191514968872
+Time in reconstruction computation 26.07261037826538
+Time in QR factor computation 0.011400938034057617
+Time in iteration 15 : 53.6354124546051
+Time in error computation 4.859633445739746
+Relative error in observed entries:  0.057147653201760705
+Relative test error after 15  iterations:  0.1597888846806199
+-----------------
+Iteration 16 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.32825517654419
+Time in reconstruction computation 26.18657088279724
+Time in QR factor computation 0.011611700057983398
+Time in iteration 16 : 53.54583120346069
+Time in error computation 4.717782974243164
+Relative error in observed entries:  0.05000730606013373
+Relative test error after 16  iterations:  0.14798823077575599
+-----------------
+Iteration 17 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.30109214782715
+Time in reconstruction computation 26.157140016555786
+Time in QR factor computation 0.011166572570800781
+Time in iteration 17 : 53.48907232284546
+Time in error computation 4.802190780639648
+Relative error in observed entries:  0.044622050466542516
+Relative test error after 17  iterations:  0.13882693393022924
+-----------------
+Iteration 18 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.468241930007935
+Time in reconstruction computation 25.97391629219055
+Time in QR factor computation 0.012627601623535156
+Time in iteration 18 : 53.474334955215454
+Time in error computation 4.8284571170806885
+Relative error in observed entries:  0.04036103152067279
+Relative test error after 18  iterations:  0.1314845224313768
+-----------------
+Iteration 19 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 26.900577783584595
+Time in reconstruction computation 26.137235641479492
+Time in QR factor computation 0.012367963790893555
+Time in iteration 19 : 53.06967902183533
+Time in error computation 4.715162754058838
+Relative error in observed entries:  0.03687033389323865
+Relative test error after 19  iterations:  0.12522803220360657
+-----------------
+Iteration 20 / 20
+At level:  0
+At level:  1
+At level:  2
+At level:  3
+At level:  4
+At level:  5
+At level:  6
+At level:  7
+At level:  8
+At level:  9
+At level:  10
+Time in gradient computation 27.130640029907227
+Time in reconstruction computation 26.002837657928467
+Time in QR factor computation 0.011168241500854492
+Time in iteration 20 : 53.163899421691895
+Time in error computation 4.827915668487549
+Relative error in observed entries:  0.03400886716109872
+Relative test error after 20  iterations:  0.1200413187528267
+-----------------
+--time for tensor train completion 1163.4925637245178

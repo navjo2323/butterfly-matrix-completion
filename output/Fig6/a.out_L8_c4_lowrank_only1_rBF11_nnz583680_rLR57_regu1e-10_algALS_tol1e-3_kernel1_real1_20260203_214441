@@ -1,0 +1,74 @@
+ranks for butterfly completion are  [4, 8, 9, 9, 9]
+Testing real-valued Green function
+matrix shape is 1024
+nnz is 583680
+ratio of nonzeros is 0.556640625
+--time in creating indices: 0.4993565082550049
+Generating Greens kernel with ppw 10
+Number per dim is 32
+Generating Greens kernel with ppw 10
+Number per dim is 32
+--time in entry generation: 0.693084716796875
+--matrix completion rank: [57]
+--time in index conversion: 1.664881944656372
+--time to generate inputs for matrix completion 0.0007083415985107422
+------------------matrix completion----------------------------
+Number of observed entries: 583680
+Iteration 1 / 10
+At level:  0
+At level:  1
+Time in iteration 1 : 1.2885935306549072
+Time in error computation 0.24512958526611328
+Relative error in observed entries:  0.4731659306643237
+Relative test error after 1  iterations:  0.510177149065907
+-----------------
+Iteration 2 / 10
+At level:  0
+At level:  1
+Time in iteration 2 : 0.7736291885375977
+Time in error computation 0.24268579483032227
+Relative error in observed entries:  0.04325059017759782
+Relative test error after 2  iterations:  0.05021571895348994
+-----------------
+Iteration 3 / 10
+At level:  0
+At level:  1
+Time in iteration 3 : 0.8074381351470947
+Time in error computation 0.24699759483337402
+Relative error in observed entries:  0.007488349035967483
+Relative test error after 3  iterations:  0.010305865663527503
+-----------------
+Iteration 4 / 10
+At level:  0
+At level:  1
+Time in iteration 4 : 0.837191104888916
+Time in error computation 0.24158334732055664
+Relative error in observed entries:  0.0025756716649770867
+Relative test error after 4  iterations:  0.004531412720354141
+-----------------
+Iteration 5 / 10
+At level:  0
+At level:  1
+Time in iteration 5 : 0.8336787223815918
+Time in error computation 0.24728894233703613
+Relative error in observed entries:  0.0014603227526597748
+Relative test error after 5  iterations:  0.003056859611664966
+-----------------
+Iteration 6 / 10
+At level:  0
+At level:  1
+Time in iteration 6 : 0.8259291648864746
+Time in error computation 0.24460124969482422
+Relative error in observed entries:  0.0010625387930793592
+Relative test error after 6  iterations:  0.002255955701932758
+-----------------
+Iteration 7 / 10
+At level:  0
+At level:  1
+Time in iteration 7 : 0.8322491645812988
+Time in error computation 0.24355506896972656
+Relative error in observed entries:  0.000873036923187873
+Relative test error after 7  iterations:  0.001732814646043059
+-----------------
+converged
+--time for matrix completion 7.911207914352417
