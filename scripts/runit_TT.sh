@@ -30,17 +30,18 @@ cp -- "$rootdir/$exe" $pyfile
 
 
 # ── 1. declare the values you want ────────────────────────────────────────────
-alg='ADAM'
-regu=1e-9
+alg='ADF'
+regu=0
 r_LR=13
-start=380 # defining QTT ranks
-nnz_qtt='start*I'
+start=100 # defining QTT ranks
+nnz_qtt='16*start**2*np.log2(I)'
 tol=1e-3
-L=8
+L=12
 c=4
-kernel=3 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
-real=0 # 1: real-valued kernels, 0: complex-valued kernels
+kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
+real=1 # 1: real-valued kernels, 0: complex-valued kernels
 num_iters=20
+get_true_rank=0
 # ─────────────────────────────────────────────────────────────────────────────
 
 # helper: update/insert one line  var = value   (comment preserved)
@@ -75,6 +76,7 @@ update_py_var L      "$L"
 update_py_var c "$c"
 update_py_var kernel        "$kernel"
 update_py_var num_iters        "$num_iters"
+update_py_var get_true_rank        "$get_true_rank"
 update_py_var real        "$real"
 
 logname=a.out_L${L}_c${c}_rTT${start}_nnz${nnz_qtt}_rLR${r_LR}_regu${regu}_alg${alg}_tol${tol}_kernel${kernel}_real${real}
