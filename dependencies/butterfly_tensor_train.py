@@ -7,6 +7,12 @@ import logging
 import psutil
 # do pip install psutil if not already installed
 
+
+import numba
+from numba import njit, prange
+from numba.typed import List as NumbaList
+import time
+
 def gen_tensor_train_list(L, c, ranks, rng, real=1):
     if(real==1):
         # Generate the initial tensor 
@@ -291,6 +297,7 @@ def sort_inds_and_T(tuples, T, k = None):
     """
     Sorts a numpy array of tuples according to kth index as above
     if k is not given, do the sort lexicographically
+    THIS IS STABLE
     """
     if k is None:
         sorted_indices = np.lexsort(np.fliplr(tuples).T)
@@ -1486,46 +1493,6 @@ def ADAM_butterfly(T_sparse, inds, T_test, inds_test, L, tensor_lst,
 
 
 
-def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu, no_batch_lr=False):
-    if(L==0):
-        print('------------------matrix completion----------------------------')
-    else:
-        print('------------------butterfly/ tensor train completion----------------------------')
-    nnz = len(inds)
-    print("Number of observed entries:",nnz)
-    
-    errors = []
-    for iters in range(num_iters):
-        s = time.time()
-        print("Iteration", iters+1,"/",num_iters)
-
-        for level in range(L+2):
-            print('At level: ',level)
-            tensor_lst = tensor_train_ALS_solve(T_sparse, inds, tensor_lst, level, L, regu=regu, no_batch_lr=no_batch_lr)
-        
-        e = time.time()
-        print('Time in iteration', iters+1 ,':', e-s)
-        
-        s= time.time()
-        #error = la.norm(T_sparse - compute_sparse_butterfly(inds, tensor_lst, L)) / la.norm(T_sparse)
-        error = compute_error_sparse(T_sparse, inds, tensor_lst, L,no_batch_lr=no_batch_lr)
-        errors.append(error)
-        #test_error = la.norm(T_test - compute_sparse_butterfly(inds_test,tensor_lst,L)) / la.norm(T_test)
-        test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L,no_batch_lr=no_batch_lr)
-        e = time.time()
-        print('Time in error computation',e-s)
-        print('Relative error in observed entries: ',error)
-        print('Relative test error after', iters + 1,' iterations: ',test_error)
-        print('-----------------')
-        if iters + 1 >= 5 and error >= 3:
-            print('Overfitting or error not reducing, stopping iterations')
-            break
-        if error < tol:
-            print('converged')
-            break
-    
-    return tensor_lst
-
 
 
 
@@ -1533,7 +1500,7 @@ def butterfly_tensor_train_completer(T_sparse, inds, T_test, inds_test, L, tenso
     if(L==0):
         print('------------------matrix completion----------------------------')
     else:
-        print('------------------butterfly/ tensor train completion----------------------------')
+        print('------------------butterfly tensor train completion----------------------------')
     nnz = len(inds)
     print("Number of observed entries:",nnz)
     
@@ -1660,3 +1627,763 @@ def butterfly_ADF(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, t
             break
     
     return tensor_lst
+
+
+
+
+@njit
+def _compute_H_level0(inds, end_tensor, mid_tensors, L):
+    nnz = inds.shape[0]
+    if L == 0:
+        out_R = end_tensor.shape[1]
+    else:
+        out_R = mid_tensors[0].shape[1]
+
+    H = np.empty((nnz, out_R), dtype=end_tensor.dtype)
+
+    for row in range(nnz):
+        h = end_tensor[inds[row, L + 1]].copy()
+        for j in range(L, 0, -1):
+            M = np.ascontiguousarray(mid_tensors[j - 1][inds[row, j]])
+            h = np.dot(M, h)
+        H[row] = h
+
+    return H
+
+
+@njit
+def _compute_H_levelLp1(inds, start_tensor, mid_tensors, L):
+    nnz = inds.shape[0]
+    if L == 0:
+        out_R = start_tensor.shape[1]
+    else:
+        out_R = mid_tensors[L - 1].shape[2]
+
+    H = np.empty((nnz, out_R), dtype=start_tensor.dtype)
+
+    for row in range(nnz):
+        h = start_tensor[inds[row, 0]].copy()
+        for j in range(1, L + 1):
+            M = np.ascontiguousarray(mid_tensors[j - 1][inds[row, j]])
+            h = np.dot(h, M)
+        H[row] = h
+
+    return H
+
+
+@njit
+def _compute_H_middle(inds, start_tensor, end_tensor, mid_tensors, level, L):
+    nnz = inds.shape[0]
+
+    if level == 1:
+        R1 = start_tensor.shape[1]
+    else:
+        R1 = mid_tensors[level - 2].shape[2]
+
+    if level == L:
+        R2 = end_tensor.shape[1]
+    else:
+        R2 = mid_tensors[level].shape[1]
+
+    row_shape = R1 * R2
+    H = np.empty((nnz, row_shape), dtype=start_tensor.dtype)
+
+    for row in range(nnz):
+        h1 = start_tensor[inds[row, 0]].copy()
+        for j in range(1, level):
+            M = np.ascontiguousarray(mid_tensors[j - 1][inds[row, j]])
+            h1 = np.dot(h1, M)
+
+        h2 = end_tensor[inds[row, L + 1]].copy()
+        for j in range(L, level, -1):
+            M = np.ascontiguousarray(mid_tensors[j - 1][inds[row, j]])
+            h2 = np.dot(M, h2)
+
+        H[row] = np.outer(h1, h2).ravel()
+
+    return H
+
+
+@njit
+def _reconstruct_all(inds, start_tensor, end_tensor, mid_tensors, L):
+    nnz = inds.shape[0]
+    recon = np.empty(nnz, dtype=start_tensor.dtype)
+
+    for row in range(nnz):
+        h = start_tensor[inds[row, 0]].copy()
+        for j in range(1, L + 1):
+            M = np.ascontiguousarray(mid_tensors[j - 1][inds[row, j]])
+            h = np.dot(h, M)
+        recon[row] = np.dot(h, end_tensor[inds[row, L + 1]])
+
+    return recon
+
+
+
+
+
+def _make_mid_list(tensor_lst, L):
+    """Build a numba typed list of the middle tensors."""
+    if L == 0:
+        dtype = tensor_lst[0].dtype
+        nb_dtype = numba.from_dtype(dtype)
+        mid = NumbaList.empty_list(
+            item_type=nb_dtype[:, :, :]
+        )
+    else:
+        mid = NumbaList()
+        for i in range(1, L + 1):
+            mid.append(np.ascontiguousarray(tensor_lst[i]))
+    return mid
+
+
+class FastTTComputer:
+    def __init__(self, tensor_lst, L):
+        self.L = L
+        self._set_tensors(tensor_lst)
+        self._warmup()
+
+    def _set_tensors(self, tensor_lst):
+        self.tensor_lst = tensor_lst
+        self.start_tensor = np.ascontiguousarray(tensor_lst[0])
+        self.end_tensor = np.ascontiguousarray(tensor_lst[self.L + 1])
+        self.mid_tensors = _make_mid_list(tensor_lst, self.L)
+
+    def _warmup(self):
+        dummy = np.zeros((1, self.L + 2), dtype=np.int64)
+
+        _ = _compute_H_level0(dummy, self.end_tensor, self.mid_tensors, self.L)
+        _ = _compute_H_levelLp1(dummy, self.start_tensor, self.mid_tensors, self.L)
+        if self.L > 0:
+            _ = _compute_H_middle(dummy, self.start_tensor, self.end_tensor,
+                                  self.mid_tensors, 1, self.L)
+        _ = _reconstruct_all(dummy, self.start_tensor, self.end_tensor,
+                             self.mid_tensors, self.L)
+
+    def update_tensor(self, level, new_tensor):
+        new_tensor = np.ascontiguousarray(new_tensor)
+        self.tensor_lst[level] = new_tensor
+
+        if level == 0:
+            self.start_tensor = new_tensor
+        elif level == self.L + 1:
+            self.end_tensor = new_tensor
+        else:
+            self.mid_tensors[level - 1] = new_tensor
+
+    def _compute_H_single(self, inds, level):
+        if level == 0:
+            return _compute_H_level0(inds, self.end_tensor, self.mid_tensors, self.L)
+        elif level == self.L + 1:
+            return _compute_H_levelLp1(inds, self.start_tensor, self.mid_tensors, self.L)
+        else:
+            return _compute_H_middle(inds, self.start_tensor, self.end_tensor,
+                                     self.mid_tensors, level, self.L)
+
+    def compute_H(self, inds, level, batch_size=None):
+        inds = np.ascontiguousarray(inds.astype(np.int64))
+
+        if batch_size is None or len(inds) <= batch_size:
+            return self._compute_H_single(inds, level)
+
+        H_list = []
+        for start in range(0, len(inds), batch_size):
+            end = min(start + batch_size, len(inds))
+            inds_batch = np.ascontiguousarray(inds[start:end])
+            H_list.append(self._compute_H_single(inds_batch, level))
+
+        return np.vstack(H_list)
+
+    def reconstruct(self, inds, batch_size=None):
+        inds = np.ascontiguousarray(inds.astype(np.int64))
+
+        if batch_size is None or len(inds) <= batch_size:
+            return _reconstruct_all(inds, self.start_tensor, self.end_tensor,
+                                    self.mid_tensors, self.L)
+
+        recon_list = []
+        for start in range(0, len(inds), batch_size):
+            end = min(start + batch_size, len(inds))
+            inds_batch = np.ascontiguousarray(inds[start:end])
+            recon_list.append(_reconstruct_all(inds_batch, self.start_tensor,
+                                               self.end_tensor,
+                                               self.mid_tensors, self.L))
+
+        return np.concatenate(recon_list)
+
+
+def sort_inds_and_T_short(inds, T, level):
+    """Sort indices and T values by the level column."""
+    sort_idx = np.argsort(inds[:, level])
+    return inds[sort_idx], T[sort_idx]
+
+
+import psutil
+
+def get_available_memory(fraction=0.7):
+    """Get available memory in bytes, using only a fraction to be safe."""
+    return int(psutil.virtual_memory().available * fraction)
+
+
+def compute_batch_size(nnz, row_shape, dtype=np.float64, min_batch=1000, max_batch=500000):
+    """
+    Compute batch size based on available memory.
+    
+    Returns None if full H fits in memory, otherwise returns batch size.
+    """
+    itemsize = np.dtype(dtype).itemsize
+    full_H_bytes = nnz * row_shape * itemsize
+    available = get_available_memory(fraction=0.7)
+    
+    # If full H fits with 2x headroom, use full memory mode
+    if full_H_bytes * 2 < available:
+        return None
+    
+    # Otherwise compute batch size
+    # Each batch needs: H_batch (batch_size x row_shape) + intermediate for H^T @ H
+    bytes_per_row = row_shape * itemsize * 3  # 3x for safety
+    batch_size = available // bytes_per_row
+    
+    return int(np.clip(batch_size, min_batch, max_batch))
+
+
+def get_row_shape(tensor_lst, level, L):
+    """Get the row shape for H at a given level."""
+    if level == 0 or level == L + 1:
+        return tensor_lst[level].shape[-1]
+    else:
+        return np.prod(tensor_lst[level].shape[1:])
+
+
+def tensor_train_ALS_solve_fast(T, inds, tensor_lst, level, L, regu, computer):
+    """
+    ALS solve with automatic batching based on available memory.
+    
+    Logic:
+    1. Compute how much memory full H matrix would need: nnz * row_shape * 8 bytes
+    2. Check available RAM
+    3. If full H fits with 2x headroom -> compute all at once (fast)
+    4. Otherwise -> accumulate H^T H and H^T b in batches (low memory)
+    """
+    row_shape = get_row_shape(tensor_lst, level, L)
+    I = regu * np.eye(row_shape, dtype=tensor_lst[level].dtype)
+    
+    sorted_tuples, T_new = sort_inds_and_T_short(inds, T, level)
+    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index=True, return_counts=True)
+    num_unqs = len(unqs)
+    
+    # Auto-determine batch size
+    batch_size = compute_batch_size(len(sorted_tuples), row_shape, dtype=T_new.dtype)
+    
+    if batch_size is None:
+        # FULL MEMORY MODE: compute entire H matrix at once
+        # Fast because we do one big matrix multiply
+        H_all = computer.compute_H(sorted_tuples, level)
+        
+        LHS = np.empty((num_unqs, row_shape, row_shape), dtype=T_new.dtype)
+        RHS = np.empty((num_unqs, row_shape), dtype=T_new.dtype)
+        
+        for i in range(num_unqs):
+            H = H_all[starts[i]:starts[i] + counts[i]]
+            LHS[i] = H.conj().T @ H + I
+            RHS[i] = T_new[starts[i]:starts[i] + counts[i]] @ H.conj()
+    else:
+        # BATCHED MODE: for each k, accumulate H^T H and H^T b in chunks
+        # Never allocates full H, only H_batch of size (batch_size x row_shape)
+        print(f"    [batched mode: batch_size={batch_size}]")
+        
+        LHS = np.empty((num_unqs, row_shape, row_shape), dtype=T_new.dtype)
+        RHS = np.empty((num_unqs, row_shape), dtype=T_new.dtype)
+        
+        for i in range(num_unqs):
+            start_k = starts[i]
+            count_k = counts[i]
+            
+            # Accumulate normal equations: (H^T H) x = H^T b
+            HtH = np.zeros((row_shape, row_shape), dtype=T_new.dtype)
+            Htb = np.zeros(row_shape, dtype=T_new.dtype)
+            
+            for batch_start in range(0, count_k, batch_size):
+                batch_end = min(batch_start + batch_size, count_k)
+                
+                inds_batch = np.ascontiguousarray(
+                    sorted_tuples[start_k + batch_start:start_k + batch_end].astype(np.int64)
+                )
+                b_batch = T_new[start_k + batch_start:start_k + batch_end]
+                
+                H_batch = computer._compute_H_single(inds_batch, level)
+                
+                # Accumulate: H^T H += H_batch^T @ H_batch
+                #             H^T b += H_batch^T @ b_batch
+                HtH += H_batch.conj().T @ H_batch
+                Htb += H_batch.conj().T @ b_batch
+            
+            LHS[i] = HtH + I
+            RHS[i] = Htb
+    
+    result = la.solve(LHS, RHS)
+    
+    if level == 0 or level == L + 1:
+        tensor_lst[level][unqs] = result
+    else:
+        tensor_lst[level][unqs] = result.reshape((num_unqs,) + tensor_lst[level].shape[1:])
+    
+    computer.update_tensor(level, tensor_lst[level])
+    return tensor_lst
+
+
+def tensor_train_gradient_fast(tensor, inds, tensor_lst, level, L, regu, computer):
+    """
+    Gradient computation using FastTTComputer with automatic batching.
+    
+    Logic mirrors tensor_train_ALS_solve_fast:
+    1. If full H fits in memory -> compute all at once
+    2. Otherwise -> batch over rows and accumulate H^T b
+    """
+    row_shape = get_row_shape(tensor_lst, level, L)
+    
+    sorted_tuples, T_new = sort_inds_and_T_short(inds, tensor, level)
+    unqs, starts, counts = np.unique(sorted_tuples[:, level], return_index=True, return_counts=True)
+    num_unqs = len(unqs)
+    
+    grad_shape = (num_unqs,) + tensor_lst[level].shape[1:]
+    
+    batch_size = compute_batch_size(len(sorted_tuples), row_shape, dtype=T_new.dtype)
+    
+    if batch_size is None:
+        # FULL MEMORY MODE
+        H_all = computer.compute_H(sorted_tuples, level)
+        
+        neg_grad_flat = np.empty((num_unqs, row_shape), dtype=T_new.dtype)
+        for i in range(num_unqs):
+            H = H_all[starts[i]:starts[i] + counts[i]]
+            neg_grad_flat[i] = T_new[starts[i]:starts[i] + counts[i]] @ H.conj()
+        
+        neg_grad = neg_grad_flat.reshape(grad_shape)
+    else:
+        # BATCHED MODE
+        print(f"    [gradient batched mode: batch_size={batch_size}]")
+        
+        neg_grad_flat = np.empty((num_unqs, row_shape), dtype=T_new.dtype)
+        
+        for i in range(num_unqs):
+            start_k = starts[i]
+            count_k = counts[i]
+            
+            Htb = np.zeros(row_shape, dtype=T_new.dtype)
+            
+            for batch_start in range(0, count_k, batch_size):
+                batch_end = min(batch_start + batch_size, count_k)
+                
+                inds_batch = np.ascontiguousarray(
+                    sorted_tuples[start_k + batch_start:start_k + batch_end].astype(np.int64)
+                )
+                b_batch = T_new[start_k + batch_start:start_k + batch_end]
+                
+                H_batch = computer._compute_H_single(inds_batch, level)
+                
+                Htb += b_batch @ H_batch.conj()
+            
+            neg_grad_flat[i] = Htb
+        
+        neg_grad = neg_grad_flat.reshape(grad_shape)
+    
+    neg_grad -= regu * tensor_lst[level][unqs]
+    
+    return neg_grad, unqs
+
+
+def compute_error_sparse_fast(T, inds, tensor_lst, L, computer, returnmore=None):
+    """Compute reconstruction error. Auto-batches if needed."""
+    sorted_tuples, T_new = sort_inds_and_T_short(inds, T, 0)
+    
+    # Check if reconstruction fits in memory
+    recon_bytes = len(sorted_tuples) * np.dtype(T_new.dtype).itemsize * 3
+    available = get_available_memory(fraction=0.5)
+    
+    if recon_bytes < available:
+        batch_size = None
+    else:
+        batch_size = int(available // (np.dtype(T_new.dtype).itemsize * 3))
+        batch_size = max(1000, min(batch_size, 500000))
+    
+    recon = computer.reconstruct(sorted_tuples, batch_size=batch_size)
+    error = la.norm(T_new - recon) / la.norm(T_new)
+    
+    if returnmore is not None:
+        return error, sorted_tuples, recon
+    return error
+
+
+def butterfly_tensor_train_completion_v2(T_sparse, inds, T_test, inds_test, L, tensor_lst, 
+                                            num_iters, tol, regu):
+    """
+    Tensor train completion with automatic memory management.
+    
+    Memory strategy:
+    - Checks available RAM before each level
+    - If full H matrix fits: compute all at once (faster)
+    - If not: accumulate H^T H and H^T b in batches (uses less memory)
+    
+    This is mathematically equivalent - batching just splits:
+        H^T H = sum_i (H_i^T H_i)
+        H^T b = sum_i (H_i^T b_i)
+    """
+    if L == 0:
+        print('------------------matrix completion----------------------------')
+    else:
+        print('------------------butterfly tensor train completion----------------------------')
+    
+    nnz = len(inds)
+    print(f"Number of observed entries: {nnz}")
+    print(f"Available memory: {get_available_memory()/1e9:.2f} GB")
+    
+    print("Initializing Numba (first call compiles)...")
+    computer = FastTTComputer(tensor_lst, L)
+    print("Done.")
+
+    errors = []
+    for iters in range(num_iters):
+        s = time.time()
+        print("Iteration", iters + 1, "/", num_iters)
+        
+        for level in range(L + 2):
+            print(f'  Level {level}', end='')
+            tensor_lst = tensor_train_ALS_solve_fast(
+                T_sparse, inds, tensor_lst, level, L, regu, computer
+            )
+            print()
+        
+        e = time.time()
+        print('Time in iteration', iters + 1, ':', e - s)
+        
+        s = time.time()
+        error = compute_error_sparse_fast(T_sparse, inds, tensor_lst, L, computer)
+        errors.append(error)
+        test_error = compute_error_sparse_fast(T_test, inds_test, tensor_lst, L, computer)
+        e = time.time()
+        
+        print('Time in error computation', e - s)
+        print('Relative error in observed entries:', error)
+        print('Relative test error after', iters + 1, 'iterations:', test_error)
+        print('-----------------')
+        
+        if iters + 1 >= 5 and error >= 3:
+            print('Overfitting or error not reducing, stopping iterations')
+            break
+        if error < tol:
+            print('converged')
+            break
+    
+    return tensor_lst
+
+
+def butterfly_ADF_v2(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu=0, no_batch_lr=False):
+    print('------------------Butterfly ADF----------------------------')
+    errors = []
+    inds,  T_sparse = sort_inds_and_T_short(inds,  T_sparse, 0)
+    unqs, starts, counts = np.unique(inds[:, 0], return_index = True, return_counts = True)
+    inds_tups = [inds[starts[i]: starts[i] + counts[i]] for i in range(len(unqs))]
+    nnz = len(T_sparse)
+    print("Number of observed entries:",nnz)
+    recon = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,tensor_lst,0, L)
+    grad_tensor = T_sparse - recon
+
+    s = time.time()
+    error = compute_error_sparse(T_sparse, inds, tensor_lst, L)
+    errors.append(error)
+    test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L)
+    e = time.time()
+    print('Time in error computation',e-s)
+    print('Relative error in observed entries: ',error)
+
+
+    for iters in range(num_iters):
+        print("Iteration", iters+1,"/",num_iters)
+        #Since we are going to start from 0 , we will orthogonalize all factors wrt first, i.e., absorb all weight into first
+        tensor_lst = orthogonalize_sweep(tensor_lst, L, 0)
+        grad_time = 0
+        recon_time = 0
+        factor_time = 0
+        s = time.time()
+        for level in range(len(tensor_lst)):
+            print('At level: ',level)
+            s_grad = time.time()
+            N = tensor_train_gradient(grad_tensor, inds, tensor_lst, level, L, regu) # N as used in paper algo 5
+            e_grad = time.time()
+            
+            grad_time += e_grad - s_grad
+
+            new_lst = [t.copy() for t in tensor_lst] 
+            new_lst[level] = N.copy()
+
+            s_recon_time = time.time()
+            Z = reconstruct_sparse_butterfly(unqs, starts, counts, nnz, inds_tups,new_lst,0, L) # paper algo 5
+            e_recon_time = time.time()
+
+            recon_time += e_recon_time - s_recon_time
+
+            delta_fac, delta_grad = Update_fac_and_grad(N, Z, inds, level, L)
+            # alpha = la.norm(N)**2 / (la.norm(Z))**2 # We may need to change alpha for each slice in the level
+            # delta_fac = alpha*N
+            # delta_grad = alpha*Z    
+
+            tensor_lst[level] += delta_fac
+            grad_tensor -= delta_grad
+
+
+            # Now we have to orthogonalize wrt the next level
+            # This only requires one orthogonalization
+            s_factor = time.time()
+            if level != len(tensor_lst)-1:
+                output, R_fac = qr_factor_flat(tensor_lst[level], L, level, 0)
+                tensor_lst[level] = output
+                tensor_lst[level+1] = absorb_R(R_fac, tensor_lst[level+1], L, level, 0)
+            e_factor = time.time()
+
+            factor_time += e_factor - s_factor
+        
+        e = time.time()
+            
+
+        print('Time in gradient computation', grad_time)
+        print('Time in reconstruction computation', recon_time)
+        print('Time in QR factor computation', factor_time)
+        print('Time in iteration', iters+1 ,':', e-s)
+        s= time.time()
+        # Same arguments here as above
+        error = compute_error_sparse(T_sparse, inds, tensor_lst, L)
+        errors.append(error)
+        test_error = compute_error_sparse(T_test, inds_test, tensor_lst, L)
+        e = time.time()
+        print('Time in error computation',e-s)
+        print('Relative error in observed entries: ',error)
+        print('Relative test error after', iters + 1,' iterations: ',test_error)
+        print('-----------------')
+        if iters + 1 >= 5 and error >= 3:
+            print('Overfitting or error not reducing, stopping iterations')
+            break
+        if error < tol:
+            print('converged')
+            break
+    
+    return tensor_lst
+
+
+def butterfly_ADF_v2(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters, tol, regu=0):
+    print('------------------Butterfly ADF----------------------------')
+    
+    nnz = len(T_sparse)
+    print(f"Number of observed entries: {nnz}")
+    print(f"Available memory: {get_available_memory()/1e9:.2f} GB")
+    
+    print("Initializing Numba (first call compiles)...")
+    computer = FastTTComputer(tensor_lst, L)
+    print("Done.")
+    
+    errors = []
+    
+    # Initial reconstruction and residual
+    recon = computer.reconstruct(np.ascontiguousarray(inds.astype(np.int64)))
+    grad_tensor = T_sparse - recon
+    
+    s = time.time()
+    error = compute_error_sparse_fast(T_sparse, inds, tensor_lst, L, computer)
+    errors.append(error)
+    test_error = compute_error_sparse_fast(T_test, inds_test, tensor_lst, L, computer)
+    e = time.time()
+    print('Time in error computation', e - s)
+    print('Relative error in observed entries:', error)
+    
+    for iters in range(num_iters):
+        print("Iteration", iters + 1, "/", num_iters)
+        
+        # Orthogonalize all factors wrt first
+        tensor_lst = orthogonalize_sweep(tensor_lst, L, 0)
+        computer._set_tensors(tensor_lst)
+        
+        # Recompute residual after orthogonalization (tensors changed)
+        recon = computer.reconstruct(np.ascontiguousarray(inds.astype(np.int64)))
+        grad_tensor = T_sparse - recon
+        
+        grad_time = 0
+        recon_time = 0
+        factor_time = 0
+        s = time.time()
+        
+        for level in range(len(tensor_lst)):
+            print(f'  Level {level}', end='')
+            
+            s_grad = time.time()
+            N, unqs = tensor_train_gradient_fast(grad_tensor, inds, tensor_lst, level, L, regu, computer)
+            e_grad = time.time()
+            grad_time += e_grad - s_grad
+            
+            # Build full N tensor (scatter unqs back)
+            N_full = np.zeros_like(tensor_lst[level])
+            N_full[unqs] = N
+            
+            new_lst = [t.copy() for t in tensor_lst]
+            new_lst[level] = N_full.copy()
+            
+            # Reconstruct Z using a temporary computer
+            s_recon_time = time.time()
+            temp_computer = FastTTComputer.__new__(FastTTComputer)
+            temp_computer.L = L
+            temp_computer.tensor_lst = new_lst
+            temp_computer.start_tensor = np.ascontiguousarray(new_lst[0])
+            temp_computer.end_tensor = np.ascontiguousarray(new_lst[L + 1])
+            temp_computer.mid_tensors = _make_mid_list(new_lst, L)
+            
+            Z = temp_computer.reconstruct(np.ascontiguousarray(inds.astype(np.int64)))
+            e_recon_time = time.time()
+            recon_time += e_recon_time - s_recon_time
+            
+            delta_fac, delta_grad = Update_fac_and_grad(N_full, Z, inds, level, L)
+            
+            tensor_lst[level] += delta_fac
+            grad_tensor -= delta_grad
+            
+            # Update computer with modified tensor
+            computer.update_tensor(level, tensor_lst[level])
+            
+            # QR orthogonalization
+            s_factor = time.time()
+            if level != len(tensor_lst) - 1:
+                output, R_fac = qr_factor_flat(tensor_lst[level], L, level, 0)
+                tensor_lst[level] = output
+                tensor_lst[level + 1] = absorb_R(R_fac, tensor_lst[level + 1], L, level, 0)
+                computer.update_tensor(level, tensor_lst[level])
+                computer.update_tensor(level + 1, tensor_lst[level + 1])
+            e_factor = time.time()
+            factor_time += e_factor - s_factor
+            
+            print()
+        
+        e = time.time()
+        
+        print('Time in gradient computation', grad_time)
+        print('Time in reconstruction computation', recon_time)
+        print('Time in QR factor computation', factor_time)
+        print('Time in iteration', iters + 1, ':', e - s)
+        
+        s = time.time()
+        error = compute_error_sparse_fast(T_sparse, inds, tensor_lst, L, computer)
+        errors.append(error)
+        test_error = compute_error_sparse_fast(T_test, inds_test, tensor_lst, L, computer)
+        e = time.time()
+        
+        print('Time in error computation', e - s)
+        print('Relative error in observed entries:', error)
+        print('Relative test error after', iters + 1, 'iterations:', test_error)
+        print('-----------------')
+        
+        if iters + 1 >= 5 and error >= 3:
+            print('Overfitting or error not reducing, stopping iterations')
+            break
+        if error < tol:
+            print('converged')
+            break
+    
+    return tensor_lst
+
+
+def ADAM_butterfly_v2(T_sparse, inds, T_test, inds_test, L, tensor_lst,
+                      regu=1e-9, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=100, tol=1e-6):
+    """
+    Memory-optimized ADAM optimizer for butterfly factorization.
+    Uses FastTTComputer for accelerated gradient and reconstruction.
+    """
+    print('------------------Butterfly ADAM----------------------------')
+
+    nnz = len(T_sparse)
+    print(f"Number of observed entries: {nnz}")
+    print(f"Available memory: {get_available_memory()/1e9:.2f} GB")
+
+    print("Initializing Numba (first call compiles)...")
+    computer = FastTTComputer(tensor_lst, L)
+    print("Done.")
+
+    m = [np.zeros_like(x) for x in tensor_lst]
+    v = [np.zeros_like(x) for x in tensor_lst]
+    errors = []
+
+    inds_i64 = np.ascontiguousarray(inds.astype(np.int64))
+
+    # Precompute bias correction terms
+    bias1 = 1.0
+    bias2 = 1.0
+
+    for t in range(1, max_iter + 1):
+        print(f"Iteration {t} / {max_iter}")
+
+        recon = computer.reconstruct(inds_i64)
+        residual = T_sparse - recon
+        del recon
+
+        s = time.time()
+
+        # Update bias correction terms
+        bias1 *= beta1
+        bias2 *= beta2
+        lr_t = lr * np.sqrt(1 - bias2) / (1 - bias1)
+
+        max_grad_norm = 0.0
+
+        for level in range(len(tensor_lst)):
+            print(f'  Level {level}', end='')
+
+            g_partial, unqs = tensor_train_gradient_fast(residual, inds, tensor_lst, level, L, regu, computer)
+
+            # Scatter into full gradient
+            g = np.zeros_like(tensor_lst[level])
+            g[unqs] = g_partial
+
+            # Track gradient norm for convergence
+            g_norm = np.linalg.norm(g)
+            max_grad_norm = max(max_grad_norm, g_norm)
+
+            # Update moments in-place
+            m[level] *= beta1
+            m[level] += (1 - beta1) * g
+
+            v[level] *= beta2
+            if np.iscomplexobj(g):
+                v[level] += (1 - beta2) * (g * np.conj(g)).real
+            else:
+                v[level] += (1 - beta2) * (g ** 2)
+
+            # Update parameters in-place
+            tensor_lst[level] += lr_t * m[level] / (np.sqrt(v[level]) + epsilon)
+
+            # Update computer with modified tensor
+            computer.update_tensor(level, tensor_lst[level])
+
+            del g
+            print()
+
+        del residual
+
+        e = time.time()
+        grad_time = e - s
+        print('Time in gradient computation', grad_time)
+
+        # Check convergence
+        if max_grad_norm < tol:
+            print(f"Converged in {t} iterations.")
+            return tensor_lst, errors
+
+        s1 = time.time()
+        error = compute_error_sparse_fast(T_sparse, inds, tensor_lst, L, computer)
+        errors.append(error)
+        test_error = compute_error_sparse_fast(T_test, inds_test, tensor_lst, L, computer)
+        e1 = time.time()
+
+        print('Time in error computation', e1 - s1)
+        print('Total time in iteration', t, ':', grad_time)
+        print('Relative error in observed entries:', error)
+        print('Relative test error after', t, 'iterations:', test_error)
+        print('-----------------')
+
+    print("Maximum iterations reached without convergence.")
+    return tensor_lst, errors

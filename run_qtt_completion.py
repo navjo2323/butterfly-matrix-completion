@@ -4,6 +4,7 @@ from dependencies.butterfly_helper_functions import index_convert, gen_tensor_in
 from dependencies.butterfly_decomposition import butterfly_decompose_low_rank
 from tensor_train_decomp import tensor_train_decomposition_low, tensor_train_decomposition, tensor_train_truerank, convert_matrix_to_QTT_indices, tensor_train_completion, ADAM_tensor_train
 from tensor_train_decomp import tensor_train_ADF
+from tensor_train_decomp import ADAM_tensor_train_v2, tensor_train_ADF_v2, tensor_train_completion_v2
 from dependencies.kdtree_ordering import generate_kd_tree
 import time
 import math
@@ -295,8 +296,8 @@ lc = int(L/2)
 I = c*2**L
 J = c*2**L
 
-alg='ADAM' # 'ADF', 'ALS', 'ADAM'
-regu=1e-5
+alg='ADF' # 'ADF', 'ALS', 'ADAM'
+regu=1e-5 # Change this to get better accuracy?
 r_LR=13
 start=380 # defining QTT ranks
 ranks_lr = [r_LR] # 
@@ -393,7 +394,7 @@ print('--time to generate inputs for matrix completion',e-s)
 
 
 s = time.time()
-tensor_lst_lr = butterfly_tensor_train_completer(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4, no_batch_lr=True)
+tensor_lst_lr = butterfly_tensor_train_completion_v2(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4)
 left_mat = tensor_lst_lr[0]
 right_mat = tensor_lst_lr[1].conj()
 e = time.time()
@@ -447,11 +448,14 @@ print('--time for conversion of indices for tensor train completion',e-s)
 num_iters = 20
 s = time.time()
 if alg=='ADF':
-    tensor_lst = tensor_train_ADF(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
+    #tensor_lst = tensor_train_ADF(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
+    tensor_lst = tensor_train_ADF_v2(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
 elif alg=='ALS':
-    tensor_lst = tensor_train_completion(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
+    #tensor_lst = tensor_train_completion(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
+    tensor_lst = tensor_train_completion_v2(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
 elif alg=='ADAM':    
-    tensor_lst = ADAM_tensor_train(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, regu =regu, max_iter=num_iters, tol=tol)
+    #tensor_lst = ADAM_tensor_train(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, regu =regu, max_iter=num_iters, tol=tol)
+    tensor_lst = ADAM_tensor_train_v2(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, regu =regu, max_iter=num_iters, tol=tol)
 e = time.time()
 
 print('--time for tensor train completion',e-s)

@@ -5,6 +5,12 @@ from tensorly.decomposition import tensor_train as matrix_product_state
 import numpy.linalg as la
 import time
 from dependencies.butterfly_tensor_train import reconstruct_sparse_butterfly, tensor_train_ALS_solve, tensor_train_gradient, compute_error_sparse
+from dependencies.butterfly_tensor_train import (
+    FastTTComputer, _make_mid_list,
+    tensor_train_ALS_solve_fast, tensor_train_gradient_fast,
+    compute_error_sparse_fast, get_available_memory,
+    sort_inds_and_T_short
+)
 import scipy.linalg as sla
 
 import numpy as np
@@ -608,3 +614,290 @@ def tensor_train_ADF(T_sparse, inds, T_test, inds_test, L, tensor_lst, num_iters
 
 
 
+
+
+
+def tensor_train_completion_v2(T_sparse, inds, T_test, inds_test, L, tensor_lst,
+                                num_iters, tol, regu):
+    """
+    Tensor train completion using FastTTComputer.
+    QTT has L+1 factors (levels 0..L), butterfly uses L_b = L-1.
+    """
+    L_b = L - 1
+
+    if L == 0:
+        print('------------------matrix completion----------------------------')
+    else:
+        print('------------------tensor train completion----------------------------')
+
+    nnz = len(inds)
+    print(f"Number of observed entries: {nnz}")
+    print(f"Available memory: {get_available_memory()/1e9:.2f} GB")
+
+    print("Initializing Numba (first call compiles)...")
+    computer = FastTTComputer(tensor_lst, L_b)
+    print("Done.")
+
+    errors = []
+    for iters in range(num_iters):
+        s = time.time()
+        print("Iteration", iters + 1, "/", num_iters)
+
+        for level in range(L + 1):
+            print(f'  Level {level}', end='')
+            tensor_lst = tensor_train_ALS_solve_fast(
+                T_sparse, inds, tensor_lst, level, L_b, regu, computer
+            )
+            print()
+
+        e = time.time()
+        print('Time in iteration', iters + 1, ':', e - s)
+
+        s = time.time()
+        error = compute_error_sparse_fast(T_sparse, inds, tensor_lst, L_b, computer)
+        errors.append(error)
+        test_error = compute_error_sparse_fast(T_test, inds_test, tensor_lst, L_b, computer)
+        e = time.time()
+
+        print('Time in error computation', e - s)
+        print('Relative error in observed entries:', error)
+        print('Relative test error after', iters + 1, 'iterations:', test_error)
+        print('-----------------')
+
+        if iters + 1 >= 5 and error >= 3:
+            print('Overfitting or error not reducing, stopping iterations')
+            break
+        if error < tol:
+            print('converged')
+            break
+
+    return tensor_lst
+
+def tensor_train_ADF_v2(T_sparse, inds, T_test, inds_test, L, tensor_lst,
+                         num_iters, tol, regu=0):
+    """
+    Tensor train ADF using FastTTComputer.
+    """
+    L_b = L - 1
+
+    print('------------------tensor train ADF completion----------------------------')
+
+    nnz = len(T_sparse)
+    print(f"Number of observed entries: {nnz}")
+    print(f"Available memory: {get_available_memory()/1e9:.2f} GB")
+
+    print("Initializing Numba (first call compiles)...")
+    computer = FastTTComputer(tensor_lst, L_b)
+    print("Done.")
+
+    errors = []
+    inds_i64 = np.ascontiguousarray(inds.astype(np.int64))
+
+    # Initial reconstruction and residual
+    recon = computer.reconstruct(inds_i64)
+    grad_tensor = T_sparse - recon
+
+    s = time.time()
+    error = compute_error_sparse_fast(T_sparse, inds, tensor_lst, L_b, computer)
+    errors.append(error)
+    test_error = compute_error_sparse_fast(T_test, inds_test, tensor_lst, L_b, computer)
+    e = time.time()
+    print('Time in error computation', e - s)
+    print('Relative error in observed entries:', error)
+
+    for iters in range(num_iters):
+        print("Iteration", iters + 1, "/", num_iters)
+
+        # Orthogonalize all factors wrt first
+        tensor_lst = orthogonalize_all(tensor_lst, wrt=0)
+        computer._set_tensors(tensor_lst)
+
+        # Recompute residual after orthogonalization
+        recon = computer.reconstruct(inds_i64)
+        grad_tensor = T_sparse - recon
+
+        grad_time = 0
+        recon_time = 0
+        factor_time = 0
+        s = time.time()
+
+        for level in range(L + 1):
+            print(f'  Level {level}', end='')
+
+            s_grad = time.time()
+            N, unqs = tensor_train_gradient_fast(
+                grad_tensor, inds, tensor_lst, level, L_b, regu, computer
+            )
+            e_grad = time.time()
+            grad_time += e_grad - s_grad
+
+            # Scatter into full tensor
+            N_full = np.zeros_like(tensor_lst[level])
+            N_full[unqs] = N
+
+            new_lst = [t.copy() for t in tensor_lst]
+            new_lst[level] = N_full.copy()
+
+            # Reconstruct Z using temporary computer
+            s_recon_time = time.time()
+            temp_computer = FastTTComputer.__new__(FastTTComputer)
+            temp_computer.L = L_b
+            temp_computer.tensor_lst = new_lst
+            temp_computer.start_tensor = np.ascontiguousarray(new_lst[0])
+            temp_computer.end_tensor = np.ascontiguousarray(new_lst[L_b + 1])
+            temp_computer.mid_tensors = _make_mid_list(new_lst, L_b)
+
+            Z = temp_computer.reconstruct(inds_i64)
+            e_recon_time = time.time()
+            recon_time += e_recon_time - s_recon_time
+
+            delta_fac, delta_grad = Update_fac_and_grad(N_full, Z, inds, level, L_b)
+
+            tensor_lst[level] += delta_fac
+            grad_tensor -= delta_grad
+
+            computer.update_tensor(level, tensor_lst[level])
+
+            # QR orthogonalization
+            s_factor = time.time()
+            if level != L:
+                output, R_fac = qr_factor_tensor_train(
+                    tensor_lst[level], outer=(level == 0), side=0
+                )
+                tensor_lst[level] = output
+                tensor_lst[level + 1] = absorb_factor(R_fac, tensor_lst[level + 1], side=0)
+                computer.update_tensor(level, tensor_lst[level])
+                computer.update_tensor(level + 1, tensor_lst[level + 1])
+            e_factor = time.time()
+            factor_time += e_factor - s_factor
+
+            print()
+
+        e = time.time()
+
+        print('Time in gradient computation', grad_time)
+        print('Time in reconstruction computation', recon_time)
+        print('Time in QR factor computation', factor_time)
+        print('Time in iteration', iters + 1, ':', e - s)
+
+        s = time.time()
+        error = compute_error_sparse_fast(T_sparse, inds, tensor_lst, L_b, computer)
+        errors.append(error)
+        test_error = compute_error_sparse_fast(T_test, inds_test, tensor_lst, L_b, computer)
+        e = time.time()
+
+        print('Time in error computation', e - s)
+        print('Relative error in observed entries:', error)
+        print('Relative test error after', iters + 1, 'iterations:', test_error)
+        print('-----------------')
+
+        if iters + 1 >= 5 and error >= 3:
+            print('Overfitting or error not reducing, stopping iterations')
+            break
+        if error < tol:
+            print('converged')
+            break
+
+    return tensor_lst
+
+
+def ADAM_tensor_train_v2(T_sparse, inds, T_test, inds_test, L, tensor_lst,
+                          regu=1e-9, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8,
+                          max_iter=100, tol=1e-6):
+    """
+    ADAM optimizer for tensor train using FastTTComputer.
+    """
+    L_b = L - 1
+
+    print('------------------Tensor Train ADAM----------------------------')
+
+    nnz = len(T_sparse)
+    print(f"Number of observed entries: {nnz}")
+    print(f"Available memory: {get_available_memory()/1e9:.2f} GB")
+
+    print("Initializing Numba (first call compiles)...")
+    computer = FastTTComputer(tensor_lst, L_b)
+    print("Done.")
+
+    m = [np.zeros_like(x) for x in tensor_lst]
+    v = [np.zeros_like(x) for x in tensor_lst]
+    errors = []
+
+    inds_i64 = np.ascontiguousarray(inds.astype(np.int64))
+
+    # Precompute bias correction terms
+    bias1 = 1.0
+    bias2 = 1.0
+
+    for t in range(1, max_iter + 1):
+        print(f"Iteration {t} / {max_iter}")
+
+        recon = computer.reconstruct(inds_i64)
+        residual = T_sparse - recon
+        del recon
+
+        s = time.time()
+
+        # Update bias correction terms
+        bias1 *= beta1
+        bias2 *= beta2
+        lr_t = lr * np.sqrt(1 - bias2) / (1 - bias1)
+
+        max_grad_norm = 0.0
+
+        for level in range(L + 1):
+            print(f'  Level {level}', end='')
+
+            g_partial, unqs = tensor_train_gradient_fast(
+                residual, inds, tensor_lst, level, L_b, regu, computer
+            )
+
+            # Scatter into full gradient
+            g = np.zeros_like(tensor_lst[level])
+            g[unqs] = g_partial
+
+            g_norm = np.linalg.norm(g)
+            max_grad_norm = max(max_grad_norm, g_norm)
+
+            # Update moments in-place
+            m[level] *= beta1
+            m[level] += (1 - beta1) * g
+
+            v[level] *= beta2
+            if np.iscomplexobj(g):
+                v[level] += (1 - beta2) * (g * np.conj(g)).real
+            else:
+                v[level] += (1 - beta2) * (g ** 2)
+
+            # Update parameters in-place
+            tensor_lst[level] += lr_t * m[level] / (np.sqrt(v[level]) + epsilon)
+
+            computer.update_tensor(level, tensor_lst[level])
+
+            del g
+            print()
+
+        del residual
+
+        e = time.time()
+        grad_time = e - s
+        print('Time in gradient computation', grad_time)
+
+        if max_grad_norm < tol:
+            print(f"Converged in {t} iterations.")
+            return tensor_lst, errors
+
+        s1 = time.time()
+        error = compute_error_sparse_fast(T_sparse, inds, tensor_lst, L_b, computer)
+        errors.append(error)
+        test_error = compute_error_sparse_fast(T_test, inds_test, tensor_lst, L_b, computer)
+        e1 = time.time()
+
+        print('Time in error computation', e1 - s1)
+        print('Total time in iteration', t, ':', grad_time)
+        print('Relative error in observed entries:', error)
+        print('Relative test error after', t, 'iterations:', test_error)
+        print('-----------------')
+
+    print("Maximum iterations reached without convergence.")
+    return tensor_lst, errors

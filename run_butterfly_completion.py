@@ -277,7 +277,7 @@ kernel_funcs = [None,  # index 0 not used
 
 rng = np.random.RandomState(np.random.randint(1000))
 
-kernel=4 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform 4: full matrix loaded from file
+kernel=3 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform 4: full matrix loaded from file
 filename='data/G_250_trans.mat'
 # filename='./data/G_250_reflect_colocate.mat'
 # filename='./data/G_250_reflect_no_colocate.mat'
@@ -429,8 +429,10 @@ print('--time to generate inputs for matrix completion',e-s)
 
 
 s = time.time()
-tensor_lst_lr = butterfly_tensor_train_completer(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, 
-    tensor_lst_lr, num_iter_lr, tol, regu=1e-4, no_batch_lr=True)
+# tensor_lst_lr = butterfly_tensor_train_completer(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, 
+#     tensor_lst_lr, num_iter_lr, tol, regu=1e-4, no_batch_lr=True)
+tensor_lst = butterfly_tensor_train_completion_v2(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, 
+    tensor_lst_lr, num_iter_lr, tol, regu=1e-4) 
 left_mat = tensor_lst_lr[0]
 right_mat = tensor_lst_lr[1].conj()
 e = time.time()
@@ -465,11 +467,14 @@ if(lowrank_only==0):
 
     s= time.time()
     if alg=='ADF':
-        tensor_lst = butterfly_ADF(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu=0)
+        #tensor_lst = butterfly_ADF(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu=0)
+        tensor_lst = butterfly_ADF_v2(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu=0)
     elif alg=='ALS':
-        tensor_lst = butterfly_tensor_train_completer(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu=regu)
+        #tensor_lst = butterfly_tensor_train_completer(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu=regu)
+        tensor_lst = butterfly_tensor_train_completion_v2(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, num_iters, tol, regu)
     elif alg=='ADAM':   
-        tensor_lst = ADAM_butterfly(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, regu=regu, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=num_iters, tol=tol)
+        #tensor_lst = ADAM_butterfly(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, regu=regu, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=num_iters, tol=tol)
+        tensor_lst = ADAM_butterfly_v2(T_sparse, inds_tt, T_sparse_test, inds_tt_test, L, tensor_lst, regu=regu, lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iter=num_iters, tol=tol)
        
 
     e= time.time()
