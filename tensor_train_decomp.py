@@ -4,6 +4,7 @@ import tensorly as tl
 from tensorly.decomposition import tensor_train as matrix_product_state
 import numpy.linalg as la
 import time
+from dependencies.butterfly_decomposition import get_butterfly_tens_from_factor
 from dependencies.butterfly_tensor_train import reconstruct_sparse_butterfly, tensor_train_ALS_solve, tensor_train_gradient, compute_error_sparse
 from dependencies.butterfly_tensor_train import (
     FastTTComputer, _make_mid_list,
@@ -13,9 +14,7 @@ from dependencies.butterfly_tensor_train import (
 )
 import scipy.linalg as sla
 
-import numpy as np
-
-
+import tt
 
 def sort_inds_and_T(tuples, T, k = None):
     """
@@ -105,21 +104,105 @@ def reshape_matrix_to_tensor_QTT(M, L, c):
     tensor[tuple(tensor_indices.T)] = M[row_col_indices[:, 0], row_col_indices[:, 1]]
     return tensor
 
-# def reshape_matrix_to_tensor(M,L,c):
 
+def tensor_train_decomposition_cross(left_mat, right_mat, L, c, ranks,
+                                      nswp=20, verb=1):
+    N = c * (2 ** L)
+    assert left_mat.shape[0] == N
+    assert right_mat.shape[0] == N
+    
+    n_modes = [c**2] + [4] * L
+    d = len(n_modes)
+    assert len(ranks) == d + 1
+    rmax = max(ranks) + 50
+    
+    def f(vals):
+        m = vals.shape[0]
+        idx = np.round(vals).astype(np.int64)
+        for k in range(d):
+            idx[:, k] = np.clip(idx[:, k], 0, n_modes[k] - 1)
+        
+        first_idx = idx[:, 0]
+        block_i = first_idx // c
+        block_j = first_idx % c
+        
+        ind_i = np.zeros(m, dtype=np.int64)
+        ind_j = np.zeros(m, dtype=np.int64)
+        for l in range(L):
+            combined = idx[:, l + 1]
+            bit_row = combined >> 1
+            bit_col = combined & 1
+            ind_i = ind_i | (bit_row << (L - 1 - l))
+            ind_j = ind_j | (bit_col << (L - 1 - l))
+        
+        rows = ind_i * c + block_i
+        cols = ind_j * c + block_j
+        return np.sum(left_mat[rows, :] * right_mat[cols, :], axis=1)
+    
+    X = []
+    for k in range(d):
+        full = np.zeros(n_modes, dtype=np.float64)
+        for i in range(n_modes[k]):
+            slc = [slice(None)] * d
+            slc[k] = i
+            full[tuple(slc)] = float(i)
+        X.append(tt.vector(full))
+    
+    Y = tt.multifuncrs2(X, f, eps=0.1, nswp=nswp, kickrank=20,
+                         rmax=rmax, verb=verb)
+    
+    print(f"Y ranks after cross: {list(Y.r)}")
+    
+    # Left-to-right SVD truncation on TT cores (no full tensor)
+    raw_cores = Y.to_list(Y)
+    
+    # Merge and truncate core by core, left to right
+    # Start with first core: (1, n0, r0) -> (n0, r0)
+    residual = raw_cores[0][0, :, :]  # (n0, r0_old)
+    
+    new_cores = []
+    for k in range(d - 1):
+        r_target = ranks[k + 1]
+        
+        # SVD truncation
+        U, S, Vt = np.linalg.svd(residual, full_matrices=False)
+        r_actual = min(r_target, len(S))
+        
+        U = U[:, :r_actual]
+        S = S[:r_actual]
+        Vt = Vt[:r_actual, :]
+        
+        # Store core
+        r_left = ranks[k]
+        new_cores.append(U.reshape(r_left, n_modes[k], r_actual))
+        
+        # Propagate S @ Vt into next core
+        carry = np.diag(S) @ Vt  # (r_actual, r_old_right)
+        
+        if k < d - 1:
+            next_core = raw_cores[k + 1]  # (r_old_right, n_{k+1}, r_{k+1}_old)
+            r_old_right, n_next, r_next_old = next_core.shape
+            # Contract: (r_actual, r_old_right) @ (r_old_right, n_next * r_next_old)
+            merged = carry @ next_core.reshape(r_old_right, -1)  # (r_actual, n_next * r_next_old)
+            residual = merged.reshape(r_actual * n_next, r_next_old)  # ready for next SVD
+    
+    # Last core
+    r_left = ranks[-2]
+    new_cores.append(residual.reshape(r_left, n_modes[-1], 1))
+    
+    # Print final ranks
+    final_ranks = [1] + [c.shape[2] for c in new_cores]
+    print(f"Final ranks: {final_ranks}")
+    
+    # Convert to tensorly convention
+    numpy_factors = []
+    numpy_factors.append(new_cores[0][0, :, :])
+    for k in range(1, d - 1):
+        numpy_factors.append(new_cores[k].transpose(1, 0, 2))
+    numpy_factors.append(new_cores[-1][:, :, 0].T)
+    
+    return numpy_factors
 
-
-# # Example usage:
-# c = 2  # Example parameter
-# L = 2  # Example level
-# M = np.random.randn(c * (2 ** L), c * (2 ** L))  # Example matrix
-
-# # Reshape matrix to tensor using the function
-# tensor_result = reshape_matrix_to_tensor(M, L, c)
-
-
-# Output the combined indices result
-#print(combined_indices_result)
 
 def tensor_train_decomposition_low(left_mat, right_mat, L, c, ranks):
     mat = left_mat@right_mat.T
