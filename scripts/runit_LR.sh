@@ -30,6 +30,7 @@ cp -- "$rootdir/$exe" $pyfile
 
 
 # ── 1. declare the values you want ────────────────────────────────────────────
+v2=0
 alg='ALS'
 regu=1e-10
 get_true_rank=0
@@ -75,6 +76,7 @@ update_py_var() {
 # --- 2. overwrite the Python file -------------------------------------------
 update_py_var alg   "$alg"
 update_py_var regu   "$regu"
+update_py_var v2   "$v2"
 if [[ $lowrank_only == 0 ]]; then
     update_py_var r_BF   "$r_BF"
 fi
@@ -88,7 +90,7 @@ update_py_var c "$c"
 update_py_var kernel        "$kernel"
 update_py_var real        "$real"
 
-logname=a.out_L${L}_c${c}_lowrank_only${lowrank_only}_rBF${r_BF}_nnz${nnz_bf}_rLR${r_LR}_regu${regu}_alg${alg}_tol${tol}_kernel${kernel}_real${real}
+logname=a.out_L${L}_c${c}_lowrank_only${lowrank_only}_rBF${r_BF}_nnz${nnz_bf}_rLR${r_LR}_regu${regu}_alg${alg}_v2_${v2}_tol${tol}_kernel${kernel}_real${real}
 
 python -u ${pyfile} | tee ${logname}_${ts}
 rm ${pyfile}

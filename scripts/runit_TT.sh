@@ -30,6 +30,7 @@ cp -- "$rootdir/$exe" $pyfile
 
 
 # ── 1. declare the values you want ────────────────────────────────────────────
+v2=0
 alg='ADF'
 regu=0
 r_LR=13
@@ -67,6 +68,7 @@ update_py_var() {
 
 # --- 2. overwrite the Python file -------------------------------------------
 update_py_var alg   "$alg"
+update_py_var v2   "$v2"
 update_py_var regu   "$regu"
 update_py_var start   "$start"
 update_py_var nnz_qtt   "$nnz_qtt"
@@ -79,7 +81,7 @@ update_py_var num_iters        "$num_iters"
 update_py_var get_true_rank        "$get_true_rank"
 update_py_var real        "$real"
 
-logname=a.out_L${L}_c${c}_rTT${start}_nnz${nnz_qtt}_rLR${r_LR}_regu${regu}_alg${alg}_tol${tol}_kernel${kernel}_real${real}
+logname=a.out_L${L}_c${c}_rTT${start}_nnz${nnz_qtt}_rLR${r_LR}_regu${regu}_alg${alg}_v2${v2}_tol${tol}_kernel${kernel}_real${real}
 
 python -u ${pyfile} | tee ${logname}_${ts}
 rm ${pyfile}

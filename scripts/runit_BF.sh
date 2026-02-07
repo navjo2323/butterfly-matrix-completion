@@ -30,14 +30,15 @@ cp -- "$rootdir/$exe" $pyfile
 
 
 # ── 1. declare the values you want ────────────────────────────────────────────
-alg='ALS'
+v2=0
+alg='ADF'
 regu=1e-10
 get_true_rank=0
 lowrank_only=0
 r_BF=11 # defining BF ranks
 r_LR=11 # defining rank for the initial low-rank completion
-# nnz_bf='6*r_BF*I*np.log2(I)'
-nnz_bf='6488064'
+nnz_bf='6*r_BF*I*np.log2(I)'
+# nnz_bf='6488064'
 
 # lowrank_only=1
 # r_LR=60
@@ -74,6 +75,7 @@ update_py_var() {
 
 # --- 2. overwrite the Python file -------------------------------------------
 update_py_var alg   "$alg"
+update_py_var v2   "$v2"
 update_py_var regu   "$regu"
 if [[ $lowrank_only == 0 ]]; then
     update_py_var r_BF   "$r_BF"
@@ -88,7 +90,7 @@ update_py_var c "$c"
 update_py_var kernel        "$kernel"
 update_py_var real        "$real"
 
-logname=a.out_L${L}_c${c}_lowrank_only${lowrank_only}_rBF${r_BF}_nnz${nnz_bf}_rLR${r_LR}_regu${regu}_alg${alg}_tol${tol}_kernel${kernel}_real${real}
+logname=a.out_L${L}_c${c}_lowrank_only${lowrank_only}_rBF${r_BF}_nnz${nnz_bf}_rLR${r_LR}_regu${regu}_alg${alg}_v2${v2}_tol${tol}_kernel${kernel}_real${real}
 
 python -u ${pyfile} | tee ${logname}_${ts}
 rm ${pyfile}

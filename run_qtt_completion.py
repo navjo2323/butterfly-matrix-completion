@@ -276,11 +276,12 @@ kernel_funcs = [None,  # index 0 not used
 
 
 rng = np.random.RandomState(np.random.randint(1000))
-
+v2=0  # v2 uses jit instead of batching, therefore is more memory friendly
 kernel=1 # 1: Green's function 2: 2D Radon transform 3: 1D Radon transform
 real=1 # 1: real-valued kernels, 0: complex-valued kernels
 get_true_rank=1
 # lowrank_only= 1
+lr_2_tt_cross=0
 errorcheck_lr2bf=1
 c = 4 # 4 9
 #Should be perfect square, 4 and 9 options
@@ -394,7 +395,10 @@ print('--time to generate inputs for matrix completion',e-s)
 
 
 s = time.time()
-tensor_lst_lr = butterfly_tensor_train_completion_v2(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4)
+if(v2==0):
+    tensor_lst_lr = butterfly_tensor_train_completer(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4)
+else: 
+    tensor_lst_lr = butterfly_tensor_train_completion_v2(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4)
 left_mat = tensor_lst_lr[0]
 right_mat = tensor_lst_lr[1].conj()
 e = time.time()
@@ -432,8 +436,10 @@ print('tensor train ranks for completion are',ranks_TT)
 
 
 s = time.time()
-#factors = tensor_train_decomposition_low(left_mat, right_mat, L, c, ranks_TT)
-factors = tensor_train_decomposition_cross(left_mat, right_mat, L, c, ranks=ranks_TT)
+if(lr_2_tt_cross==0):
+    factors = tensor_train_decomposition_low(left_mat, right_mat, L, c, ranks_TT)
+else:
+    factors = tensor_train_decomposition_cross(left_mat, right_mat, L, c, ranks=ranks_TT)
 e = time.time()
 print('--time for tensor train decomposition',e-s)
 
@@ -452,14 +458,20 @@ print('--time for conversion of indices for tensor train completion',e-s)
 num_iters = 20
 s = time.time()
 if alg=='ADF':
-    #tensor_lst = tensor_train_ADF(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
-    tensor_lst = tensor_train_ADF_v2(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
+    if(v2==0):
+        tensor_lst = tensor_train_ADF(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
+    else:
+        tensor_lst = tensor_train_ADF_v2(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
 elif alg=='ALS':
-    #tensor_lst = tensor_train_completion(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
-    tensor_lst = tensor_train_completion_v2(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
+    if(v2==0):
+        tensor_lst = tensor_train_completion(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
+    else:
+        tensor_lst = tensor_train_completion_v2(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, num_iters, tol, regu = regu)
 elif alg=='ADAM':    
-    #tensor_lst = ADAM_tensor_train(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, regu =regu, max_iter=num_iters, tol=tol)
-    tensor_lst = ADAM_tensor_train_v2(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, regu =regu, max_iter=num_iters, tol=tol)
+    if(v2==0):
+        tensor_lst = ADAM_tensor_train(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, regu =regu, max_iter=num_iters, tol=tol)
+    else:
+        tensor_lst = ADAM_tensor_train_v2(T_sparse, qtt_inds, T_sparse_test, qtt_inds_test, L, factors, regu =regu, max_iter=num_iters, tol=tol)
 e = time.time()
 
 print('--time for tensor train completion',e-s)
