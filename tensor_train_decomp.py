@@ -105,8 +105,78 @@ def reshape_matrix_to_tensor_QTT(M, L, c):
     return tensor
 
 
+def make_index_tt(n_modes, k, index_rank=8):
+    """
+    Build TT-vector X such that X[i0,...,i_{d-1}] = i_k.
+    Start from exact rank-1 representation and add small random 
+    enrichment to give cross more starting information.
+    """
+    d = len(n_modes)
+    
+    # First build the exact rank-1 representation
+    cores = []
+    for j in range(d):
+        if j == k:
+            core = np.arange(n_modes[j], dtype=np.float64).reshape(1, n_modes[j], 1)
+        else:
+            core = np.ones((1, n_modes[j], 1))
+        cores.append(core)
+    
+    # Pad to index_rank with small random entries
+    rng = np.random.default_rng(42 + k)
+    eps_noise = 1e-3
+    
+    padded_cores = []
+    for j in range(d):
+        old = cores[j]  # (r_in_old, n_j, r_out_old)
+        r_in_old, n_j, r_out_old = old.shape
+        
+        if j == 0:
+            r_in = 1
+        else:
+            r_in = index_rank
+        
+        if j == d - 1:
+            r_out = 1
+        else:
+            r_out = index_rank
+        
+        new_core = np.zeros((r_in, n_j, r_out))
+        # Copy exact part
+        new_core[:r_in_old, :, :r_out_old] = old
+        # Add noise to extra entries
+        new_core[:, :, :] += eps_noise * rng.standard_normal((r_in, n_j, r_out))
+        # Restore exact part
+        new_core[:r_in_old, :, :r_out_old] = old
+        
+        padded_cores.append(new_core)
+    
+    # Verify
+    test_idx = [min(2, n_modes[j]-1) for j in range(d)]
+    val = padded_cores[0][:, test_idx[0], :]
+    for j in range(1, d):
+        val = val @ padded_cores[j][:, test_idx[j], :]
+    result = val[0, 0]
+    print(f"  Mode {k}: verify X[test]={result:.6f}, expected={test_idx[k]}")
+    
+    d_len = len(padded_cores)
+    n = np.array([n_modes[j] for j in range(d_len)], dtype=np.int32)
+    r_arr = np.array([padded_cores[j].shape[0] for j in range(d_len)] + [padded_cores[-1].shape[2]], dtype=np.int32)
+    
+    cr = np.concatenate([padded_cores[j].flatten(order='F') for j in range(d_len)])
+    
+    x = tt.vector()
+    x.d = d_len
+    x.n = n
+    x.r = r_arr
+    x.core = cr
+    x.get_ps()
+    
+    return x
+
+
 def tensor_train_decomposition_cross(left_mat, right_mat, L, c, ranks,
-                                      nswp=20, verb=1):
+                                      nswp=8, verb=1):
     N = c * (2 ** L)
     assert left_mat.shape[0] == N
     assert right_mat.shape[0] == N
@@ -139,32 +209,30 @@ def tensor_train_decomposition_cross(left_mat, right_mat, L, c, ranks,
         cols = ind_j * c + block_j
         return np.sum(left_mat[rows, :] * right_mat[cols, :], axis=1)
     
-    X = []
-    for k in range(d):
-        full = np.zeros(n_modes, dtype=np.float64)
-        for i in range(n_modes[k]):
-            slc = [slice(None)] * d
-            slc[k] = i
-            full[tuple(slc)] = float(i)
-        X.append(tt.vector(full))
+    # Build index TT-vectors analytically
+    X = [make_index_tt(n_modes, k, index_rank=8) for k in range(d)]
     
-    Y = tt.multifuncrs2(X, f, eps=0.1, nswp=nswp, kickrank=20,
+    if verb:
+        print("Index TT-vector ranks:")
+        for k in range(d):
+            print(f"  X[{k}]: ranks={list(X[k].r)}")
+    
+    Y = tt.multifuncrs2(X, f, eps=0.2, nswp=nswp, kickrank=30,
                          rmax=rmax, verb=verb)
     
     print(f"Y ranks after cross: {list(Y.r)}")
     
-    # Left-to-right SVD truncation on TT cores (no full tensor)
+    # Left-to-right SVD compression to desired ranks
     raw_cores = Y.to_list(Y)
     
-    # Merge and truncate core by core, left to right
-    # Start with first core: (1, n0, r0) -> (n0, r0)
-    residual = raw_cores[0][0, :, :]  # (n0, r0_old)
-    
+    # Start: merge first core into a matrix
+    # raw_cores[0] has shape (1, n0, r0)
+    residual = raw_cores[0][0, :, :]  # (n0, r0)
     new_cores = []
+    actual_ranks = [1]
+    
     for k in range(d - 1):
         r_target = ranks[k + 1]
-        
-        # SVD truncation
         U, S, Vt = np.linalg.svd(residual, full_matrices=False)
         r_actual = min(r_target, len(S))
         
@@ -172,27 +240,21 @@ def tensor_train_decomposition_cross(left_mat, right_mat, L, c, ranks,
         S = S[:r_actual]
         Vt = Vt[:r_actual, :]
         
-        # Store core
-        r_left = ranks[k]
+        r_left = actual_ranks[-1]
         new_cores.append(U.reshape(r_left, n_modes[k], r_actual))
+        actual_ranks.append(r_actual)
         
-        # Propagate S @ Vt into next core
-        carry = np.diag(S) @ Vt  # (r_actual, r_old_right)
-        
-        if k < d - 1:
-            next_core = raw_cores[k + 1]  # (r_old_right, n_{k+1}, r_{k+1}_old)
-            r_old_right, n_next, r_next_old = next_core.shape
-            # Contract: (r_actual, r_old_right) @ (r_old_right, n_next * r_next_old)
-            merged = carry @ next_core.reshape(r_old_right, -1)  # (r_actual, n_next * r_next_old)
-            residual = merged.reshape(r_actual * n_next, r_next_old)  # ready for next SVD
+        carry = np.diag(S) @ Vt
+        next_core = raw_cores[k + 1]
+        r_old_right, n_next, r_next_old = next_core.shape
+        merged = carry @ next_core.reshape(r_old_right, -1)
+        residual = merged.reshape(r_actual * n_modes[k + 1], r_next_old)
     
-    # Last core
-    r_left = ranks[-2]
+    r_left = actual_ranks[-1]
     new_cores.append(residual.reshape(r_left, n_modes[-1], 1))
+    actual_ranks.append(1)
     
-    # Print final ranks
-    final_ranks = [1] + [c.shape[2] for c in new_cores]
-    print(f"Final ranks: {final_ranks}")
+    print(f"Final ranks: {actual_ranks}")
     
     # Convert to tensorly convention
     numpy_factors = []
