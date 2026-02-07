@@ -16,6 +16,28 @@ import scipy.linalg as sla
 
 import tt
 
+
+def tensor_train_random_init(L, c, ranks, seed=42):
+    """
+    Random initialization of TT cores at desired ranks
+    """
+    rng = np.random.default_rng(seed)
+    
+    numpy_factors = []
+    
+    N = c * (2 ** L)
+    # First core: (n0, r1)
+    numpy_factors.append(rng.standard_normal((c**2, ranks[1])) / np.sqrt(c**2))
+    
+    # Middle cores: (n_k, r_k, r_{k+1})
+    for k in range(1, L):
+        numpy_factors.append(rng.standard_normal((4, ranks[k], ranks[k + 1])) / np.sqrt(4 * ranks[k]))
+    
+    # Last core: (n_{d-1}, r_{d-1})
+    numpy_factors.append(rng.standard_normal((4, ranks[-2])) / np.sqrt(4))
+    
+    return numpy_factors
+
 def sort_inds_and_T(tuples, T, k = None):
     """
     Sorts a numpy array of tuples according to kth index as above

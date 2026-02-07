@@ -4,7 +4,7 @@ from dependencies.butterfly_helper_functions import index_convert, gen_tensor_in
 from dependencies.butterfly_decomposition import butterfly_decompose_low_rank
 from tensor_train_decomp import tensor_train_decomposition_cross, tensor_train_decomposition_low, tensor_train_decomposition, tensor_train_truerank, convert_matrix_to_QTT_indices, tensor_train_completion, ADAM_tensor_train
 from tensor_train_decomp import tensor_train_ADF
-from tensor_train_decomp import ADAM_tensor_train_v2, tensor_train_ADF_v2, tensor_train_completion_v2
+from tensor_train_decomp import ADAM_tensor_train_v2, tensor_train_ADF_v2, tensor_train_completion_v2, tensor_train_random_init
 from dependencies.kdtree_ordering import generate_kd_tree
 import time
 import math
@@ -282,7 +282,7 @@ real=1 # 1: real-valued kernels, 0: complex-valued kernels
 get_true_rank=1
 # lowrank_only= 1
 lr_2_tt_cross=0
-errorcheck_lr2bf=1
+random_init=0
 c = 4 # 4 9
 #Should be perfect square, 4 and 9 options
 
@@ -373,50 +373,6 @@ e = time.time()
 print('--time in entry generation:',e-s)
 
 
-
-
-##### TEST CODE FOR GREENS ########
-L_lr = 0
-c_lr = I
-num_iter_lr = 10
-print('--matrix completion rank:',ranks_lr)
-
-s = time.time()
-inds_tt_lr = encode_tuples(indices, L_lr, c_lr)
-inds_tt_test_lr = encode_tuples(indices_test, L_lr, c_lr)
-e = time.time()
-print('--time in index conversion:',e-s)
-
-
-s= time.time()
-tensor_lst_lr = gen_tensor_train_list(L_lr, c_lr, ranks_lr ,rng, real=real )
-e = time.time()
-print('--time to generate inputs for matrix completion',e-s)
-
-
-s = time.time()
-if(v2==0):
-    tensor_lst_lr = butterfly_tensor_train_completer(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4)
-else: 
-    tensor_lst_lr = butterfly_tensor_train_completion_v2(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4)
-left_mat = tensor_lst_lr[0]
-right_mat = tensor_lst_lr[1].conj()
-e = time.time()
-print('--time for matrix completion',e-s)
-
-
-# ranks_TT = [1] + [r_TT for _ in range(L)] + [1]
-
-# l_shape = int(c**2)
-# r_shape = 4**L
-# max_r = l_shape
-# for i in range(1,len(ranks_TT)-1):
-#     ranks_TT[i] = min(max_r, ranks_TT[i])
-#     l_shape = l_shape*4
-#     r_shape = r_shape/4
-#     max_r = int(min(l_shape,r_shape))
-
-
 intermediate = [start + 2 * i for i in range(L)]
 
 ranks_TT = [1] + intermediate + [1]
@@ -431,17 +387,60 @@ for i in range(1,len(ranks_TT)-1):
     max_r = int(min(l_shape,r_shape))
 
 
-
 print('tensor train ranks for completion are',ranks_TT)
 
+if(random_init==0):
+    ##### TEST CODE FOR GREENS ########
+    L_lr = 0
+    c_lr = I
+    num_iter_lr = 10
+    print('--matrix completion rank:',ranks_lr)
 
-s = time.time()
-if(lr_2_tt_cross==0):
-    factors = tensor_train_decomposition_low(left_mat, right_mat, L, c, ranks_TT)
+    s = time.time()
+    inds_tt_lr = encode_tuples(indices, L_lr, c_lr)
+    inds_tt_test_lr = encode_tuples(indices_test, L_lr, c_lr)
+    e = time.time()
+    print('--time in index conversion:',e-s)
+
+
+    s= time.time()
+    tensor_lst_lr = gen_tensor_train_list(L_lr, c_lr, ranks_lr ,rng, real=real )
+    e = time.time()
+    print('--time to generate inputs for matrix completion',e-s)
+
+    s = time.time()
+    if(v2==0):
+        tensor_lst_lr = butterfly_tensor_train_completer(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4)
+    else: 
+        tensor_lst_lr = butterfly_tensor_train_completion_v2(T_sparse, inds_tt_lr, T_sparse_test, inds_tt_test_lr, L_lr, tensor_lst_lr, num_iter_lr, tol, regu=1e-4)    
+        
+    left_mat = tensor_lst_lr[0]
+    right_mat = tensor_lst_lr[1].conj()
+    e = time.time()
+    print('--time for matrix completion',e-s)
+
+
+    # ranks_TT = [1] + [r_TT for _ in range(L)] + [1]
+
+    # l_shape = int(c**2)
+    # r_shape = 4**L
+    # max_r = l_shape
+    # for i in range(1,len(ranks_TT)-1):
+    #     ranks_TT[i] = min(max_r, ranks_TT[i])
+    #     l_shape = l_shape*4
+    #     r_shape = r_shape/4
+    #     max_r = int(min(l_shape,r_shape))
+
+    s = time.time()
+    if(lr_2_tt_cross==0):
+        factors = tensor_train_decomposition_low(left_mat, right_mat, L, c, ranks_TT)
+    else:
+        factors = tensor_train_decomposition_cross(left_mat, right_mat, L, c, ranks=ranks_TT)
+    e = time.time()
+    print('--time for tensor train decomposition',e-s)
+
 else:
-    factors = tensor_train_decomposition_cross(left_mat, right_mat, L, c, ranks=ranks_TT)
-e = time.time()
-print('--time for tensor train decomposition',e-s)
+    factors = tensor_train_random_init( L,c, ranks_TT, seed=42)
 
 
 # Now let us convert the indices into tuples for QTT
