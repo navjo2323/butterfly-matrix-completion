@@ -430,59 +430,6 @@ for i in range(1,len(ranks_TT)-1):
 
 print('tensor train ranks for completion are',ranks_TT)
 
-# def reshape_matrix_to_tensor_QTT(M, L, c):
-#     # Generate all possible indices for the matrix
-#     N = c * (2 ** L)
-#     row_col_indices = np.indices((N, N)).reshape(2, -1).T
-    
-#     # Get tensor indices using the provided function
-#     s = time.time()
-#     tensor_indices = convert_matrix_to_QTT_indices(L, c, row_col_indices)
-#     e = time.time()
-
-#     print('total time converting indices',e-s)
-    
-#     # Determine the shape of the tensor: (c^2, 2^2, ..., 2^2) with L twos
-#     tensor_shape = [c**2] + [4] * L
-    
-#     # Initialize an empty tensor with the determined shape
-
-#     print('data type of M',M.dtype)
-#     tensor = np.zeros(tensor_shape, dtype=M.dtype)
-    
-
-#     tensor[tuple(tensor_indices.T)] = M[row_col_indices[:, 0], row_col_indices[:, 1]]
-#     return tensor
-# import tt
-# import tensorly as tl
-# from tensorly.decomposition import tensor_train as matrix_product_state
-
-# mat = left_mat @ right_mat.T
-# T = reshape_matrix_to_tensor_QTT(mat, L, c)
-
-# ranks_TT = [1, 16, 64, 84, 86, 88, 64, 16, 4, 1]
-
-# # Tensorly decomposition
-# factors_tl = matrix_product_state(tl.tensor(T), rank=ranks_TT)
-# T_recon_tl = tl.tt_to_tensor(factors_tl)
-# err_tl = tl.norm(tl.tensor(T) - T_recon_tl) / tl.norm(tl.tensor(T))
-# print(f"Tensorly error: {err_tl:.6e}")
-
-# # ttpy SVD then round
-# Y_svd = tt.vector(T)
-# Y_round = Y_svd.round(eps=0, rmax=ranks_TT)
-# T_recon_tt = tt.vector.full(Y_round).reshape(T.shape)
-# err_tt = np.linalg.norm(T - T_recon_tt) / np.linalg.norm(T)
-# print(f"ttpy round error: {err_tt:.6e}")
-
-# # ttpy with eps-based truncation
-# for eps in [0.5, 0.2, 0.1, 0.01]:
-#     Y_eps = Y_svd.round(eps=eps)
-#     T_recon_eps = tt.vector.full(Y_eps).reshape(T.shape)
-#     err_eps = np.linalg.norm(T - T_recon_eps) / np.linalg.norm(T)
-#     print(f"ttpy round eps={eps} -> ranks={list(Y_eps.r)}, error={err_eps:.6e}")
-
-
 
 s = time.time()
 #factors = tensor_train_decomposition_low(left_mat, right_mat, L, c, ranks_TT)
