@@ -126,166 +126,237 @@ def reshape_matrix_to_tensor_QTT(M, L, c):
     tensor[tuple(tensor_indices.T)] = M[row_col_indices[:, 0], row_col_indices[:, 1]]
     return tensor
 
+import numpy as np
+import tt
 
-def make_index_tt(n_modes, k, index_rank=8):
+
+# ----------------------------
+# Utilities
+# ----------------------------
+
+def _tt_from_cores(cores):
+    """Build tt.vector from list of TT cores (ri, ni, r{i+1}) in Fortran order."""
+    d = len(cores)
+    x = tt.vector()
+    x.d = d
+    x.n = np.array([c.shape[1] for c in cores], dtype=np.int32)
+    x.r = np.array([cores[0].shape[0]] + [c.shape[2] for c in cores], dtype=np.int32)
+    x.core = np.concatenate([c.flatten(order="F") for c in cores])
+    x.get_ps()
+    return x
+
+
+def make_index_tt_rank1(n_modes, k):
     """
-    Build TT-vector X such that X[i0,...,i_{d-1}] = i_k.
-    Start from exact rank-1 representation and add small random 
-    enrichment to give cross more starting information.
+    Exact rank-1 TT-vector X such that X[i0,...,i_{d-1}] = i_k.
+    No padding, no noise (better + faster for cross initialization).
     """
     d = len(n_modes)
-    
-    # First build the exact rank-1 representation
     cores = []
     for j in range(d):
         if j == k:
             core = np.arange(n_modes[j], dtype=np.float64).reshape(1, n_modes[j], 1)
         else:
-            core = np.ones((1, n_modes[j], 1))
+            core = np.ones((1, n_modes[j], 1), dtype=np.float64)
         cores.append(core)
-    
-    # Pad to index_rank with small random entries
-    rng = np.random.default_rng(42 + k)
-    eps_noise = 1e-3
-    
-    padded_cores = []
-    for j in range(d):
-        old = cores[j]  # (r_in_old, n_j, r_out_old)
-        r_in_old, n_j, r_out_old = old.shape
-        
-        if j == 0:
-            r_in = 1
-        else:
-            r_in = index_rank
-        
-        if j == d - 1:
-            r_out = 1
-        else:
-            r_out = index_rank
-        
-        new_core = np.zeros((r_in, n_j, r_out))
-        # Copy exact part
-        new_core[:r_in_old, :, :r_out_old] = old
-        # Add noise to extra entries
-        new_core[:, :, :] += eps_noise * rng.standard_normal((r_in, n_j, r_out))
-        # Restore exact part
-        new_core[:r_in_old, :, :r_out_old] = old
-        
-        padded_cores.append(new_core)
-    
-    # Verify
-    test_idx = [min(2, n_modes[j]-1) for j in range(d)]
-    val = padded_cores[0][:, test_idx[0], :]
-    for j in range(1, d):
-        val = val @ padded_cores[j][:, test_idx[j], :]
-    result = val[0, 0]
-    print(f"  Mode {k}: verify X[test]={result:.6f}, expected={test_idx[k]}")
-    
-    d_len = len(padded_cores)
-    n = np.array([n_modes[j] for j in range(d_len)], dtype=np.int32)
-    r_arr = np.array([padded_cores[j].shape[0] for j in range(d_len)] + [padded_cores[-1].shape[2]], dtype=np.int32)
-    
-    cr = np.concatenate([padded_cores[j].flatten(order='F') for j in range(d_len)])
-    
-    x = tt.vector()
-    x.d = d_len
-    x.n = n
-    x.r = r_arr
-    x.core = cr
-    x.get_ps()
-    
-    return x
+    return _tt_from_cores(cores)
 
 
-def tensor_train_decomposition_cross(left_mat, right_mat, L, c, ranks,
-                                      nswp=8, verb=1):
+def force_fixed_ranks_qrsvd(Y, n_modes, ranks):
+    """
+    Enforce exact TT ranks (per bond) using a single left-to-right QR+SVD pass.
+    This is faster than full SVD on big tall matrices.
+
+    Y: tt.vector
+    n_modes: list of mode sizes, length d
+    ranks: desired TT ranks, length d+1 with ranks[0]=ranks[-1]=1
+
+    Returns: new tt.vector with exactly the requested ranks (as much as possible).
+    """
+    raw = Y.to_list(Y)  # list of (r_{k}, n_k, r_{k+1})
+    d = len(raw)
+    assert len(ranks) == d + 1
+    assert ranks[0] == 1 and ranks[-1] == 1
+
+    # Put all content into a "residual" matrix and sweep.
+    # residual represents unfolding up to current core.
+    # Start from first core: (1, n0, r1) -> (n0, r1)
+    residual = raw[0][0, :, :]  # (n0, r1_old)
+
+    new_cores = []
+    r_left = 1
+
+    for k in range(d - 1):
+        n_k = n_modes[k]
+        r_target = ranks[k + 1]
+
+        # residual is (r_left*n_k, r_next_old) except for k==0 where r_left==1.
+        # Factor residual = Q R with Q having orthonormal cols (economy QR)
+        Q, R = np.linalg.qr(residual, mode="reduced")  # Q: (r_left*n_k, q), R: (q, r_next_old)
+
+        # Now choose rank by SVD of small R (much cheaper than SVD(residual))
+        # R = U s V^T ; residual ≈ (Q U) s V^T
+        U, S, Vt = np.linalg.svd(R, full_matrices=False)
+        r_actual = min(r_target, S.size)
+
+        U = U[:, :r_actual]              # (q, r_actual)
+        S = S[:r_actual]                 # (r_actual,)
+        Vt = Vt[:r_actual, :]            # (r_actual, r_next_old)
+
+        # Form new left factor: (Q @ U) shaped into TT core (r_left, n_k, r_actual)
+        QU = Q @ U                        # (r_left*n_k, r_actual)
+        new_cores.append(QU.reshape(r_left, n_k, r_actual))
+
+        # Carry to next residual by multiplying into next core
+        carry = (S[:, None] * Vt)         # (r_actual, r_next_old)
+        next_core = raw[k + 1]            # (r_next_old, n_{k+1}, r_{k+2}_old)
+        r_next_old, n_next, r_next2_old = next_core.shape
+
+        merged = carry @ next_core.reshape(r_next_old, -1)  # (r_actual, n_next*r_next2_old)
+        residual = merged.reshape(r_actual * n_next, r_next2_old)
+
+        r_left = r_actual
+
+    # Last core
+    new_cores.append(residual.reshape(r_left, n_modes[-1], 1))
+
+    return _tt_from_cores(new_cores)
+
+
+def tt_round(x, eps, rmax=None):
+    """
+    Version-robust TT rounding.
+    Some ttpy versions have tt.round(x,...), others only x.round(...).
+    """
+    if hasattr(tt, "round"):
+        # Newer style
+        if rmax is None:
+            return tt.round(x, eps)
+        return tt.round(x, eps, rmax=rmax)
+
+    # Older style: method on the object
+    if hasattr(x, "round"):
+        try:
+            if rmax is None:
+                return x.round(eps)
+            return x.round(eps, rmax=rmax)
+        except TypeError:
+            # Some builds only accept eps
+            return x.round(eps)
+
+    raise AttributeError("No TT rounding function found (neither tt.round nor x.round).")
+
+
+# ----------------------------
+# Main: fixed-rank, fast TT-cross on matrix entries
+# ----------------------------
+
+def tensor_train_decomposition_cross(
+    left_mat,
+    right_mat,
+    L,
+    c,
+    ranks,            # length d+1, ranks[0]=ranks[-1]=1
+    eps=1e-2,         # "closeby" accuracy
+    nswp=4,           # fewer sweeps = faster
+    kickrank=2,       # small exploration
+    verb=1,
+    force_exact_ranks=True,
+):
+    """
+    Fixed-rank TT approximation of the operator A where A[i,j] = sum_p left[i,p]*right[j,p].
+
+    Uses:
+      - rank-1 index TTs (no noise)
+      - strict rmax = max(ranks)
+      - vectorized f() for speed
+      - optional single QR+SVD pass to enforce *exact* per-bond ranks
+
+    Returns:
+      numpy_factors: list of cores in "tensorly-like" convention you used:
+        [G0 (n0, r1), Gk (n_k, r_k, r_{k+1}) for k=1..d-2, G_last (r_{d-1}, n_{d-1})]
+    """
     N = c * (2 ** L)
     assert left_mat.shape[0] == N
     assert right_mat.shape[0] == N
-    
+
+    # Same mode split you used (matrix-entry TT over combined index):
     n_modes = [c**2] + [4] * L
     d = len(n_modes)
     assert len(ranks) == d + 1
-    rmax = max(ranks) + 50
-    
+    rmax = int(max(ranks))
+
+    # Precompute powers for vectorized bit decode
+    w = (1 << np.arange(L - 1, -1, -1)).astype(np.int64)  # [2^(L-1),...,1]
+
     def f(vals):
-        m = vals.shape[0]
-        idx = np.round(vals).astype(np.int64)
+        """
+        vals: (m, d) float from tt.cross; we round to valid integer multi-index
+        returns: (m,) float
+        """
+        idx = np.rint(vals).astype(np.int64)  # round-to-nearest
+        # clip per mode
         for k in range(d):
             idx[:, k] = np.clip(idx[:, k], 0, n_modes[k] - 1)
-        
-        first_idx = idx[:, 0]
-        block_i = first_idx // c
-        block_j = first_idx % c
-        
-        ind_i = np.zeros(m, dtype=np.int64)
-        ind_j = np.zeros(m, dtype=np.int64)
-        for l in range(L):
-            combined = idx[:, l + 1]
-            bit_row = combined >> 1
-            bit_col = combined & 1
-            ind_i = ind_i | (bit_row << (L - 1 - l))
-            ind_j = ind_j | (bit_col << (L - 1 - l))
-        
+
+        # Mode 0 encodes (block_i, block_j) in 0..c^2-1
+        first = idx[:, 0]
+        block_i = first // c
+        block_j = first % c
+
+        # Remaining modes encode pair of bits (rowbit,colbit) packed into 0..3
+        bits = idx[:, 1:]          # shape (m, L), entries 0..3
+        bit_row = (bits >> 1)      # 0/1
+        bit_col = (bits & 1)       # 0/1
+
+        ind_i = (bit_row * w).sum(axis=1)
+        ind_j = (bit_col * w).sum(axis=1)
+
         rows = ind_i * c + block_i
         cols = ind_j * c + block_j
-        return np.sum(left_mat[rows, :] * right_mat[cols, :], axis=1)
-    
-    # Build index TT-vectors analytically
-    X = [make_index_tt(n_modes, k, index_rank=8) for k in range(d)]
-    
+
+        # A[rows, cols] = sum_p left[rows,p]*right[cols,p]
+        return np.einsum("ij,ij->i", left_mat[rows, :], right_mat[cols, :])
+
+    # Index TT-vectors (rank-1, exact)
+    X = [make_index_tt_rank1(n_modes, k) for k in range(d)]
     if verb:
-        print("Index TT-vector ranks:")
+        print("Index TT-vector ranks (should all be 1s):")
         for k in range(d):
-            print(f"  X[{k}]: ranks={list(X[k].r)}")
-    
-    Y = tt.multifuncrs2(X, f, eps=0.2, nswp=nswp, kickrank=30,
-                         rmax=rmax, verb=verb)
-    
-    print(f"Y ranks after cross: {list(Y.r)}")
-    
-    # Left-to-right SVD compression to desired ranks
-    raw_cores = Y.to_list(Y)
-    
-    # Start: merge first core into a matrix
-    # raw_cores[0] has shape (1, n0, r0)
-    residual = raw_cores[0][0, :, :]  # (n0, r0)
-    new_cores = []
-    actual_ranks = [1]
-    
-    for k in range(d - 1):
-        r_target = ranks[k + 1]
-        U, S, Vt = np.linalg.svd(residual, full_matrices=False)
-        r_actual = min(r_target, len(S))
-        
-        U = U[:, :r_actual]
-        S = S[:r_actual]
-        Vt = Vt[:r_actual, :]
-        
-        r_left = actual_ranks[-1]
-        new_cores.append(U.reshape(r_left, n_modes[k], r_actual))
-        actual_ranks.append(r_actual)
-        
-        carry = np.diag(S) @ Vt
-        next_core = raw_cores[k + 1]
-        r_old_right, n_next, r_next_old = next_core.shape
-        merged = carry @ next_core.reshape(r_old_right, -1)
-        residual = merged.reshape(r_actual * n_modes[k + 1], r_next_old)
-    
-    r_left = actual_ranks[-1]
-    new_cores.append(residual.reshape(r_left, n_modes[-1], 1))
-    actual_ranks.append(1)
-    
-    print(f"Final ranks: {actual_ranks}")
-    
-    # Convert to tensorly convention
+            print(f"  X[{k}]: {list(X[k].r)}")
+
+    # Cross with hard rank cap
+    Y = tt.multifuncrs2(
+        X,
+        f,
+        eps=eps,
+        nswp=nswp,
+        kickrank=kickrank,
+        rmax=rmax,
+        verb=verb
+    )
+
+    # Light rounding under the same cap (keeps it fast)
+    Y = tt_round(Y, eps=eps, rmax=rmax)
+
+    if force_exact_ranks:
+        Y = force_fixed_ranks_qrsvd(Y, n_modes, ranks)
+
+    if verb:
+        print(f"Y ranks final: {list(Y.r)}")
+
+    # Convert to your tensorly-like convention
+    cores = Y.to_list(Y)  # (r_k, n_k, r_{k+1})
+
     numpy_factors = []
-    numpy_factors.append(new_cores[0][0, :, :])
+    numpy_factors.append(cores[0][0, :, :])  # (n0, r1)
     for k in range(1, d - 1):
-        numpy_factors.append(new_cores[k].transpose(1, 0, 2))
-    numpy_factors.append(new_cores[-1][:, :, 0].T)
-    
+        numpy_factors.append(cores[k].transpose(1, 0, 2))  # (n_k, r_k, r_{k+1})
+    numpy_factors.append(cores[-1][:, :, 0].T)  # (r_{d-1}, n_{d-1})
+
     return numpy_factors
+
+
 
 
 def tensor_train_decomposition_low(left_mat, right_mat, L, c, ranks):
