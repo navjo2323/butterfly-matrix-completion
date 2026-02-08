@@ -1,0 +1,556 @@
+Testing complex-valued 1D Radon transform
+matrix shape is 1024
+nnz is 722000
+ratio of nonzeros is 0.6885528564453125
+--time in creating indices: 0.7699284553527832
+Generating 1D Radon kernel
+Number per dim is 1024
+Generating 1D Radon kernel
+Number per dim is 1024
+--time in entry generation: 0.8581023216247559
+--matrix completion rank: [13]
+--time in index conversion: 2.052363395690918
+--time to generate inputs for matrix completion 0.00046896934509277344
+------------------matrix completion----------------------------
+Number of observed entries: 722000
+Available memory: 346.67 GB
+Initializing Numba (first call compiles)...
+Done.
+Iteration 1 / 10
+  Level 0
+  Level 1
+Time in iteration 1 : 1.3772573471069336
+Time in error computation 0.3001716136932373
+Relative error in observed entries: 0.9832854265517134
+Relative test error after 1 iterations: 0.9950383827695833
+-----------------
+Iteration 2 / 10
+  Level 0
+  Level 1
+Time in iteration 2 : 0.7439582347869873
+Time in error computation 0.20740890502929688
+Relative error in observed entries: 0.9743337230425739
+Relative test error after 2 iterations: 0.9907814987896375
+-----------------
+Iteration 3 / 10
+  Level 0
+  Level 1
+Time in iteration 3 : 0.6185686588287354
+Time in error computation 0.2010514736175537
+Relative error in observed entries: 0.9695802329929681
+Relative test error after 3 iterations: 0.9872111220297997
+-----------------
+Iteration 4 / 10
+  Level 0
+  Level 1
+Time in iteration 4 : 0.6248910427093506
+Time in error computation 0.2535669803619385
+Relative error in observed entries: 0.9670474007380143
+Relative test error after 4 iterations: 0.9849429069486538
+-----------------
+Iteration 5 / 10
+  Level 0
+  Level 1
+Time in iteration 5 : 0.644338846206665
+Time in error computation 0.26809072494506836
+Relative error in observed entries: 0.9656439936852855
+Relative test error after 5 iterations: 0.9835997544425035
+-----------------
+Iteration 6 / 10
+  Level 0
+  Level 1
+Time in iteration 6 : 0.6478557586669922
+Time in error computation 0.2045116424560547
+Relative error in observed entries: 0.9648165014954911
+Relative test error after 6 iterations: 0.9828089688797296
+-----------------
+Iteration 7 / 10
+  Level 0
+  Level 1
+Time in iteration 7 : 0.6489717960357666
+Time in error computation 0.20277738571166992
+Relative error in observed entries: 0.9642912201322719
+Relative test error after 7 iterations: 0.9823316450217469
+-----------------
+Iteration 8 / 10
+  Level 0
+  Level 1
+Time in iteration 8 : 0.65250563621521
+Time in error computation 0.20843720436096191
+Relative error in observed entries: 0.9639334677735787
+Relative test error after 8 iterations: 0.9820328361419729
+-----------------
+Iteration 9 / 10
+  Level 0
+  Level 1
+Time in iteration 9 : 0.6528177261352539
+Time in error computation 0.2106640338897705
+Relative error in observed entries: 0.9636751815506955
+Relative test error after 9 iterations: 0.9818389145496834
+-----------------
+Iteration 10 / 10
+  Level 0
+  Level 1
+Time in iteration 10 : 0.6568081378936768
+Time in error computation 0.20833945274353027
+Relative error in observed entries: 0.963480090444654
+Relative test error after 10 iterations: 0.9817090359676349
+-----------------
+--time for matrix completion 12.168444395065308
+tensor train ranks for completion are [1, 16, 64, 256, 386, 256, 64, 16, 4, 1]
+time array loop 1.6705434322357178
+total time converting indices 1.9414360523223877
+data type of M complex128
+Reconstruction Error: 0.11648581021633746
+--time for tensor train decomposition 8.50494909286499
+time array loop 1.0925440788269043
+time array loop 1.0968263149261475
+--time for conversion of indices for tensor train completion 3.2922070026397705
+------------------tensor train ADF completion----------------------------
+Number of observed entries: 722000
+Available memory: 346.62 GB
+Initializing Numba (first call compiles)...
+Done.
+Time in error computation 280.24534583091736
+Relative error in observed entries: 1.0361054352596681
+Iteration 1 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=441456]
+
+  Level 3    [gradient batched mode: batch_size=73212]
+
+  Level 4    [gradient batched mode: batch_size=74429]
+
+  Level 5    [gradient batched mode: batch_size=448627]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2626.1685733795166
+Time in reconstruction computation 1254.8326122760773
+Time in QR factor computation 0.2783668041229248
+Time in iteration 1 : 3881.4487805366516
+Time in error computation 280.4094412326813
+Relative error in observed entries: 0.32620343228406923
+Relative test error after 1 iterations: 0.5574260495607855
+-----------------
+Iteration 2 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448358]
+
+  Level 3    [gradient batched mode: batch_size=74329]
+
+  Level 4    [gradient batched mode: batch_size=74320]
+
+  Level 5    [gradient batched mode: batch_size=448324]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2643.262087583542
+Time in reconstruction computation 1260.326637506485
+Time in QR factor computation 0.1272132396697998
+Time in iteration 2 : 3903.832099676132
+Time in error computation 280.4000232219696
+Relative error in observed entries: 0.12357572768383093
+Relative test error after 2 iterations: 0.34077442580211087
+-----------------
+Iteration 3 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448267]
+
+  Level 3    [gradient batched mode: batch_size=74329]
+
+  Level 4    [gradient batched mode: batch_size=74310]
+
+  Level 5    [gradient batched mode: batch_size=448328]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2699.418982744217
+Time in reconstruction computation 1271.376179933548
+Time in QR factor computation 0.1374952793121338
+Time in iteration 3 : 3971.055464744568
+Time in error computation 281.51045989990234
+Relative error in observed entries: 0.07377670447617493
+Relative test error after 3 iterations: 0.27546571000540865
+-----------------
+Iteration 4 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448388]
+
+  Level 3    [gradient batched mode: batch_size=74343]
+
+  Level 4    [gradient batched mode: batch_size=74325]
+
+  Level 5    [gradient batched mode: batch_size=448222]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2592.0017914772034
+Time in reconstruction computation 1262.096877336502
+Time in QR factor computation 0.126082181930542
+Time in iteration 4 : 3854.345242023468
+Time in error computation 278.007803440094
+Relative error in observed entries: 0.052224657392631026
+Relative test error after 4 iterations: 0.24410145021104576
+-----------------
+Iteration 5 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448326]
+
+  Level 3    [gradient batched mode: batch_size=74327]
+
+  Level 4    [gradient batched mode: batch_size=74334]
+
+  Level 5    [gradient batched mode: batch_size=448123]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2597.518269777298
+Time in reconstruction computation 1273.4763062000275
+Time in QR factor computation 0.1241450309753418
+Time in iteration 5 : 3871.239180088043
+Time in error computation 283.72857570648193
+Relative error in observed entries: 0.04059542097190147
+Relative test error after 5 iterations: 0.22607951079030864
+-----------------
+Iteration 6 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448305]
+
+  Level 3    [gradient batched mode: batch_size=74325]
+
+  Level 4    [gradient batched mode: batch_size=74317]
+
+  Level 5    [gradient batched mode: batch_size=448195]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2541.237414121628
+Time in reconstruction computation 1277.9807538986206
+Time in QR factor computation 0.13904213905334473
+Time in iteration 6 : 3819.477810382843
+Time in error computation 284.83736872673035
+Relative error in observed entries: 0.03349262394461798
+Relative test error after 6 iterations: 0.21450591270890804
+-----------------
+Iteration 7 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448232]
+
+  Level 3    [gradient batched mode: batch_size=74312]
+
+  Level 4    [gradient batched mode: batch_size=74284]
+
+  Level 5    [gradient batched mode: batch_size=448133]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2533.318436384201
+Time in reconstruction computation 1269.3266379833221
+Time in QR factor computation 0.1374661922454834
+Time in iteration 7 : 3802.90904045105
+Time in error computation 285.7216463088989
+Relative error in observed entries: 0.02874070658374612
+Relative test error after 7 iterations: 0.2064602209757903
+-----------------
+Iteration 8 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448172]
+
+  Level 3    [gradient batched mode: batch_size=74290]
+
+  Level 4    [gradient batched mode: batch_size=74301]
+
+  Level 5    [gradient batched mode: batch_size=448204]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2519.4433193206787
+Time in reconstruction computation 1272.78972697258
+Time in QR factor computation 0.11997818946838379
+Time in iteration 8 : 3792.474311351776
+Time in error computation 278.9750473499298
+Relative error in observed entries: 0.025337040030504954
+Relative test error after 8 iterations: 0.20053090476953492
+-----------------
+Iteration 9 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448130]
+
+  Level 3    [gradient batched mode: batch_size=74291]
+
+  Level 4    [gradient batched mode: batch_size=74287]
+
+  Level 5    [gradient batched mode: batch_size=448138]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2556.570286989212
+Time in reconstruction computation 1258.4889361858368
+Time in QR factor computation 0.12353038787841797
+Time in iteration 9 : 3815.3031549453735
+Time in error computation 281.04290652275085
+Relative error in observed entries: 0.02277793610081386
+Relative test error after 9 iterations: 0.19597831915626865
+-----------------
+Iteration 10 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448209]
+
+  Level 3    [gradient batched mode: batch_size=74307]
+
+  Level 4    [gradient batched mode: batch_size=74390]
+
+  Level 5    [gradient batched mode: batch_size=448609]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2560.722437143326
+Time in reconstruction computation 1260.7623100280762
+Time in QR factor computation 0.12386012077331543
+Time in iteration 10 : 3821.7323937416077
+Time in error computation 284.433310508728
+Relative error in observed entries: 0.020782512513650524
+Relative test error after 10 iterations: 0.19236940913766262
+-----------------
+Iteration 11 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448560]
+
+  Level 3    [gradient batched mode: batch_size=74367]
+
+  Level 4    [gradient batched mode: batch_size=74346]
+
+  Level 5    [gradient batched mode: batch_size=448627]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2594.8435068130493
+Time in reconstruction computation 1272.0111598968506
+Time in QR factor computation 0.1227731704711914
+Time in iteration 11 : 3867.100810289383
+Time in error computation 284.63317227363586
+Relative error in observed entries: 0.019183005245585298
+Relative test error after 11 iterations: 0.18944048632528868
+-----------------
+Iteration 12 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448662]
+
+  Level 3    [gradient batched mode: batch_size=74379]
+
+  Level 4    [gradient batched mode: batch_size=74351]
+
+  Level 5    [gradient batched mode: batch_size=448424]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2485.5501244068146
+Time in reconstruction computation 1262.7447979450226
+Time in QR factor computation 0.12037038803100586
+Time in iteration 12 : 3748.540455341339
+Time in error computation 281.413117647171
+Relative error in observed entries: 0.01787182348794633
+Relative test error after 12 iterations: 0.1870145996601753
+-----------------
+Iteration 13 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448503]
+
+  Level 3    [gradient batched mode: batch_size=74350]
+
+  Level 4    [gradient batched mode: batch_size=74314]
+
+  Level 5    [gradient batched mode: batch_size=448305]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2490.5924327373505
+Time in reconstruction computation 1258.0976049900055
+Time in QR factor computation 0.12229132652282715
+Time in iteration 13 : 3748.9350547790527
+Time in error computation 280.4494607448578
+Relative error in observed entries: 0.01677748078760597
+Relative test error after 13 iterations: 0.1849749972773743
+-----------------
+Iteration 14 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448189]
+
+  Level 3    [gradient batched mode: batch_size=74326]
+
+  Level 4    [gradient batched mode: batch_size=74315]
+
+  Level 5    [gradient batched mode: batch_size=448174]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2567.037368774414
+Time in reconstruction computation 1252.9591319561005
+Time in QR factor computation 0.12483096122741699
+Time in iteration 14 : 3820.231169939041
+Time in error computation 280.6557352542877
+Relative error in observed entries: 0.015850004770169356
+Relative test error after 14 iterations: 0.18323487809043104
+-----------------
+Iteration 15 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448235]
+
+  Level 3    [gradient batched mode: batch_size=74323]
+
+  Level 4    [gradient batched mode: batch_size=74367]
+
+  Level 5    [gradient batched mode: batch_size=448447]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2646.695058822632
+Time in reconstruction computation 1260.5050427913666
+Time in QR factor computation 0.1191103458404541
+Time in iteration 15 : 3907.4403274059296
+Time in error computation 278.80428528785706
+Relative error in observed entries: 0.01505387449824995
+Relative test error after 15 iterations: 0.18173509507003968
+-----------------
+Iteration 16 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448499]
+
+  Level 3    [gradient batched mode: batch_size=74359]
+
+  Level 4    [gradient batched mode: batch_size=74345]
+
+  Level 5    [gradient batched mode: batch_size=448632]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2539.3098742961884
+Time in reconstruction computation 1253.5561499595642
+Time in QR factor computation 0.12055063247680664
+Time in iteration 16 : 3793.1098988056183
+Time in error computation 276.9415831565857
+Relative error in observed entries: 0.01436280027322122
+Relative test error after 16 iterations: 0.18042749389889695
+-----------------
+Iteration 17 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448468]
+
+  Level 3    [gradient batched mode: batch_size=74356]
+
+  Level 4    [gradient batched mode: batch_size=74349]
+
+  Level 5    [gradient batched mode: batch_size=448351]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2492.921258687973
+Time in reconstruction computation 1257.910096168518
+Time in QR factor computation 0.12340712547302246
+Time in iteration 17 : 3751.0677750110626
+Time in error computation 283.43302059173584
+Relative error in observed entries: 0.013757179031564053
+Relative test error after 17 iterations: 0.17927921582354026
+-----------------
+Iteration 18 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=448426]
+
+  Level 3    [gradient batched mode: batch_size=73980]
+
+  Level 4    [gradient batched mode: batch_size=74015]
+
+  Level 5    [gradient batched mode: batch_size=446616]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2541.4222757816315
+Time in reconstruction computation 1265.6276907920837
+Time in QR factor computation 0.13136053085327148
+Time in iteration 18 : 3807.2933225631714
+Time in error computation 281.4859001636505
+Relative error in observed entries: 0.013221826415352944
+Relative test error after 18 iterations: 0.17826110215680582
+-----------------
+Iteration 19 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=447241]
+
+  Level 3    [gradient batched mode: batch_size=74159]
+
+  Level 4    [gradient batched mode: batch_size=74158]
+
+  Level 5    [gradient batched mode: batch_size=447413]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2521.6125853061676
+Time in reconstruction computation 1261.760638475418
+Time in QR factor computation 0.12235736846923828
+Time in iteration 19 : 3783.615005970001
+Time in error computation 282.80534291267395
+Relative error in observed entries: 0.01274504673523039
+Relative test error after 19 iterations: 0.17735367079515116
+-----------------
+Iteration 20 / 20
+  Level 0
+  Level 1
+  Level 2    [gradient batched mode: batch_size=447646]
+
+  Level 3    [gradient batched mode: batch_size=74217]
+
+  Level 4    [gradient batched mode: batch_size=74389]
+
+  Level 5    [gradient batched mode: batch_size=448504]
+
+  Level 6
+  Level 7
+  Level 8
+Time in gradient computation 2499.548115968704
+Time in reconstruction computation 1258.429880142212
+Time in QR factor computation 0.11597037315368652
+Time in iteration 20 : 3758.206759929657
+Time in error computation 279.71937322616577
+Relative error in observed entries: 0.01231742809786103
+Relative test error after 20 iterations: 0.17653814695941972
+-----------------
+--time for tensor train completion 85396.15633177757
